@@ -1,0 +1,395 @@
+import hmac
+import os
+import secrets
+import sqlite3
+import time
+from datetime import timedelta
+from functools import wraps
+from pathlib import Path
+
+import click
+from flask import Flask, abort, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
+from werkzeug.security import check_password_hash
+
+GOALS = {'essentials': 'Основы AI', 'work': 'AI для работы', 'agents': 'Агенты и автоматизация', 'build': 'Создание с AI'}
+
+
+def create_app(config=None):
+    app = Flask(__name__, instance_relative_config=True)
+    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    app.config.from_mapping(
+        DATABASE=os.environ.get('CLUB_DATABASE', str(Path(app.instance_path) / 'club.sqlite')),
+        SECRET_KEY=os.environ.get('CLUB_SECRET_KEY'),
+        SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax',
+        SESSION_COOKIE_SECURE=os.environ.get('CLUB_SECURE_COOKIE') == '1',
+        PERMANENT_SESSION_LIFETIME=timedelta(days=7), MAX_CONTENT_LENGTH=64 * 1024,
+    )
+    if config:
+        app.config.update(config)
+    if not app.config['SECRET_KEY']:
+        key_file = Path(app.instance_path) / 'session.key'
+        if not key_file.exists():
+            try:
+                fd = os.open(key_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(fd, 'w') as f:
+                    f.write(secrets.token_hex(32))
+            except FileExistsError:
+                pass
+        app.config['SECRET_KEY'] = key_file.read_text()
+
+    def db():
+        if 'db' not in g:
+            g.db = sqlite3.connect(app.config['DATABASE'], timeout=10)
+            g.db.row_factory = sqlite3.Row
+            g.db.execute('PRAGMA foreign_keys=ON')
+        return g.db
+
+    @app.teardown_appcontext
+    def close_db(_):
+        if 'db' in g:
+            g.db.close()
+
+    def query(sql, args=(), one=False):
+        rows = db().execute(sql, args).fetchall()
+        return (rows[0] if rows else None) if one else rows
+
+    def event(name, lesson_id=None):
+        allowed = {'lesson_started', 'lesson_completed', 'practice_saved', 'practice_submitted', 'help_requested', 'onboarding_completed'}
+        if name not in allowed:
+            raise ValueError('Unsupported event')
+        db().execute('INSERT OR IGNORE INTO events(user_id,name,lesson_id) VALUES(?,?,?)', (g.user['id'], name, lesson_id))
+
+    def require_user(fn):
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            if not g.user:
+                if request.path.startswith('/api/'):
+                    abort(401)
+                return redirect(url_for('login', next=request.path))
+            return fn(*args, **kwargs)
+        return wrapped
+
+    @app.before_request
+    def load_user():
+        g.user = query('SELECT * FROM users WHERE id=?', (session['user_id'],), True) if session.get('user_id') else None
+        session.setdefault('csrf', secrets.token_hex(32))
+        if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
+            token = request.headers.get('X-CSRF-Token') or request.form.get('csrf', '')
+            if not hmac.compare_digest(session['csrf'], token):
+                abort(400, 'Сессия формы устарела. Обновите страницу и повторите действие.')
+
+    @app.after_request
+    def headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['Referrer-Policy'] = 'same-origin'
+        response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; media-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+        if not request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'private, no-store'
+        return response
+
+    @app.context_processor
+    def shared():
+        return dict(user=g.user, csrf=session.get('csrf'), goals=GOALS, can_access=can_access)
+
+    def can_access(lesson):
+        return lesson['access'] == 'free' or bool(g.user and (g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')))
+
+    def get_course(course_id):
+        course = query("SELECT * FROM courses WHERE id=? AND status='published'", (course_id,), True)
+        if not course:
+            abort(404)
+        return course
+
+    def lesson_list(course_id):
+        return query('''SELECT l.id,l.title,l.minutes,l.access,l.video,l.module_id,m.title AS module_title,
+            COALESCE(p.completed,0) AS completed FROM lessons l JOIN modules m ON l.module_id=m.id
+            LEFT JOIN progress p ON p.lesson_id=l.id AND p.user_id=?
+            WHERE m.course_id=? AND l.status='published' ORDER BY m.position,l.position,l.id''',
+            (g.user['id'] if g.user else '', course_id))
+
+    def get_lesson(lesson_id, enforce=True):
+        row = query('''SELECT l.*,m.course_id,c.title AS course_title FROM lessons l
+            JOIN modules m ON l.module_id=m.id JOIN courses c ON m.course_id=c.id
+            WHERE l.id=? AND l.status='published' AND c.status='published' ''', (lesson_id,), True)
+        if not row:
+            abort(404)
+        if enforce and not can_access(row):
+            abort(403, 'Этот урок доступен участникам клуба. Можно вернуться к бесплатным урокам или обратиться за помощью по доступу.')
+        return row
+
+    def cards():
+        results = []
+        for c in query("SELECT * FROM courses WHERE status='published' ORDER BY id"):
+            lessons = lesson_list(c['id'])
+            results.append(dict(c) | dict(total=len(lessons), done=sum(l['completed'] for l in lessons),
+                minutes=sum(l['minutes'] for l in lessons), free=sum(l['access'] == 'free' for l in lessons)))
+        return results
+
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            email = request.form.get('email', '').strip().lower()[:254]
+            attempt = query('SELECT * FROM login_attempts WHERE identity=?', (email,), True)
+            now = int(time.time())
+            if attempt and attempt['failures'] >= 10 and now - attempt['window_start'] < 900:
+                abort(429, 'Слишком много попыток. Попробуйте через 15 минут.')
+            user = query('SELECT * FROM users WHERE email=?', (email,), True)
+            if not user or not check_password_hash(user['password_hash'], request.form.get('password', '')[:1024]):
+                with db():
+                    if not attempt or now - attempt['window_start'] >= 900:
+                        db().execute('INSERT OR REPLACE INTO login_attempts VALUES(?,1,?)', (email, now))
+                    else:
+                        db().execute('UPDATE login_attempts SET failures=failures+1 WHERE identity=?', (email,))
+                flash('Не удалось войти. Проверьте почту и пароль.', 'error')
+                return render_template('login.html'), 401
+            with db():
+                db().execute('DELETE FROM login_attempts WHERE identity=?', (email,))
+            session.clear()
+            session.update(user_id=user['id'], csrf=secrets.token_hex(32))
+            session.permanent = True
+            destination = request.args.get('next', '/')
+            if not destination.startswith('/') or destination.startswith('//') or '\\' in destination:
+                destination = '/'
+            return redirect(destination)
+        return render_template('login.html')
+
+    @app.post('/logout')
+    def logout():
+        session.clear()
+        return redirect(url_for('home'))
+
+    @app.get('/')
+    def home():
+        courses = cards()
+        goal = g.user['goal'] if g.user else 'essentials'
+        course = next((c for c in courses if c['goal'] == goal), courses[0] if courses else None)
+        next_lesson = None
+        if g.user:
+            recent = query('''SELECT p.lesson_id FROM progress p JOIN lessons l ON l.id=p.lesson_id
+                JOIN modules m ON l.module_id=m.id JOIN courses c ON c.id=m.course_id
+                WHERE p.user_id=? AND p.completed=0 AND l.status='published' AND c.status='published'
+                AND (l.access='free' OR ?='member') ORDER BY p.updated_at DESC LIMIT 1''', (g.user['id'], g.user['entitlement']), True)
+            if recent:
+                next_lesson = get_lesson(recent['lesson_id'])
+                course = next(c for c in courses if c['id'] == next_lesson['course_id'])
+        if not next_lesson and course:
+            next_lesson = next((l for l in lesson_list(course['id']) if not l['completed'] and can_access(l)), None)
+        saved = query('SELECT COUNT(*) n FROM practice WHERE user_id=?', (g.user['id'],), True)['n'] if g.user else 0
+        return render_template('home.html', courses=courses, course=course, next_lesson=next_lesson, saved=saved)
+
+    @app.get('/catalogue')
+    def catalogue():
+        q = request.args.get('q', '').strip()[:150].lower()
+        goal = request.args.get('goal', '')
+        level = request.args.get('level', '')
+        courses = [c for c in cards() if (not q or q in (c['title'] + c['description'] + c['tools']).lower())
+                   and (not goal or c['goal'] == goal) and (not level or c['level'] == level)]
+        return render_template('catalogue.html', courses=courses)
+
+    @app.get('/courses/<course_id>')
+    def course(course_id):
+        c = get_course(course_id)
+        lessons = lesson_list(course_id)
+        first = next((l for l in lessons if not l['completed'] and can_access(l)), None)
+        favourite = g.user and query('SELECT 1 FROM favourites WHERE user_id=? AND course_id=?', (g.user['id'], course_id), True)
+        return render_template('course.html', course=c, lessons=lessons, first=first, favourite=favourite)
+
+    @app.get('/lessons/<lesson_id>')
+    def lesson(lesson_id):
+        lesson = get_lesson(lesson_id)
+        progress = practice = None
+        if g.user:
+            with db():
+                inserted = db().execute('INSERT OR IGNORE INTO progress(user_id,lesson_id) VALUES(?,?)', (g.user['id'], lesson_id)).rowcount
+                if inserted:
+                    event('lesson_started', lesson_id)
+            progress = query('SELECT * FROM progress WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
+            practice = query('SELECT * FROM practice WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
+        lessons = lesson_list(lesson['course_id'])
+        index = next(i for i, l in enumerate(lessons) if l['id'] == lesson_id)
+        return render_template('lesson.html', lesson=lesson, lessons=lessons, progress=progress, practice=practice,
+            previous=lessons[index-1] if index else None, following=lessons[index+1] if index+1 < len(lessons) else None)
+
+    @app.get('/api/lessons/<lesson_id>')
+    def lesson_api(lesson_id):
+        return jsonify(dict(get_lesson(lesson_id)))
+
+    def payload():
+        if request.is_json:
+            value = request.get_json()
+            if not isinstance(value, dict):
+                abort(400)
+            return value
+        return request.form
+
+    def saved_response(lesson_id, message):
+        if request.is_json:
+            return jsonify(ok=True)
+        flash(message, 'success')
+        return redirect(url_for('lesson', lesson_id=lesson_id))
+
+    @app.post('/api/lessons/<lesson_id>/completion')
+    @require_user
+    def completion(lesson_id):
+        get_lesson(lesson_id)
+        value = payload().get('completed')
+        if value not in ('0', '1', False, True):
+            abort(400)
+        completed = int(value)
+        with db():
+            old = query('SELECT completed FROM progress WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
+            db().execute('''INSERT INTO progress(user_id,lesson_id,completed) VALUES(?,?,?)
+                ON CONFLICT(user_id,lesson_id) DO UPDATE SET completed=excluded.completed,updated_at=CURRENT_TIMESTAMP''', (g.user['id'], lesson_id, completed))
+            if completed and (not old or not old['completed']):
+                if not query("SELECT 1 FROM events WHERE user_id=? AND lesson_id=? AND name='lesson_completed'", (g.user['id'], lesson_id), True):
+                    event('lesson_completed', lesson_id)
+        return saved_response(lesson_id, 'Урок завершён. Прогресс сохранён.' if completed else 'Урок снова в работе.')
+
+    @app.route('/api/lessons/<lesson_id>/practice', methods=['GET', 'POST'])
+    @require_user
+    def practice_api(lesson_id):
+        lesson = get_lesson(lesson_id)
+        if not lesson['task']:
+            abort(404)
+        if request.method == 'GET':
+            row = query('SELECT body,status,updated_at FROM practice WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
+            return jsonify(dict(row) if row else None)
+        data = payload()
+        body, status = data.get('body'), data.get('status', 'draft')
+        if not isinstance(body, str) or not body.strip() or len(body) > 12000 or status not in ('draft', 'submitted'):
+            abort(400, 'Введите результат до 12 000 символов и выберите допустимый статус.')
+        with db():
+            old = query('SELECT body,status FROM practice WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
+            db().execute('''INSERT INTO practice(user_id,lesson_id,body,status) VALUES(?,?,?,?)
+                ON CONFLICT(user_id,lesson_id) DO UPDATE SET body=excluded.body,status=excluded.status,updated_at=CURRENT_TIMESTAMP''', (g.user['id'], lesson_id, body.strip(), status))
+            if not old or old['body'] != body.strip() or old['status'] != status:
+                event('practice_submitted' if status == 'submitted' else 'practice_saved', lesson_id)
+        return saved_response(lesson_id, 'Результат сохранён.' if status == 'submitted' else 'Черновик сохранён.')
+
+    @app.post('/api/lessons/<lesson_id>/video')
+    @require_user
+    def video_progress(lesson_id):
+        get_lesson(lesson_id)
+        value = payload().get('seconds')
+        if not isinstance(value, (int, float)) or not 0 <= value <= 86400:
+            abort(400)
+        with db():
+            db().execute('''INSERT INTO progress(user_id,lesson_id,video_seconds) VALUES(?,?,?)
+                ON CONFLICT(user_id,lesson_id) DO UPDATE SET video_seconds=excluded.video_seconds,updated_at=CURRENT_TIMESTAMP''', (g.user['id'], lesson_id, value))
+        return jsonify(ok=True)
+
+    @app.get('/lessons/<lesson_id>/resources/checklist.txt')
+    def resource(lesson_id):
+        lesson = get_lesson(lesson_id)
+        response = app.response_class(lesson['title'] + '\n\n' + (lesson['checklist'] or 'Проверьте ответ AI по независимому источнику.'), mimetype='text/plain')
+        response.headers['Content-Disposition'] = 'attachment; filename="practice-checklist.txt"'
+        return response
+
+    @app.get('/lessons/<lesson_id>/media')
+    def media(lesson_id):
+        lesson = get_lesson(lesson_id)
+        if lesson['video'] != 'fixture.webm':
+            abort(404, 'Видео пока недоступно. Используйте текст урока ниже.')
+        path = Path(app.instance_path) / 'media' / 'fixture.webm'
+        if not path.exists():
+            abort(404)
+        return send_file(path, mimetype='video/webm', conditional=True)
+
+    @app.post('/courses/<course_id>/favourite')
+    @require_user
+    def favourite(course_id):
+        get_course(course_id)
+        with db():
+            if request.form.get('saved') == '1':
+                db().execute('INSERT OR IGNORE INTO favourites VALUES(?,?)', (g.user['id'], course_id))
+            else:
+                db().execute('DELETE FROM favourites WHERE user_id=? AND course_id=?', (g.user['id'], course_id))
+        return redirect(url_for('course', course_id=course_id))
+
+    @app.route('/preferences', methods=['GET', 'POST'])
+    @require_user
+    def preferences():
+        if request.method == 'POST':
+            data = request.form
+            if data.get('goal') not in GOALS or data.get('experience') not in ('beginner', 'experienced') or data.get('weekly_goal') not in ('0', '1', '2', '3', '5'):
+                abort(400)
+            with db():
+                db().execute('UPDATE users SET goal=?,experience=?,weekly_goal=?,onboarding_done=1 WHERE id=?', (data['goal'], data['experience'], int(data['weekly_goal']), g.user['id']))
+                if not g.user['onboarding_done']:
+                    event('onboarding_completed')
+            flash('Настройки сохранены. Можно менять маршрут в любое время.', 'success')
+            return redirect(url_for('home'))
+        return render_template('preferences.html')
+
+    @app.post('/preferences/skip')
+    @require_user
+    def skip_preferences():
+        with db():
+            db().execute('UPDATE users SET onboarding_done=1 WHERE id=?', (g.user['id'],))
+        return redirect(url_for('home'))
+
+    @app.get('/profile')
+    @require_user
+    def profile():
+        practices = query('''SELECT p.*,l.title,m.course_id FROM practice p JOIN lessons l ON l.id=p.lesson_id
+            JOIN modules m ON m.id=l.module_id WHERE p.user_id=? ORDER BY p.updated_at DESC''', (g.user['id'],))
+        favourites = query('''SELECT c.* FROM favourites f JOIN courses c ON c.id=f.course_id
+            WHERE f.user_id=? AND c.status='published' ''', (g.user['id'],))
+        weekly = query("SELECT COUNT(*) n FROM events WHERE user_id=? AND name='lesson_completed' AND created_at>=datetime('now','-7 days')", (g.user['id'],), True)['n']
+        return render_template('profile.html', courses=cards(), practices=practices, favourites=favourites, weekly=weekly)
+
+    @app.route('/help', methods=['GET', 'POST'])
+    def help_page():
+        lesson_id = request.args.get('lesson') or None
+        lesson = get_lesson(lesson_id) if lesson_id else None
+        if request.method == 'POST':
+            if not g.user:
+                abort(401)
+            body = request.form.get('body', '').strip()
+            if not body or len(body) > 4000:
+                abort(400)
+            with db():
+                db().execute('INSERT INTO help_requests(user_id,lesson_id,body) VALUES(?,?,?)', (g.user['id'], lesson_id, body))
+                event('help_requested', lesson_id)
+            flash('Вопрос сохранён для администратора. Срок ответа пока не установлен.', 'success')
+            return redirect(url_for('help_page'))
+        tickets = query('SELECT * FROM help_requests WHERE user_id=? ORDER BY id DESC', (g.user['id'],)) if g.user else []
+        return render_template('help.html', lesson=lesson, tickets=tickets)
+
+    @app.get('/admin')
+    @require_user
+    def admin():
+        if g.user['role'] not in ('editor', 'admin'):
+            abort(403)
+        tickets = query('SELECT h.*,u.name,l.title FROM help_requests h JOIN users u ON u.id=h.user_id LEFT JOIN lessons l ON l.id=h.lesson_id ORDER BY h.id DESC')
+        return render_template('admin.html', tickets=tickets)
+
+    @app.get('/health')
+    def health():
+        db().execute('SELECT 1 FROM users LIMIT 1')
+        return jsonify(status='ok', schema=query('PRAGMA user_version', one=True)[0])
+
+    @app.errorhandler(400)
+    @app.errorhandler(401)
+    @app.errorhandler(403)
+    @app.errorhandler(404)
+    @app.errorhandler(413)
+    @app.errorhandler(429)
+    def error(err):
+        if request.path.startswith('/api/'):
+            return jsonify(error=err.name, message=err.description), err.code
+        return render_template('error.html', error=err), err.code
+
+    @app.cli.command('init-db')
+    def init_db():
+        db().executescript(Path(__file__).with_name('schema.sql').read_text())
+        click.echo('Schema ready (version 1).')
+
+    @app.cli.command('seed')
+    def seed():
+        from .seed import seed_database
+        seed_database(db())
+        click.echo('Synthetic content and isolated accounts seeded. Existing learner data preserved.')
+
+    return app

@@ -1,0 +1,14 @@
+[Unit]
+Description=AI Room Club independent staging
+After=network.target
+
+[Service]
+WorkingDirectory=/home/claude/ai-room
+ExecStart=/home/claude/ai-room/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8098 'club:create_app()'
+Restart=on-failure
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
