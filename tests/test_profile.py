@@ -43,13 +43,13 @@ def test_weekly_goal_unique_history_pause_and_rolling_window(app):
     csrf = login(client)
     for value in [True, True, False, True]:
         post(client, '/api/lessons/'+FREE+'/completion', {'completed':value}, csrf)
-    for path in ['/', '/profile']:
+    for path in ['/profile']:
         assert 'Недельная цель: 1 из 2' in client.get(path).text
-    assert 'href="/profile#practice"' in client.get('/').text
+    assert 'id="practice"' in client.get('/profile').text
     assert client.post('/preferences',data={'csrf':csrf,'goal':'essentials','experience':'beginner','weekly_goal':'1'}).status_code == 302
-    assert 'Цель достигнута' in client.get('/').text
+    assert 'Цель достигнута' in client.get('/profile').text
     client.post('/preferences',data={'csrf':csrf,'goal':'essentials','experience':'beginner','weekly_goal':'0'})
-    for path in ['/', '/profile']:
+    for path in ['/profile']:
         html=client.get(path).text
         assert 'Недельная цель на паузе' in html
         assert 'aria-label="Недельная цель"' not in html

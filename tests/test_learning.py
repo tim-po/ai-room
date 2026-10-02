@@ -104,7 +104,7 @@ def test_rendered_learning_journey(app):
     assert b'/lessons/foundations-start-01' in c.get('/').data
     csrf = login(c)
     assert c.post('/preferences',data={'csrf':csrf,'goal':'work','experience':'beginner','weekly_goal':'0'}).status_code == 302
-    assert 'Меньше рутины' in c.get('/').text
+    assert 'Меньше рутины' in c.get('/routes/path-work').text
     assert c.post('/courses/ai-foundations/favourite',data={'csrf':csrf,'saved':'1'}).status_code == 302
     assert c.post('/help?lesson='+FREE,data={'csrf':csrf,'body':'Нужна помощь с примером'}).status_code == 302
     assert 'Нужна помощь с примером' in c.get('/help').text

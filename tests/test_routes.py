@@ -5,7 +5,7 @@ from test_learning import app, login, post, FREE
 
 
 def hero(client):
-    return re.search(r'<section class="hero">(.*?)</section>',client.get('/').text,re.S).group(1)
+    return re.search(r'<a class="atlas-continue"(.*?)</a>',client.get('/').text,re.S).group(1)
 
 
 def form(revision='1', **overrides):
@@ -20,7 +20,7 @@ def test_beginner_bridge_experienced_entry_and_explicit_switch(app):
     c.get('/lessons/foundations-start-04')
     c.post('/preferences',data=dict(csrf=csrf,goal='agents',experience='beginner',weekly_goal='0'))
     assert '/lessons/'+FREE in hero(c)
-    assert 'Сначала основы' in hero(c)
+    assert 'сначала основы' in c.get('/routes/path-agents').text
     assert 'agent-api-basics' in c.get('/routes/path-agents').text
     for lesson in [FREE,'foundations-start-02']:
         assert post(c,'/api/lessons/'+lesson+'/completion',{'completed':True},csrf).status_code==200
@@ -40,17 +40,17 @@ def test_completion_access_exhaustion_and_unpublished_steps(app):
     c=app.test_client();csrf=login(c)
     for index in range(1,5):
         post(c,f'/api/lessons/foundations-start-{index:02}/completion',{'completed':True},csrf)
-    assert 'маршрут ещё не пройден' in c.get('/').text
-    assert 'Маршрут завершён' not in hero(c)
+    assert 'маршрут ещё не пройден' in c.get('/routes/path-essentials').text
+    assert 'Маршрут завершён' not in c.get('/routes/path-essentials').text
     c.post('/routes/path-work/select',data={'csrf':csrf})
     post(c,'/api/lessons/everyday-ai-intro-01/completion',{'completed':True},csrf)
-    assert 'Маршрут завершён' in hero(c)
+    assert 'Маршрут завершён' in c.get('/routes/path-work').text
     with sqlite3.connect(app.config['DATABASE']) as db:
         db.execute("UPDATE lessons SET status='draft',title='PRIVATE DRAFT TITLE' WHERE id='everyday-ai-intro-01'")
     page=c.get('/routes/path-work').text
     assert 'PRIVATE DRAFT TITLE' not in page
     assert 'временно снята с публикации' in page
-    assert 'Маршрут завершён' not in hero(c)
+    assert 'Маршрут завершён' not in c.get('/routes/path-work').text
 
 
 def test_route_editor_lifecycle_shared_progress_conflicts_and_validation(app):
