@@ -42,3 +42,36 @@ CREATE TABLE IF NOT EXISTS skill_diagnostics (
  revision INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
  UNIQUE(user_id,request_id)
 );
+
+CREATE TABLE IF NOT EXISTS skill_practical_tasks (
+ id TEXT PRIMARY KEY, form_id TEXT NOT NULL REFERENCES skill_forms(id),
+ objective_id TEXT NOT NULL, objective_revision INTEGER NOT NULL,
+ body TEXT NOT NULL, reviewed_by TEXT NOT NULL REFERENCES users(id),
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS skill_practical_submissions (
+ id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), task_id TEXT NOT NULL REFERENCES skill_practical_tasks(id),
+ request_id TEXT NOT NULL, body TEXT NOT NULL DEFAULT '',
+ state TEXT NOT NULL DEFAULT 'draft' CHECK(state IN ('draft','submitted')),
+ revision INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE(user_id,request_id)
+);
+CREATE TABLE IF NOT EXISTS skill_practical_decisions (
+ submission_id TEXT PRIMARY KEY REFERENCES skill_practical_submissions(id),
+ reviewer_id TEXT NOT NULL REFERENCES users(id), body TEXT NOT NULL,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS skill_application_evidence (
+ user_id TEXT NOT NULL REFERENCES users(id), objective_id TEXT NOT NULL, objective_revision INTEGER NOT NULL,
+ submission_id TEXT NOT NULL REFERENCES skill_practical_decisions(submission_id),
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(user_id,objective_id,objective_revision)
+);
+CREATE TRIGGER IF NOT EXISTS practical_tasks_immutable BEFORE UPDATE ON skill_practical_tasks BEGIN SELECT RAISE(ABORT,'immutable practical rubric'); END;
+CREATE TRIGGER IF NOT EXISTS practical_tasks_retain BEFORE DELETE ON skill_practical_tasks BEGIN SELECT RAISE(ABORT,'retain practical rubric'); END;
+CREATE TRIGGER IF NOT EXISTS practical_submissions_frozen BEFORE UPDATE ON skill_practical_submissions WHEN OLD.state='submitted' BEGIN SELECT RAISE(ABORT,'submitted work is frozen'); END;
+CREATE TRIGGER IF NOT EXISTS practical_submissions_retain BEFORE DELETE ON skill_practical_submissions BEGIN SELECT RAISE(ABORT,'retain practical submission'); END;
+CREATE TRIGGER IF NOT EXISTS practical_decisions_immutable BEFORE UPDATE ON skill_practical_decisions BEGIN SELECT RAISE(ABORT,'immutable practical decision'); END;
+CREATE TRIGGER IF NOT EXISTS practical_decisions_retain BEFORE DELETE ON skill_practical_decisions BEGIN SELECT RAISE(ABORT,'retain practical decision'); END;
+CREATE TRIGGER IF NOT EXISTS application_evidence_immutable BEFORE UPDATE ON skill_application_evidence BEGIN SELECT RAISE(ABORT,'immutable application evidence'); END;
+CREATE TRIGGER IF NOT EXISTS application_evidence_retain BEFORE DELETE ON skill_application_evidence BEGIN SELECT RAISE(ABORT,'retain application evidence'); END;
