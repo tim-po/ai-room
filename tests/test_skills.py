@@ -208,3 +208,100 @@ def test_duplicate_observations_rejected_and_public_metadata_safe(skills):
     metadata = skills.test_client().get('/api/skills/nodes/basic-ai.verification').json['assessments'][0]
     assert metadata['item_count'] == 2 and metadata['credit_kind'] == 'understanding'
     assert not {'body','items','answer','rationale','lineage_id'} & metadata.keys()
+
+
+def test_lost_response_new_device_pending_recovery_and_completion(skills):
+    install_form(skills)
+    c = skills.test_client(); csrf = login(c)
+    payload = {'assessment_id':'test-form-v1', 'request_id':'lost-response'}
+    first = post(c, '/api/skills/challenges', payload, csrf).json
+    restarted = create_app(dict(TESTING=True, DATABASE=skills.config['DATABASE'], SECRET_KEY='new-device')).test_client()
+    new_csrf = login(restarted)
+    detail = restarted.get('/api/skills/nodes/basic-ai.verification').json
+    pending = detail['assessments'][0]['pending_attempt']
+    assert pending['id'] == first['id']
+    assert not pending['access_required']
+    assert detail['pending_attempts'] == [pending]
+    assert restarted.get('/api/skills/me').json['pending_attempts'] == [pending]
+    assert restarted.get(pending['resume_url']).json['id'] == first['id']
+    retry = post(restarted, '/api/skills/challenges', dict(payload, request_id='new-device-request'), new_csrf)
+    assert retry.status_code == 409
+    assert retry.json['code'] == 'pending_attempt' and retry.json['pending_attempt'] == pending
+    assert post(restarted, '/api/skills/challenges', payload, new_csrf).json == first
+    other = skills.test_client(); login(other, 'member')
+    for client in (other, skills.test_client()):
+        node = client.get('/api/skills/nodes/basic-ai.verification').json
+        assert node['pending_attempts'] == [] and node['assessments'][0]['pending_attempt'] is None
+        assert first['id'] not in json.dumps(node)
+    assert not {'items', 'body', 'answer', 'rationale', 'user_id', 'request_id'} & pending.keys()
+    post(restarted, pending['resume_url']+'/submit', {'answers':{'q1':'check','q2':'check'}}, new_csrf)
+    assert restarted.get('/api/skills/nodes/basic-ai.verification').json['pending_attempts'] == []
+    me = restarted.get('/api/skills/me').json
+    assert me['pending_attempts'] == []
+    assert me['foundation_coverage']['eligible'] == 4
+    assert me['foundation_coverage']['verified_coverage'] == .25
+    assert me['coverage'][0]['verified_coverage'] == 1/26
+    evidence = me['evidence'][0]
+    assert evidence['attempt_id'] == first['id'] and evidence['assessment_id'] == 'test-form-v1'
+    assert evidence['review']['status'] == 'editor_reviewed'
+    assert evidence['review']['reviewed_at'] and evidence['assessed_at']
+    assert evidence['sources'] == [i['source'] for i in fixture_form()['items']]
+    assert evidence['score_rule'] == graph_fixture()['score_rule']
+
+
+def test_pending_recovery_after_release_retirement_and_cross_form_overlap(skills):
+    install_form(skills)
+    c = skills.test_client(); csrf = login(c)
+    attempt = post(c, '/api/skills/challenges', {'assessment_id':'test-form-v1','request_id':'historical-request'}, csrf).json
+    tree = graph_fixture(); tree['release'] = 'replacement'
+    with sqlite3.connect(skills.config['DATABASE']) as db:
+        db.execute('INSERT INTO skill_releases(id,body) VALUES(?,?)', (tree['release'], json.dumps(tree)))
+        db.execute('UPDATE skill_active SET release_id=?', (tree['release'],))
+    detail = c.get('/api/skills/nodes/basic-ai.verification').json
+    assert detail['assessments'] == []
+    assert detail['pending_attempts'][0]['id'] == attempt['id']
+    publish_copy(skills, fixture_form(), tree=tree)
+    detail = c.get('/api/skills/nodes/basic-ai.verification').json
+    assert detail['assessments'][0]['id'] == 'copy'
+    assert detail['assessments'][0]['pending_attempt']['assessment_id'] == 'test-form-v1'
+    conflict = post(c, '/api/skills/challenges', {'assessment_id':'copy','request_id':'replacement-request'}, csrf)
+    assert conflict.status_code == 409 and conflict.json['pending_attempt']['id'] == attempt['id']
+
+
+def test_foundation_coverage_recursive_shared_descendants(skills):
+    tree = graph_fixture(); tree['release'] = 'deep-foundation'
+    tree['nodes'] += [dict(id='foundation-group', kind='category', revision=1),
+                      dict(id='foundation-deep', kind='category', revision=1),
+                      dict(id='foundation-leaf', kind='ability', revision=1)]
+    tree['edges'] += [dict(source=a, target=b, type='contains') for a,b in
+                      [('basic-ai','foundation-group'), ('foundation-group','foundation-deep'),
+                       ('foundation-deep','foundation-leaf'), ('foundation-group','foundation-leaf'),
+                       ('foundation-deep','foundation-group')]]
+    with sqlite3.connect(skills.config['DATABASE']) as db:
+        db.execute('INSERT INTO skill_releases(id,body) VALUES(?,?)', (tree['release'], json.dumps(tree)))
+        db.execute('UPDATE skill_active SET release_id=?', (tree['release'],))
+    c = skills.test_client(); login(c)
+    me = c.get('/api/skills/me').json
+    assert me['foundation_coverage']['eligible'] == 5
+    assert me['foundation_coverage']['unknown'] == 5
+    assert me['coverage'][0]['eligible'] == 27
+    assert next(r for r in me['coverage'] if r['node_id']=='foundation-group')['eligible'] == 1
+
+
+def test_revoked_pending_and_evidence_do_not_bypass_source_access(skills):
+    with sqlite3.connect(skills.config['DATABASE']) as db:
+        reviewer = db.execute("SELECT id FROM users WHERE role='admin'").fetchone()[0]
+        publish_reviewed_form(db, id='member-source', graph=graph_fixture(), node_id='basic-ai.verification',
+                              form=fixture_form(), access='member', reviewer=reviewer)
+    c = skills.test_client(); csrf = login(c, 'member')
+    first = post(c, '/api/skills/challenges', {'assessment_id':'member-source', 'request_id':'paid-verified'}, csrf).json
+    post(c, '/api/skills/challenges/'+first['id']+'/submit', {'answers':{'q1':'check','q2':'check'}}, csrf)
+    second = post(c, '/api/skills/challenges', {'assessment_id':'member-source', 'request_id':'paid-pending'}, csrf).json
+    with sqlite3.connect(skills.config['DATABASE']) as db:
+        db.execute("UPDATE users SET entitlement='revoked' WHERE email='member@example.test'")
+    me = c.get('/api/skills/me').json
+    assert me['evidence'][0]['source_access_required'] and me['evidence'][0]['sources'] == []
+    assert me['foundation_coverage']['verified'] == 1
+    pending = me['pending_attempts'][0]
+    assert pending['id'] == second['id'] and pending['access_required']
+    assert c.get(pending['resume_url']).status_code == 403

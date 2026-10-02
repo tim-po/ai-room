@@ -102,6 +102,21 @@ def register_skills(app, db, query, require_user):
         if form['access'] != 'free' and g.user['entitlement'] != 'member' and g.user['role'] not in ('editor', 'admin'):
             abort(403)
 
+    def pending_attempts():
+        if not g.user:
+            return []
+        return query('''SELECT a.id,a.form_id,a.mode,a.created_at,f.node_id,f.release_id,f.access,f.body
+                        FROM skill_attempts a JOIN skill_forms f ON f.id=a.form_id
+                        LEFT JOIN skill_results r ON r.attempt_id=a.id
+                        WHERE a.user_id=? AND r.attempt_id IS NULL
+                        ORDER BY a.created_at,a.id''', (g.user['id'],))
+
+    def pending_metadata(row):
+        accessible = row['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')
+        return dict(id=row['id'], assessment_id=row['form_id'], node_id=row['node_id'],
+                    mode=row['mode'], release=row['release_id'], created_at=row['created_at'],
+                    resume_url='/api/skills/challenges/' + row['id'], access_required=not accessible)
+
     @app.cli.command('init-skills')
     def init_skills():
         database = Path(app.config['DATABASE'])
@@ -186,6 +201,16 @@ def register_skills(app, db, query, require_user):
     def skill_me():
         tree = graph()
         evidence = [dict(r) for r in query('SELECT * FROM skill_evidence WHERE user_id=?', (g.user['id'],))]
+        for entry in evidence:
+            row = query('''SELECT f.id,f.body,f.access,f.created_at AS reviewed_at,r.created_at AS assessed_at
+                           FROM skill_attempts a JOIN skill_forms f ON f.id=a.form_id
+                           JOIN skill_results r ON r.attempt_id=a.id WHERE a.id=?''', (entry['attempt_id'],), True)
+            body = json.loads(row['body'])
+            accessible = row['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')
+            entry.update(assessment_id=row['id'], score_rule=body['score_rule'], assessed_at=row['assessed_at'],
+                         review=dict(status='editor_reviewed', reviewed_at=row['reviewed_at']),
+                         source_access_required=not accessible,
+                         sources=[i['source'] for i in body['items'] if i['objective_id'] == entry['objective_id']] if accessible else [])
         verified = {(r['objective_id'], r['objective_revision']) for r in evidence}
         assessed = set(verified)
         for row in query('''SELECT f.body, sr.body AS release_body FROM skill_results r
@@ -199,20 +224,32 @@ def register_skills(app, db, query, require_user):
             if e['type'] == 'contains':
                 children.setdefault(e['source'], []).append(e['target'])
         nodes = {n['id']: n for n in tree['nodes']}
-        def abilities(id):
-            result = {id} if nodes[id]['kind'] == 'ability' else set()
-            for child in children.get(id, []):
-                result.update(abilities(child))
+        def abilities(id, foundation_only=False):
+            # Deduplicate shared descendants; tolerate cycles in historical imports.
+            result, seen, todo = set(), set(), [id]
+            while todo:
+                current = todo.pop()
+                if current in seen or current not in nodes:
+                    continue
+                seen.add(current)
+                if foundation_only and nodes[current]['kind'] == 'branch':
+                    continue
+                if nodes[current]['kind'] == 'ability':
+                    result.add(current)
+                todo.extend(children.get(current, []))
             return result
-        coverage = []
-        for n in tree['nodes']:
-            eligible = abilities(n['id'])
+
+        def summarize(node_id, eligible):
             count = sum((id, nodes[id]['revision']) in verified for id in eligible)
             tested = sum((id, nodes[id]['revision']) in assessed for id in eligible)
-            coverage.append(dict(node_id=n['id'], eligible=len(eligible), assessed=tested, verified=count,
-                                 unknown=len(eligible) - tested,
-                                 verified_coverage=count / len(eligible) if eligible else None, application_verified=0))
+            return dict(node_id=node_id, eligible=len(eligible), assessed=tested, verified=count,
+                        unknown=len(eligible) - tested,
+                        verified_coverage=count / len(eligible) if eligible else None, application_verified=0)
+
+        coverage = [summarize(n['id'], abilities(n['id'])) for n in tree['nodes']]
+        foundation = dict(summarize(tree['root'], abilities(tree['root'], foundation_only=True)), scope='foundation_only')
         return jsonify(release=tree['release'], score_rule=tree['score_rule'], coverage=coverage, evidence=evidence,
+                       foundation_coverage=foundation, pending_attempts=[pending_metadata(r) for r in pending_attempts()],
                        interests=[r['node_id'] for r in query('SELECT node_id FROM skill_interests WHERE user_id=? ORDER BY node_id', (g.user['id'],))],
                        explorations=[dict(r) for r in query('SELECT node_id,updated_at FROM skill_explorations WHERE user_id=? ORDER BY updated_at DESC,node_id', (g.user['id'],))])
 
@@ -229,12 +266,18 @@ def register_skills(app, db, query, require_user):
             if lesson:
                 content.append(dict(lesson, source=mapping['source'], role=mapping['role']))
         forms = []
+        pending = pending_attempts()
+        relevant = {r['id']: r for r in pending if r['node_id'] == node_id}
         for row in query('SELECT id,access,body FROM skill_forms WHERE node_id=? AND release_id=?', (node_id, tree['release'])):
             body = json.loads(row['body'])
+            overlaps = [r for r in pending if form_exposure_keys(body) & form_exposure_keys(json.loads(r['body']))]
+            relevant.update({r['id']: r for r in overlaps})
             forms.append(dict(id=row['id'], access=row['access'], item_count=len(body['items']),
                               objective_ids=sorted(body['thresholds']['objectives']),
-                              availability='active', credit_kind='understanding'))
+                              availability='active', credit_kind='understanding',
+                              pending_attempt=pending_metadata(overlaps[0]) if overlaps else None))
         return jsonify(node=node, content=content, assessments=forms,
+                       pending_attempts=[pending_metadata(r) for r in relevant.values()],
                        readiness=[e for e in tree['edges'] if e['type'] == 'prerequisite' and e['target'] == node_id])
 
     def attempt_dto(attempt):
@@ -269,12 +312,13 @@ def register_skills(app, db, query, require_user):
                 abort(409, 'Эта версия проверки снята. Откройте актуальную проверку темы.')
             keys = form_exposure_keys(json.loads(form['body']))
             exposed = False
-            for prior in query('''SELECT f.body, r.attempt_id AS finished FROM skill_attempts a
+            for prior in query('''SELECT a.id,a.form_id,a.mode,a.created_at,f.node_id,f.release_id,f.access,f.body, r.attempt_id AS finished FROM skill_attempts a
                                   JOIN skill_forms f ON f.id=a.form_id
                                   LEFT JOIN skill_results r ON r.attempt_id=a.id WHERE a.user_id=?''', (g.user['id'],)):
                 if keys & form_exposure_keys(json.loads(prior['body'])):
                     if not prior['finished']:
-                        abort(409, 'Сначала завершите начатую попытку с этими вопросами.')
+                        return jsonify(error='Сначала завершите начатую попытку с этими вопросами.',
+                                       code='pending_attempt', pending_attempt=pending_metadata(prior)), 409
                     exposed = True
             # Any overlap conservatively makes the whole form practice-only.
             id, mode = str(uuid.uuid4()), 'practice' if exposed else 'certification'

@@ -70,3 +70,42 @@ This is a conservative integrity policy: partial overlap downgrades the whole fo
 it does not try to certify using the remaining subset. An entirely independent
 reviewed form can still certify. No semantic calibration or live AI acceptance is
 claimed by these deterministic checks.
+
+### Pending attempts and evidence recovery
+
+Node details now return `pending_attempts` for the authenticated owner, including
+unfinished attempts pinned to retired releases. Each active `assessments[]` entry
+has `pending_attempt` (or null), pointing to the oldest unfinished attempt whose
+questions overlap that form. A copied/replacement form therefore offers Continue
+without allowing another certification attempt. Anonymous and other-user node
+responses never contain someone else's attempt metadata.
+
+Pending metadata fields: `id`, `assessment_id`, `node_id`, `mode`, `release`,
+`created_at`, `resume_url` (the API GET endpoint), `access_required`. The UI can
+route `id` to its challenge screen. When `access_required` is true, offer access
+recovery; the resume endpoint continues to enforce membership. This DTO contains
+no questions, answers, request IDs, or user identifiers.
+
+A new POST `/api/skills/challenges` that conflicts with an unfinished overlapping
+attempt returns HTTP 409 JSON with `code: "pending_attempt"`, a Russian `error`,
+and `pending_attempt` metadata. A retry with the original request ID retains the
+existing idempotent response. Completing the attempt removes it from all pending
+lists. GET `/api/skills/me` also returns all owner pending attempts, allowing
+recovery even when the original node is absent from a newer graph release.
+
+`/api/skills/me.foundation_coverage` uses the same counters as `coverage[]`, with
+`scope: "foundation_only"`: start at the shared root and traverse containment,
+stopping before major branch nodes. Root `coverage[]` retains whole-tree coverage
+for backward compatibility. Arbitrary-depth traversal deduplicates shared
+abilities and terminates on cycles. Unknown still means no assessment evidence;
+no applied credit is introduced.
+
+Earned `evidence[]` adds `assessment_id`, immutable form `score_rule`, `assessed_at`,
+`review: {status: "editor_reviewed", reviewed_at}`, and `sources` from the pinned
+reviewed form, retaining whatever edition/hash/paragraph/timestamp references
+that source actually supplies. Missing edition/hash fields are not invented.
+`source_access_required` hides those sources if membership was revoked, while
+retaining the earned skill summary. `reviewed_at` is the form's publication time;
+this API does not claim a separate recorded editorial review event.
+
+No migration is needed for these additive response fields.
