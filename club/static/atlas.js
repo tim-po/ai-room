@@ -99,6 +99,8 @@
       if(atlas.dataset.authenticated==='yes') { try {await api('/api/skills/explore',{node_id:id});}catch(e){body.append(el('p','Не удалось сохранить исследование. '+e.message));} }
       else {const a=el('a','Войти и сохранять своё развитие →');a.href='/login';body.append(a);}
     }catch(e){body.replaceChildren(el('p',e.message));const retry=el('button','Повторить');retry.onclick=()=>choose(id,false);body.append(retry);}
+    // Loaded content can extend the document beyond the initial loading panel.
+    if(seq===detailSequence && document.activeElement===heading && matchMedia('(max-width:800px)').matches) panel.scrollIntoView({block:'start',behavior:'instant'});
   }
   document.querySelector('#map-view').onclick=()=>view(false);
   document.querySelector('#list-view').onclick=()=>view(true);

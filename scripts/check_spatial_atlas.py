@@ -43,9 +43,15 @@ with tempfile.TemporaryDirectory() as tmp:
             node=page.locator('#skill-map [data-node="coding.mobile"]').bounding_box();detail=page.locator('#node-detail').bounding_box()
             assert node['x']+node['width']<=detail['x'] or node['y']+node['height']<=detail['y']
             if width < 801:
+                for _ in range(30):
+                    if page.locator('#detail-title').bounding_box()['y'] < 350: break
+                    page.wait_for_timeout(100)
+                assert page.locator('#detail-title').bounding_box()['y'] < 350, (width,page.locator('#detail-title').bounding_box(),page.evaluate('document.activeElement.outerHTML'))
                 title=page.locator('#detail-title').bounding_box()
                 nav=page.locator('.club-header nav').bounding_box()
                 assert 0 <= title['y'] < title['y']+title['height'] < nav['y'], (width,title,nav)
+                action=page.locator('#node-detail a[href^="/lessons/"]').first.bounding_box()
+                assert action['y']+action['height'] < nav['y'], (width,action,nav)
                 assert page.locator('#node-detail').evaluate('(e)=>e.scrollHeight===e.clientHeight')
             page.screenshot(path=str(out/f'focus-{width}.png'),full_page=True)
             page.screenshot(path=str(out/f'focus-viewport-{width}.png'))
