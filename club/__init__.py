@@ -394,7 +394,7 @@ def create_app(config=None):
                 event('onboarding_completed')
             if data['goal'] != g.user['goal'] or data['experience'] != g.user['experience']:
                 choose_route_goal(data['goal'])
-            flash('Настройки сохранены. Можно менять маршрут в любое время.', 'success')
+            flash('Настройки сохранены. Исследуйте любые направления.', 'success')
             return redirect(url_for('home'))
         return render_template('preferences.html')
 
