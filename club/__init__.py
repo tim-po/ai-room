@@ -182,10 +182,23 @@ def create_app(config=None):
             if recent:
                 next_lesson = get_lesson(recent['lesson_id'])
                 course = next(c for c in courses if c['id'] == next_lesson['course_id'])
-        if not next_lesson and course:
+        route = selected_route()
+        if route:
+            floor = query('SELECT visit_floor FROM route_selections WHERE user_id=?', (g.user['id'],), True) if g.user else None
+            recent_order = query('SELECT visit_order FROM lesson_visits WHERE user_id=? AND lesson_id=?',
+                                 (g.user['id'], next_lesson['id']), True) if g.user and next_lesson else None
+            if next_lesson and (next_lesson['id'] not in {step['id'] for step in route['steps']} or
+                                (floor and recent_order and recent_order['visit_order'] <= floor['visit_floor'])):
+                next_lesson = None
+            if not next_lesson:
+                next_lesson = route['next_step']
+            if next_lesson:
+                course = next(c for c in courses if c['id'] == next_lesson['course_id'])
+        elif not next_lesson and course:
             next_lesson = next((l for l in lesson_list(course['id']) if not l['completed'] and can_access(l)), None)
+        started = bool(g.user and next_lesson and query('SELECT 1 FROM lesson_visits WHERE user_id=? AND lesson_id=?', (g.user['id'],next_lesson['id']), True))
         saved = query('SELECT COUNT(*) n FROM practice WHERE user_id=?', (g.user['id'],), True)['n'] if g.user else 0
-        return render_template('home.html', courses=courses, course=course, next_lesson=next_lesson, saved=saved)
+        return render_template('home.html', courses=courses, course=course, next_lesson=next_lesson, saved=saved, route=route, started=started)
 
     @app.get('/catalogue')
     def catalogue():
@@ -350,6 +363,8 @@ def create_app(config=None):
                 # Dismissing the prompt is not completing the questionnaire.
                 # The partial unique index makes retries and later preference edits idempotent.
                 event('onboarding_completed')
+            if data['goal'] != g.user['goal'] or data['experience'] != g.user['experience']:
+                choose_route_goal(data['goal'])
             flash('Настройки сохранены. Можно менять маршрут в любое время.', 'success')
             return redirect(url_for('home'))
         return render_template('preferences.html')
@@ -369,7 +384,7 @@ def create_app(config=None):
         favourites = query('''SELECT c.* FROM favourites f JOIN courses c ON c.id=f.course_id
             WHERE f.user_id=? AND c.status='published' ''', (g.user['id'],))
         weekly = query("SELECT COUNT(*) n FROM events WHERE user_id=? AND name='lesson_completed' AND created_at>=datetime('now','-7 days')", (g.user['id'],), True)['n']
-        return render_template('profile.html', courses=cards(), practices=practices, favourites=favourites, weekly=weekly)
+        return render_template('profile.html', courses=cards(), practices=practices, favourites=favourites, weekly=weekly, route=selected_route())
 
     @app.route('/help', methods=['GET', 'POST'])
     def help_page():
@@ -417,13 +432,23 @@ def create_app(config=None):
     @app.cli.command('init-db')
     def init_db():
         db().executescript(Path(__file__).with_name('schema.sql').read_text())
-        click.echo('Schema ready (version 4).')
+        click.echo('Schema ready (version 5).')
+
+    @app.cli.command('seed-routes')
+    def seed_route_fixtures():
+        from .route_seed import seed_routes
+        with db():
+            seed_routes(db())
+        click.echo('Initial synthetic routes added; existing compositions preserved.')
 
     @app.cli.command('seed')
     def seed():
         from .seed import seed_database
         seed_database(db())
         click.echo('Synthetic content and isolated accounts seeded. Existing learner data preserved.')
+
+    from .routes import register_routes
+    selected_route, choose_route_goal = register_routes(app, db, query, can_access, require_user, GOALS)
 
     from .authoring import register_authoring
     register_authoring(app, db, query, GOALS)

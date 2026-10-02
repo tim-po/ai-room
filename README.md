@@ -6,7 +6,7 @@ Independent Russian-first application in the previously empty `tim-po/ai-room` r
 
 Course discovery and combined search/goal/level filters; 4 synthetic courses including 37 lessons in 9 modules; readable text and an original generated silent video fixture; server-protected lesson text/media/downloads; explicit completion/uncompletion; drafts and saved practice results; server-persisted video position; favourites; preference editing and optional weekly goal; profile; contextual help tickets and role-protected administrator inbox. Anonymous free lessons work. Separate seeded free/member/revoked/editor/admin accounts use hashed passwords. Cookies are signed, HTTP-only, SameSite Lax; mutations require CSRF. No credentials ship in static assets.
 
-This is a first slice, **not an accepted complete release**. Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone materials, route composition, registration/recovery are not implemented. Content is explicitly synthetic. Independent usability/product/functional reviews and HTTPS deployment remain required.
+This is a first slice, **not an accepted complete release**. Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone materials and registration/recovery are not implemented. Ordered shared-lesson routes and protected route authoring are implemented. Content is explicitly synthetic. Independent usability/product/functional reviews and HTTPS deployment remain required.
 
 ## Setup
 
@@ -39,7 +39,7 @@ The local installed instance has privately generated credentials at `instance/re
 
 ## Data and operations
 
-`club/schema.sql` sets schema `user_version=4`. Version 2 adds the resources table without changing existing IDs or learning records. `init-db` creates missing schema objects without deleting rows. Run it before `seed`. The seed uses stable IDs and `INSERT OR IGNORE`: re-running preserves existing content and user work. Never use the seed as a content-update migration. Future schema changes need explicit versioned migrations and backup/restore testing. SQLite foreign keys are enabled for every application connection. Progress and practice are keyed by user + stable lesson ID. User IDs are derived from the signed session, not accepted from client payloads.
+`club/schema.sql` sets schema `user_version=5`. Version 2 adds the resources table without changing existing IDs or learning records. `init-db` creates missing schema objects without deleting rows. Run it before `seed`. The seed uses stable IDs and `INSERT OR IGNORE`: re-running preserves existing content and user work. Never use the seed as a content-update migration. Future schema changes need explicit versioned migrations and backup/restore testing. SQLite foreign keys are enabled for every application connection. Progress and practice are keyed by user + stable lesson ID. User IDs are derived from the signed session, not accepted from client payloads.
 
 Back up using SQLite's backup API or the `sqlite3 .backup` command before upgrades. Also retain the private signing key and `instance/media`. Stop writers before restoring a backup. Reordering future modules/lessons must retain their IDs; do not reset the database to deploy code. Schema v2 has no destructive downgrade operation; the earlier code ignores the additional resources table. Roll back by stopping the service, restoring its pre-upgrade SQLite backup and matching code commit, then starting the service and checking `/health` and a persisted learning flow.
 
@@ -108,3 +108,48 @@ activity before restoring. This turn does not change running staging services.
 regressions and verifies same-second reopen order, background writes, a recreated
 application/second device, unpublished-lesson fallback, skip/edit retries and
 repeatable v3 migration. These checks do not replace independent browser acceptance.
+
+
+## Shared learning routes (schema v5)
+
+`/routes` lists published routes; `/routes/<id>` shows the ordered milestones,
+current completion, free/member access and recommendation explanation. The four
+seeded routes reuse stable lesson IDs and existing progress/practice. Foundations
+contains the full 37-lesson curriculum. The other goals add two introductory
+foundation steps for beginners; agents adds a synthetic API safety introduction.
+Experienced learners skip the marked introductory steps, with an explicit
+explanation and link to change experience. They may still browse those lessons.
+
+An explicit route switch persists in `route_selections`, preserves all learning
+records, and starts recommendation from the new route rather than an old visit.
+Subsequent permitted unfinished visits within the selected route resume normally.
+Preference changes select the matching published route. Completion is derived
+from current route composition and actual lesson completion; all-free-finished is
+not full-route-completed. Withdrawn steps show an availability warning without
+exposing draft titles. Adding a lesson increases the unfinished count without
+resetting prior work. Route completion is not a claim of demonstrated skill.
+
+Editors and admins use `/admin/routes`: create a draft, choose ordered existing
+lessons, mark optional beginner-only introductions, preview, publish, unpublish or
+archive. A published route requires published lessons/courses and at least one
+main step. Duplicate/unknown lesson IDs are rejected. Reordering uses select rows;
+empty rows remove route references only. Three empty rows are added after each
+save; at most 100 steps are supported. Revision checks reject stale saves. All
+mutations require role authorization and CSRF. Preview never records progress.
+The editor uses the existing offline/error feedback and retains unsaved fields.
+
+Upgrade v4 → v5: stop the local `ai-room` service; back up SQLite, media and signing
+key; deploy this source; run `flask --app club init-db` using `.venv/bin/python -m`,
+then `flask --app club seed-routes` to add the initial routes to the already seeded
+synthetic content. No password is needed for the route-only seed; it never changes
+accounts or existing route compositions. Restart and check `/health` (schema 5),
+`/routes`, prior saved work and `/admin/routes`. Fresh setup still uses full `seed`.
+Rollback: stop writers and restore the matching code/database backup; retain any
+post-upgrade work separately before restoring an older database. Never reset the
+shared database to upgrade.
+
+Verification: 19 integration tests cover routes plus previous regressions;
+`scripts/check_routes_browser.py` creates an isolated temporary database and HTTP
+server for responsive route/home/profile/editor views, beginner next-step,
+explicit switch, offline save retry and keyboard disclosure. Evidence output is
+controlled by `CLUB_EVIDENCE_DIR`. Independent final-build acceptance remains open.

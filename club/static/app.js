@@ -29,7 +29,7 @@ for (const form of document.querySelectorAll('[data-dirty-form]')) {
     status.textContent = 'Сохраняем…';
     try {
       const options = editor
-        ? {method:'POST', body:new FormData(form)}
+        ? {method:'POST', headers:{'X-Editor-Save':'1'}, body:new FormData(form)}
         : {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':token},body:JSON.stringify(data)};
       const response = await fetch(form.action, options);
       if (!response.ok) {

@@ -74,4 +74,19 @@ DELETE FROM events WHERE name='onboarding_completed' AND id NOT IN (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS unique_onboarding_completion
 ON events(user_id) WHERE name='onboarding_completed';
-PRAGMA user_version = 4;
+CREATE TABLE IF NOT EXISTS learning_routes (
+ id TEXT PRIMARY KEY, title TEXT NOT NULL, goal TEXT NOT NULL, outcome TEXT NOT NULL,
+ explanation TEXT NOT NULL, owner TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'draft'
+ CHECK(status IN ('draft','published','archived')), revision INTEGER NOT NULL DEFAULT 1,
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS route_steps (
+ route_id TEXT NOT NULL REFERENCES learning_routes(id), lesson_id TEXT NOT NULL REFERENCES lessons(id),
+ position INTEGER NOT NULL, beginner_only INTEGER NOT NULL DEFAULT 0 CHECK(beginner_only IN (0,1)),
+ PRIMARY KEY(route_id,lesson_id)
+);
+CREATE TABLE IF NOT EXISTS route_selections (
+ user_id TEXT PRIMARY KEY REFERENCES users(id), route_id TEXT NOT NULL REFERENCES learning_routes(id),
+ visit_floor INTEGER NOT NULL DEFAULT 0
+);
+PRAGMA user_version = 5;
