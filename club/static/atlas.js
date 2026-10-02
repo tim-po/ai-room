@@ -15,7 +15,7 @@
   };
   function el(tag, text, cls) { const e = document.createElement(tag); if(text) e.textContent = text; if(cls) e.className = cls; return e; }
   async function api(url, body) {
-    const r = await fetch(url, body ? {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify(body)} : {});
+    const r = await fetch(url, body ? {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify(body)} : {}).catch(()=>{throw new Error("Нет связи с сервером. Повторите попытку.");});
     if(!r.ok) throw new Error(r.status === 401 ? 'Войдите, чтобы сохранять исследованные навыки.' : 'Не удалось загрузить данные. Повторите попытку.');
     return r.json();
   }
@@ -26,7 +26,9 @@
     if(art[node.id]) { const icon=el('span',null,'branch-art'); icon.innerHTML=`<svg viewBox="0 0 80 66" aria-hidden="true">${art[node.id]}</svg>`; b.append(icon); }
     b.append(el('strong',node.title));
     const coverage=me.coverage.find(c=>c.node_id===node.id);
-    b.append(el('small',coverage?.verified ? `✓ Подтверждено: ${coverage.verified} из ${coverage.eligible}` : node.kind==='ability' ? '◯ Ещё не проверено' : node.kind==='root' ? 'Общая основа' : 'Открыть направление →'));
+    b.classList.toggle('is-verified',Boolean(coverage?.verified));
+    b.classList.toggle('is-applied',Boolean(coverage?.application_verified));
+    b.append(el('small',coverage?.verified ? `✓ Подтверждено: ${coverage.verified} из ${coverage.eligible}` : node.kind==='ability' ? '◯ Нет проверки' : node.kind==='root' ? 'Общая основа' : 'Раздел →'));
     b.onclick=()=>choose(node.id); return b;
   }
   function render() {
@@ -53,7 +55,7 @@
     const positions=new Map();
     // A bounded local neighbourhood: the centre and every direct sibling remain readable.
     positions.set(focus,{x:50,y:48});
-    ids.forEach((id,i)=>{const angle=-Math.PI/2+i*2*Math.PI/ids.length;positions.set(id,{x:50+36*Math.cos(angle),y:48+34*Math.sin(angle)});});
+    ids.forEach((id,i)=>{const angle=-Math.PI/2+i*2*Math.PI/ids.length;positions.set(id,{x:50+(innerWidth<=800?29:32)*Math.cos(angle),y:48+34*Math.sin(angle)});});
     for(const id of ids){const pos=positions.get(id);const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',`M 500 288 Q ${pos.x*10} 288 ${pos.x*10} ${pos.y*6}`);svg.append(path);}
     for(const [id,pos] of positions){const node=button(names.get(id));node.style.left=pos.x+'%';node.style.top=pos.y+'%';node.classList.add('spatial-node');if(id===focus)node.classList.add('focus-node');stage.append(node);}
     stage.addEventListener('keydown',e=>{
@@ -68,7 +70,7 @@
     if(descendants.length){const disclosure=el('details');disclosure.open=id===graph.root || selected===id || selected?.startsWith(id+'.');const summary=el('summary',node.title);disclosure.append(summary,button(node));const ul=el('ul');for(const child of descendants)appendList(ul,child);disclosure.append(ul);li.append(disclosure);}
     else li.append(button(node));container.append(li);
   }
-  function close() { detailSequence++; panel.hidden=true; document.querySelector(`#skill-map [data-node="${selected}"]`)?.focus({preventScroll:true}); }
+  function close(updateUrl=true) { if(updateUrl){const u=new URL(location);u.searchParams.delete('node');history.replaceState({},'',u);} detailSequence++; panel.hidden=true; document.querySelector(`#skill-map [data-node="${selected}"]`)?.focus({preventScroll:true}); }
   async function choose(id, push=true) {
     selected=id; panel.hidden=false; if(push) { const u=new URL(location);u.searchParams.set('node',id);history.pushState({node:id},'',u); } render();
     const seq=++detailSequence; panel.hidden=false; panel.replaceChildren();
@@ -80,12 +82,19 @@
       body.replaceChildren(el('p',data.node.kind==='ability' ? 'Подтвердите этот навык заданием или начните с учебных материалов.' : 'Исследуйте навыки этого направления. Другие ветки всегда остаются открыты.'));
       const coverage=me.coverage.find(c=>c.node_id===id);
       body.append(el('p',coverage?.verified ? `Подтверждено заданием: ${coverage.verified} из ${coverage.eligible}` : 'Пока не проверено','evidence-label'));
-      for(const edge of data.readiness)body.append(el('p',`Будет полезно: ${names.get(edge.source)?.title}. Это рекомендация, не ограничение.`));
+      if(data.readiness.length){const ready=el('details');ready.append(el('summary','Что поможет начать'));for(const edge of data.readiness)ready.append(el('p',`Будет полезно: ${names.get(edge.source)?.title}. Это рекомендация, не ограничение.`));body.append(ready);}
       if((children.get(id)||[]).length){const more=el('details');more.append(el('summary','Навыки этого раздела'));for(const child of children.get(id))more.append(button(names.get(child)));body.append(more);}
       if(data.content.length) for(const lesson of data.content){const a=el('a',`${lesson.title} · ${lesson.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/lessons/'+encodeURIComponent(lesson.id);body.append(a);}
-      else body.append(el('p','Материалы для этого навыка ещё готовятся.','detail-muted'));
-      for(const assessment of data.assessments){const a=el('a',`Уже знаю тему → ${assessment.item_count} задания · ${assessment.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/challenges?'+new URLSearchParams({node:id,assessment:assessment.id});body.append(a);}
-      if(!data.assessments.length) body.append(el('p','Проверка знаний появится после редакторской проверки заданий.','detail-muted'));
+      else if(!(children.get(id)||[]).length) body.append(el('p','Материалы для этого навыка ещё готовятся.','detail-muted'));
+      for(const pending of data.pending_attempts||[]){const a=el('a','Продолжить начатую проверку →','resource-link');a.href='/challenges?'+new URLSearchParams({node:pending.node_id,attempt:pending.id});body.append(a);}
+      for(const assessment of data.assessments.filter(a=>!a.pending_attempt)){const a=el('a',`Уже знаю тему → ${assessment.item_count} задания · ${assessment.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/challenges?'+new URLSearchParams({node:id,assessment:assessment.id});body.append(a);}
+      if(!data.assessments.length && !(children.get(id)||[]).length) body.append(el('p','Проверка знаний появится после редакторской проверки заданий.','detail-muted'));
+      if((children.get(id)||[]).length){
+        const descendants=[];function collect(parent){for(const child of children.get(parent)||[]){if(names.get(child).kind==='ability')descendants.push(child);collect(child);}}collect(id);
+        const related=await Promise.all(descendants.slice(0,12).map(child=>api('/api/skills/nodes/'+encodeURIComponent(child))));if(seq!==detailSequence)return;
+        const available=related.filter(d=>d.content.length||d.assessments.length).slice(0,3);
+        if(available.length){const section=el('section');section.append(el('h3','Начать с навыка'));for(const d of available){const group=el('div');group.append(el('strong',d.node.title));if(d.content[0]){const a=el('a','Изучить →','resource-link');a.href='/lessons/'+encodeURIComponent(d.content[0].id);group.append(a);}if(d.assessments[0]){const a=el('a','Проверить понимание →','resource-link');a.href='/challenges?'+new URLSearchParams({node:d.node.id,assessment:d.assessments[0].id});group.append(a);}section.append(group);}body.append(section);}
+      }
       if(atlas.dataset.authenticated==='yes') { try {await api('/api/skills/explore',{node_id:id});}catch(e){body.append(el('p','Не удалось сохранить исследование. '+e.message));} }
       else {const a=el('a','Войти и сохранять своё развитие →');a.href='/login';body.append(a);}
     }catch(e){body.replaceChildren(el('p',e.message));const retry=el('button','Повторить');retry.onclick=()=>choose(id,false);body.append(retry);}
@@ -95,7 +104,7 @@
   function view(value){list=value;document.querySelector('#map-view').setAttribute('aria-pressed',String(!value));document.querySelector('#list-view').setAttribute('aria-pressed',String(value));render();}
   document.querySelector('#map-reset').onclick=()=>{selected=null;search.value='';close();history.pushState({},'',location.pathname);render();};
   search.oninput=()=>{close();render();};document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
-  window.addEventListener('popstate',()=>{const id=new URL(location).searchParams.get('node');if(names.has(id))choose(id,false);else{selected=null;close();render();}});
+  window.addEventListener('popstate',()=>{const id=new URL(location).searchParams.get('node');if(names.has(id))choose(id,false);else{selected=null;close(false);render();}});
   async function load(){try{graph=await api('/api/skills/graph');for(const n of graph.nodes)names.set(n.id,n);for(const e of graph.edges.filter(e=>e.type==='contains')){children.set(e.source,[...(children.get(e.source)||[]),e.target]);parents.set(e.target,e.source);}if(atlas.dataset.authenticated==='yes')me=await api('/api/skills/me');render();const id=new URL(location).searchParams.get('node');if(names.has(id))choose(id,false);}catch(e){status.textContent=e.message;const retry=el('button','Повторить загрузку');retry.onclick=load;map.replaceChildren(retry);}}
   load();
 })();

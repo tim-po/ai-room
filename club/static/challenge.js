@@ -6,8 +6,9 @@
   let attempt, detail, requestId=crypto.randomUUID();
   const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
   async function api(url,value){
-    const response=await fetch(url,value ? {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify(value)}:{});
+    const response=await fetch(url,value ? {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify(value)}:{}).catch(()=>{throw new Error('Нет связи с сервером. Повторите попытку; ваши ответы остаются в форме.');});
     const data=await response.json();
+    if(response.status===409 && data.pending_attempt)return api(data.pending_attempt.resume_url);
     if(!response.ok)throw new Error(response.status===401 ? 'Сессия завершена. Войдите снова и откройте эту ссылку.' : response.status===403 ? 'Эта проверка доступна участникам с действующим доступом.' : data.message || 'Не удалось открыть проверку. Вернитесь к навыку и попробуйте ещё раз.');
     return data;
   }
@@ -61,6 +62,7 @@
       if(!node||!assessment)throw new Error('Выберите проверку на карте навыков.');
       if(!detail)throw new Error('Не удалось загрузить навык.');
       const form=detail.assessments.find(a=>a.id===assessment);if(!form)throw new Error('Проверка обновилась. Вернитесь к навыку и откройте актуальную версию.');
+      if(form.pending_attempt){showAttempt(await api(form.pending_attempt.resume_url));return;}
       document.querySelector('#challenge-title').textContent=detail.node.title;
       status.textContent=`${form.item_count} задания · ${form.access==='free'?'Бесплатно':'Для участников'}`;
       body.replaceChildren(el('p','Можно подтвердить понимание темы, не отмечая урок просмотренным. После отправки вы увидите разбор и ссылки на источники. Повтор знакомых заданий доступен как тренировка.'));

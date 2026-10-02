@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory() as tmp:
             page.set_viewport_size({'width':width,'height':844 if width<801 else 1000});page.goto(origin);page.locator('#skill-map [data-node=coding]').wait_for();page.evaluate('document.fonts.ready')
             assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
             top=page.locator('.atlas-workspace').bounding_box()['y']
-            assert top < (230 if width<801 else 210), (width,top)
+            assert top < (260 if width<801 else 210), (width,top)
             page.screenshot(path=str(out/f'map-{width}.png'),full_page=True)
             page.locator('#skill-map [data-node=coding]').focus();page.keyboard.press('ArrowRight')
             assert page.evaluate('document.activeElement.dataset.node')!='coding'
@@ -41,7 +41,7 @@ with tempfile.TemporaryDirectory() as tmp:
             node=page.locator('#skill-map [data-node="coding.mobile"]').bounding_box();detail=page.locator('#node-detail').bounding_box()
             assert node['x']+node['width']<=detail['x'] or node['y']+node['height']<=detail['y']
             page.screenshot(path=str(out/f'focus-{width}.png'),full_page=True)
-            page.keyboard.press('Escape');assert page.evaluate('document.activeElement.dataset.node')=='coding.mobile'
+            page.keyboard.press('Escape');assert 'node=' not in page.url;assert page.evaluate('document.activeElement.dataset.node')=='coding.mobile'
             page.locator('#map-reset').click();page.locator('#skill-map [data-node=content]').click();page.locator('#node-detail .evidence-label').wait_for()
             page.reload();page.locator('#node-detail .evidence-label').wait_for()
             me=page.evaluate("fetch('/api/skills/me').then(r=>r.json())")

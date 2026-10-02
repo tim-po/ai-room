@@ -36,6 +36,8 @@ with tempfile.TemporaryDirectory() as tmp:
             page.goto(origin+'/?node='+case['objective']);page.get_by_role('link',name='Уже знаю тему',exact=False).click()
             page.get_by_role('button',name='Начать проверку').click();page.locator('.challenge-question').first.wait_for()
             saved_url=page.url;assert 'attempt=' in saved_url
+            context=browser.new_context();other=context.new_page();login(other)
+            other.goto(origin+'/?node='+case['objective']);other.get_by_role('link',name='Продолжить начатую проверку').click();other.locator('.challenge-question').first.wait_for();context.close()
             page.reload();page.locator('.challenge-question').first.wait_for()
             assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
             page.screenshot(path=str(out/f'questions-{width}.png'),full_page=True)
@@ -50,12 +52,15 @@ with tempfile.TemporaryDirectory() as tmp:
             if width==390:
                 page.route('**/api/skills/challenges/*/submit',lambda route:route.abort())
                 page.get_by_role('button',name='Проверить ответы').click()
-                page.get_by_role('alert').filter(has_text='Failed to fetch').wait_for()
+                page.get_by_role('alert').filter(has_text='Нет связи с сервером').wait_for()
                 assert page.locator('input:checked').count()==3
                 page.unroute('**/api/skills/challenges/*/submit')
             page.get_by_role('button',name='Проверить ответы').focus();page.keyboard.press('Enter');page.get_by_text('Результат сохранён',exact=True).wait_for()
             page.get_by_role('heading',name='Есть темы для повторения' if width==1440 else 'Понимание подтверждено',exact=True).wait_for()
             assert page.locator('.challenge-feedback a').count()==3
+            if width==390:
+                page.goto(origin+'/profile');page.locator('#character-branches .character-branch').first.wait_for();assert '<' not in page.title();page.screenshot(path=str(out/'character-earned.png'),full_page=True)
+                page.goto(origin+'/?node='+case['objective']);page.locator('#skill-map .is-verified').first.wait_for();page.screenshot(path=str(out/'map-earned.png'),full_page=True);page.goto(saved_url)
             page.reload();page.get_by_text('Результат сохранён',exact=True).wait_for()
             assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
             page.screenshot(path=str(out/f'result-{width}.png'),full_page=True)
