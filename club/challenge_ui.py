@@ -24,3 +24,10 @@ def register_challenge_ui(app, require_user):
         if g.user['role'] not in ('editor', 'admin'):
             abort(403)
         return render_template('practical.html', review=True)
+
+    @app.get('/admin/tree')
+    @require_user
+    def graph_review_workspace():
+        if g.user['role'] not in ('editor', 'admin'):
+            abort(403)
+        return render_template('graph_review.html')
