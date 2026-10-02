@@ -14,6 +14,7 @@ from pathlib import Path
 
 import click
 from .form_lifecycle import lifecycle, register_form_lifecycle
+from .release_bindings import available_forms, form_available, carry_forms
 from flask import abort, g, jsonify, request
 
 
@@ -140,6 +141,11 @@ def register_skills(app, db, query, require_user):
         from .skill_seed import seed_graph
         with db():
             seed_graph(db())
+            # Backfill only previously approved structural transitions. The
+            # immutable event records supply reviewer and transition authority.
+            for event in query("SELECT * FROM skill_graph_events WHERE action IN ('activate','rollback') ORDER BY id"):
+                target = json.loads(query('SELECT body FROM skill_releases WHERE id=?', (event['to_release'],), True)['body'])
+                carry_forms(db(), query, event['from_release'], target, event['actor_id'])
         click.echo('Competency tables and graph ready; baseline backup: ' + str(backup))
 
     @app.cli.command('install-skill-examples')
@@ -287,7 +293,9 @@ def register_skills(app, db, query, require_user):
         forms = []
         pending = pending_attempts()
         relevant = {r['id']: r for r in pending if r['node_id'] == node_id}
-        for row in query('SELECT id,access,body FROM skill_forms WHERE node_id=? AND release_id=?', (node_id, tree['release'])):
+        for row in available_forms(query, tree['release']):
+            if row['node_id'] != node_id:
+                continue
             if lifecycle(query, row['id'])['status'] != 'active':
                 continue
             body = json.loads(row['body'])
@@ -330,8 +338,8 @@ def register_skills(app, db, query, require_user):
             form_access(form)
             if lifecycle(query, form['id'])['status'] != 'active':
                 return jsonify(error='Проверка снята с публикации.', lifecycle=lifecycle(query, form['id'])), 409
-            # New attempts require the active release; pinned attempts can finish.
-            if form['release_id'] != tree['release']:
+            # New attempts require an active release binding; pinned attempts can finish.
+            if not form_available(query, form, tree['release']):
                 abort(409, 'Эта версия проверки снята. Откройте актуальную проверку темы.')
             keys = form_exposure_keys(json.loads(form['body']))
             exposed = False

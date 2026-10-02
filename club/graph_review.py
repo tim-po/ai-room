@@ -3,6 +3,7 @@ import json
 import re
 import uuid
 from flask import abort, g, jsonify
+from .release_bindings import carry_forms, availability_impact
 
 
 def validate_graph(candidate, baseline):
@@ -123,6 +124,8 @@ def register_graph_review(app, db, query, require_user, graph, data):
         edition = query('SELECT body,note FROM skill_graph_editions WHERE proposal_id=? AND revision=?', (row['id'],row['revision']), one=True)
         value.update(graph=json.loads(edition['body']), note=edition['note'], source=json.loads(row['source']))
         value['diff'] = graph_diff(release(row['base_release']), value['graph'])
+        value['diff']['availability'] = availability_impact(query, row['base_release'], value['graph'])
+        value['rollback_availability'] = availability_impact(query, row['id'], release(row['base_release'])) if row['state'] == 'active' else None
         value['stale'] = graph()['release'] != row['base_release']
         value['editions'] = [dict(e) for e in query('SELECT revision,note,editor_id FROM skill_graph_editions WHERE proposal_id=? ORDER BY revision', (row['id'],))]
         return value
@@ -233,10 +236,12 @@ def register_graph_review(app, db, query, require_user, graph, data):
                 if candidate['nodes'] == release(active)['nodes'] and candidate['edges'] == release(active)['edges']:
                     abort(400, 'No structural changes to activate')
                 db().execute('INSERT INTO skill_releases(id,body) VALUES(?,?)', (id,json.dumps(candidate,ensure_ascii=False)))
+                carry_forms(db(), query, active, candidate, g.user['id'])
                 db().execute('UPDATE skill_active SET release_id=? WHERE singleton=1', (id,))
             elif action == 'rollback':
                 if active != id:
                     abort(409, 'A later edition is active; review its changes first')
+                carry_forms(db(), query, active, release(row['base_release']), g.user['id'])
                 db().execute('UPDATE skill_active SET release_id=? WHERE singleton=1', (row['base_release'],))
             state = {'activate':'active','reject':'rejected','rollback':'rolled_back'}[action]
             db().execute('UPDATE skill_graph_proposals SET state=? WHERE id=?', (state,id))

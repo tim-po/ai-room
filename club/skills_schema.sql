@@ -107,3 +107,14 @@ CREATE TABLE IF NOT EXISTS skill_form_withdrawals (
 );
 CREATE TRIGGER IF NOT EXISTS form_withdrawals_immutable BEFORE UPDATE ON skill_form_withdrawals BEGIN SELECT RAISE(ABORT,'immutable form withdrawal'); END;
 CREATE TRIGGER IF NOT EXISTS form_withdrawals_retain BEFORE DELETE ON skill_form_withdrawals BEGIN SELECT RAISE(ABORT,'retain form withdrawal'); END;
+
+-- An explicitly reviewed release can use an unchanged form without cloning it.
+CREATE TABLE IF NOT EXISTS skill_form_bindings (
+ release_id TEXT NOT NULL REFERENCES skill_releases(id),
+ form_id TEXT NOT NULL REFERENCES skill_forms(id),
+ from_release TEXT NOT NULL REFERENCES skill_releases(id),
+ reviewed_by TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(release_id,form_id)
+);
+CREATE TRIGGER IF NOT EXISTS form_bindings_immutable BEFORE UPDATE ON skill_form_bindings BEGIN SELECT RAISE(ABORT,'immutable release binding'); END;
+CREATE TRIGGER IF NOT EXISTS form_bindings_retain BEFORE DELETE ON skill_form_bindings BEGIN SELECT RAISE(ABORT,'retain release binding'); END;

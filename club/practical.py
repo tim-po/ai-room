@@ -3,6 +3,7 @@ import json
 import re
 import uuid
 from .form_lifecycle import lifecycle
+from .release_bindings import available_forms, form_available
 
 from flask import abort, g, jsonify, request
 
@@ -63,8 +64,8 @@ def register_practical(app, db, query, require_user, graph, data):
         with db():
             db().execute('BEGIN IMMEDIATE')
             tree = graph()
-            form = query('SELECT * FROM skill_forms WHERE id=? AND release_id=?', (value['assessment_id'], tree['release']), True)
-            if not form or lifecycle(query, form['id'])['status'] != 'active':
+            form = query('SELECT * FROM skill_forms WHERE id=?', (value['assessment_id'],), True)
+            if not form or not form_available(query, form, tree['release']) or lifecycle(query, form['id'])['status'] != 'active':
                 abort(409)
             objective = next((n for n in tree['nodes'] if n['id'] == value['objective_id'] and n['kind'] == 'ability'), None)
             sources = [i['source'] for i in json.loads(form['body'])['items'] if i['objective_id'] == value['objective_id']]
@@ -81,8 +82,9 @@ def register_practical(app, db, query, require_user, graph, data):
     @require_user
     def list_tasks():
         rows = query('''SELECT t.*,f.release_id,f.access FROM skill_practical_tasks t JOIN skill_forms f ON f.id=t.form_id
-                        WHERE f.release_id=? ORDER BY t.created_at,t.id''', (graph()['release'],))
-        return jsonify(tasks=[task_dto(r) for r in rows if (not request.args.get('node_id') or r['objective_id'] == request.args['node_id'])
+                        ORDER BY t.created_at,t.id''')
+        available = {f['id'] for f in available_forms(query, graph()['release'])}
+        return jsonify(tasks=[task_dto(r) for r in rows if r['form_id'] in available and (not request.args.get('node_id') or r['objective_id'] == request.args['node_id'])
                               and lifecycle(query, r['form_id'])['status'] == 'active'
                               and (r['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin'))])
 
@@ -105,7 +107,7 @@ def register_practical(app, db, query, require_user, graph, data):
                 if prior['task_id'] != rubric['id']:
                     abort(409)
                 return jsonify(submission_dto(prior))
-            if rubric['release_id'] != graph()['release'] or lifecycle(query, rubric['form_id'])['status'] != 'active':
+            if not form_available(query, dict(id=rubric['form_id'], release_id=rubric['release_id']), graph()['release']) or lifecycle(query, rubric['form_id'])['status'] != 'active':
                 abort(409)
             pending = query('''SELECT s.id FROM skill_practical_submissions s LEFT JOIN skill_practical_decisions d ON d.submission_id=s.id
                                WHERE s.user_id=? AND s.task_id=? AND d.submission_id IS NULL''', (g.user['id'], rubric['id']), True)

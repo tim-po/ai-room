@@ -9,6 +9,7 @@ from pathlib import Path
 
 from flask import abort, g, jsonify, request, send_file
 from .skills import validate_form, publish_reviewed_form
+from .release_bindings import carry_forms
 from .teaching_provider import OpenAIProvider, ProviderError
 
 DRAFT_CONTRACT = '''Object fields: schema_version=1, title:string, summary:string, body:string,
@@ -407,14 +408,8 @@ def register_drafts(app, db, query, editor, owned_job, dto):
             for outcome in draft['outcomes']:
                 graph['mappings'].append(dict(objective_id=outcome['objective_id'],lesson_id=identity,role='teaches',source=outcome['refs'][0]))
             db().execute('INSERT INTO skill_releases(id,body) VALUES(?,?)',(release,json.dumps(graph,ensure_ascii=False)))
-            # This edition changes mappings only. Carry forward the reviewed forms
-            # so publishing one lesson does not retire unrelated challenges.
-            for previous in query('SELECT * FROM skill_forms WHERE release_id=?',(previous_release,)):
-                prior = json.loads(previous['body'])
-                prior['inherited_from_form'] = previous['id']
-                copied_id = release+'-retained-'+hashlib.sha256(previous['id'].encode()).hexdigest()[:16]
-                publish_reviewed_form(db(),id=copied_id,graph=graph,node_id=previous['node_id'],
-                                      form=prior,access=previous['access'],reviewer=previous['reviewed_by'])
+            # Keep identities and attached practical rubrics across mapping edits.
+            carry_forms(db(), query, previous_release, graph, g.user['id'])
             for index, form in enumerate(draft['assessments']):
                 form = copy.deepcopy(form)
                 for item in form['items']:

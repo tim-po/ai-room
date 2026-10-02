@@ -1,6 +1,7 @@
 """Permanent per-form withdrawal, independent of active graph edition."""
 import json
 from flask import abort, g, jsonify
+from .release_bindings import form_available
 
 
 def lifecycle(query, form_id):
@@ -41,7 +42,7 @@ def register_form_lifecycle(app, db, query, require_user, graph, data):
                 return jsonify(lifecycle(query, form_id))
             if replacement is not None:
                 target = query('SELECT * FROM skill_forms WHERE id=?', (replacement,), True)
-                if not target or replacement == form_id or target['release_id'] != graph()['release'] or lifecycle(query, replacement)['status'] != 'active':
+                if not target or replacement == form_id or not form_available(query, target, graph()['release']) or lifecycle(query, replacement)['status'] != 'active':
                     abort(409, 'Требуется действующая проверенная форма замены.')
                 old = json.loads(form['body'])['thresholds']['objectives']
                 new = json.loads(target['body'])['thresholds']['objectives']

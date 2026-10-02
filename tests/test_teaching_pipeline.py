@@ -187,9 +187,9 @@ def test_deferred_package_and_mapping_release_preserves_reviewed_forms(pipeline)
     with sqlite3.connect(pipeline.config['DATABASE']) as db:
         release=json.loads(db.execute('SELECT body FROM skill_releases WHERE id=?',(second_pub['release_id'],)).fetchone()[0])
         assert 'future.node' not in {n['id'] for n in release['nodes']}
-        forms=db.execute('SELECT id,body FROM skill_forms WHERE release_id=?',(second_pub['release_id'],)).fetchall()
+        forms=db.execute('SELECT f.id,f.body FROM skill_forms f WHERE f.release_id=? OR EXISTS (SELECT 1 FROM skill_form_bindings b WHERE b.form_id=f.id AND b.release_id=?)',(second_pub['release_id'],second_pub['release_id'])).fetchall()
         assert len(forms)==2
-        retained=next(f for f in forms if 'inherited_from_form' in json.loads(f[1]))
+        retained=next(f for f in forms if f[0].startswith('teaching-'+first['id']))
     learner=pipeline.test_client(); learner_csrf=login(learner)
     attempt=post(learner,'/api/skills/challenges',dict(request_id='retained-attempt',assessment_id=retained[0]),learner_csrf)
     assert attempt.status_code==201,attempt.data
