@@ -288,3 +288,9 @@ still requires the independent reviewers to assess this exact candidate.
 `scripts/check_operations.py` verifies actual process stop/start and SQLite backup/restore
 using disposable accounts/data. `scripts/check_route_resume_browser.py` verifies short-screen
 sign-out with pointer/keyboard for learner/editor/admin and late-route resume.
+
+### Repeatable public candidate smoke
+
+Run `CLUB_EVIDENCE_DIR=<private-output-directory> .venv/bin/python scripts/check_public_browser.py --expected-build <full-commit>` from the repository root. Install Playwright/Chromium separately as for the other browser checks. The script requires HTTPS, rejects a mismatched `/health` build before signing in, checks schema/health, preserved prototype bookmarks, authenticated pages, real video playback, mobile overflow, learner denial at admin and measurement boundaries, and a nonempty secure/HTTP-only/SameSite session cookie. Optional `--url` and `--credentials` select another independent staging installation and its private credential file. Credentials and cookie values are never emitted.
+
+This smoke uses the installed synthetic member account: lesson visits and video resume can update that account's learning activity. Run isolated scripts for destructive/data-reset checks; this script does not reset content, completion or drafts. Its screenshots can contain the synthetic account's existing learning state; use only designated staging accounts and keep evidence under operator control. The worker smoke supplements independent acceptance and does not replace it.
