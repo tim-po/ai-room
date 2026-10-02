@@ -76,11 +76,13 @@ def validate_draft(value, sources, graph):
         if not node or item.get('objective_revision') != node['revision']:
             raise ValueError('Unknown objective edition')
 
-    if not isinstance(value['outcomes'], list) or not 1 <= len(value['outcomes']) <= 8:
-        raise ValueError('One to eight mapped outcomes required')
+    if not isinstance(value['outcomes'], list) or not 0 <= len(value['outcomes']) <= 8:
+        raise ValueError('At most eight mapped outcomes required')
     for outcome in value['outcomes']:
         objective(outcome); text(outcome['explanation'], 1500); references(outcome['refs'])
     mapped = {o['objective_id'] for o in value['outcomes']}
+    if len(mapped) != len(value['outcomes']):
+        raise ValueError('Duplicate mapped outcome')
     for key in ('prerequisites', 'warnings'):
         if not isinstance(value[key], list) or len(value[key]) > 12:
             raise ValueError('Invalid list')
@@ -128,6 +130,56 @@ def validate_draft(value, sources, graph):
             item['source'] = item['refs'][0]
         validate_form(prepared, graph)
     return value
+
+
+def coverage(draft):
+    assessed = {f['node_id'] for f in draft['assessments']}
+    return dict(challenge_available=bool(assessed), assessed_objectives=sorted(assessed),
+                unassessed_objectives=sorted({o['objective_id'] for o in draft['outcomes']} - assessed),
+                mapped=bool(draft['outcomes']))
+
+
+def review_action(draft, action, graph):
+    """Never silently retarget questions when their teaching objective changes."""
+    kind, objective_id = action.get('kind'), action.get('objective_id')
+    removed = []
+    if kind in ('remap_outcome', 'reject_outcome'):
+        outcome = next((o for o in draft['outcomes'] if o['objective_id'] == objective_id), None)
+        if outcome is None:
+            raise ValueError('Unknown outcome')
+        if kind == 'remap_outcome':
+            target = next((n for n in graph['nodes'] if n['id'] == action.get('target_id') and n['kind'] == 'ability'), None)
+            if not target or any(o['objective_id'] == target['id'] for o in draft['outcomes']):
+                raise ValueError('Choose a distinct existing ability')
+            outcome.update(objective_id=target['id'], objective_revision=target['revision'])
+        else:
+            draft['outcomes'].remove(outcome)
+        removed = [f['node_id'] for f in draft['assessments'] if f['node_id'] == objective_id]
+        draft['assessments'] = [f for f in draft['assessments'] if f['node_id'] != objective_id]
+        draft['skill_proposals'] = [p for p in draft['skill_proposals'] if p['objective_id'] != objective_id]
+    elif kind in ('remove_question', 'remove_assessment'):
+        form = next((f for f in draft['assessments'] if f['node_id'] == objective_id), None)
+        if form is None:
+            raise ValueError('Unknown assessment')
+        if kind == 'remove_question':
+            item = next((i for i in form['items'] if i['id'] == action.get('item_id')), None)
+            if item is None:
+                raise ValueError('Unknown question')
+            form['items'].remove(item)
+            prepared = copy.deepcopy(form)
+            for i in prepared['items']:
+                i['source'] = i['refs'][0]
+            try:
+                validate_form(prepared, graph)
+            except ValueError:
+                removed.append(objective_id)
+        else:
+            removed.append(objective_id)
+        if removed:
+            draft['assessments'].remove(form)
+    else:
+        raise ValueError('Unknown review action')
+    return dict(removed_assessments=removed, **coverage(draft))
 
 
 def source_snapshots(db, job_id, provider, root, alive):
@@ -232,7 +284,7 @@ def register_drafts(app, db, query, editor, owned_job, dto):
         published = query('SELECT lesson_id,release_id,draft_revision FROM teaching_publications WHERE job_id=?', (row['job_id'],), True)
         return dict(job_id=row['job_id'],revision=row['revision'],draft=json.loads(row['body']),
                     sources=json.loads(row['sources']),release_id=row['release_id'],provider=row['provider'],model=row['model'],
-                    publication=dict(published) if published else None)
+                    publication=dict(published) if published else None,coverage=coverage(json.loads(row['body'])))
 
     @app.post('/api/teaching/jobs/<id>/package')
     @editor
@@ -284,6 +336,26 @@ def register_drafts(app, db, query, editor, owned_job, dto):
                           VALUES(?,?,?,?,?,?,?,?)''',(id,row['revision']+1,json.dumps(value['draft'],ensure_ascii=False),row['sources'],row['release_id'],row['provider'],row['model'],g.user['id']))
         return jsonify(draft_dto(current(id)))
 
+    @app.post('/api/teaching/jobs/<id>/review')
+    @editor
+    def teaching_review(id):
+        value = payload()
+        with db():
+            db().execute('BEGIN IMMEDIATE')
+            row = current(id)
+            if row['revision'] != value['revision'] or query('SELECT 1 FROM teaching_publications WHERE job_id=?', (id,), True):
+                abort(409, 'Черновик изменился или уже опубликован.')
+            graph = json.loads(query('SELECT body FROM skill_releases WHERE id=?', (row['release_id'],), True)['body'])
+            draft = json.loads(row['body'])
+            try:
+                changes = review_action(draft, value.get('action', {}), graph)
+            except (ValueError, KeyError, TypeError, AttributeError):
+                abort(400, 'Проверьте выбранное действие и цель.')
+            checked(draft, json.loads(row['sources']), graph)
+            db().execute('''INSERT INTO teaching_drafts(job_id,revision,body,sources,release_id,provider,model,editor_id)
+                          VALUES(?,?,?,?,?,?,?,?)''', (id,row['revision']+1,json.dumps(draft,ensure_ascii=False),row['sources'],row['release_id'],row['provider'],row['model'],g.user['id']))
+        return jsonify(**draft_dto(current(id)), review_changes=changes)
+
     @app.get('/api/teaching/jobs/<id>/preview')
     @editor
     def teaching_preview(id):
@@ -291,7 +363,7 @@ def register_drafts(app, db, query, editor, owned_job, dto):
         return jsonify(revision=row['revision'],title=draft['title'],body=draft['body'],outcomes=draft['outcomes'],
                        practice=draft['practice'],assessments=[dict(node_id=f['node_id'],scope=f['scope'],items=[
                            {k:i[k] for k in ('id','prompt','choices','refs')} for i in f['items']]) for f in draft['assessments']],
-                       new_skills_publish=False,access_requires_editor_choice=True)
+                       coverage=coverage(draft),new_skills_publish=False,access_requires_editor_choice=True)
 
     @app.post('/api/teaching/jobs/<id>/publish')
     @editor
