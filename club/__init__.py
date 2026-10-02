@@ -423,7 +423,13 @@ def create_app(config=None):
     @app.route('/help', methods=['GET', 'POST'])
     def help_page():
         lesson_id = request.args.get('lesson') or None
-        lesson = get_lesson(lesson_id) if lesson_id else None
+        # Access recovery needs public context, never the protected lesson payload.
+        lesson = query('''SELECT l.id,l.title FROM lessons l
+            JOIN modules m ON m.id=l.module_id JOIN courses c ON c.id=m.course_id
+            WHERE l.id=? AND l.status='published' AND c.status='published' ''',
+            (lesson_id,), True) if lesson_id else None
+        if lesson_id and not lesson:
+            abort(404)
         if request.method == 'POST':
             if not g.user:
                 abort(401)

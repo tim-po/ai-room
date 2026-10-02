@@ -55,7 +55,11 @@ with tempfile.TemporaryDirectory(prefix='club-route-check-') as folder:
             results['beginner_and_switch']=True
             for goal, target in [('work','everyday-ai-intro-01'),('agents','agent-api-basics')]:
                 page.goto(base+'/routes/path-'+goal)
-                page.get_by_role('button',name='Выбрать этот маршрут').click()
+                select_route = page.get_by_role('button',name='Выбрать этот маршрут')
+                if select_route.count():
+                    select_route.click();page.wait_for_url(base+'/')
+                else:
+                    assert page.get_by_text('Ваш выбранный маршрут',exact=True).is_visible()
                 for identity in ['foundations-start-01','foundations-start-02']:
                     page.goto(base+'/lessons/'+identity)
                     complete = page.get_by_role('button',name='Отметить завершённым',exact=True)

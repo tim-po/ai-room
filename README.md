@@ -294,3 +294,20 @@ sign-out with pointer/keyboard for learner/editor/admin and late-route resume.
 Run `CLUB_EVIDENCE_DIR=<private-output-directory> .venv/bin/python scripts/check_public_browser.py --expected-build <full-commit>` from the repository root. Install Playwright/Chromium separately as for the other browser checks. The script requires HTTPS, rejects a mismatched `/health` build before signing in, checks schema/health, preserved prototype bookmarks, authenticated pages, real video playback, mobile overflow, learner denial at admin and measurement boundaries, and a nonempty secure/HTTP-only/SameSite session cookie. Optional `--url` and `--credentials` select another independent staging installation and its private credential file. Credentials and cookie values are never emitted.
 
 This smoke uses the installed synthetic member account: lesson visits and video resume can update that account's learning activity. Run isolated scripts for destructive/data-reset checks; this script does not reset content, completion or drafts. Its screenshots can contain the synthetic account's existing learning state; use only designated staging accounts and keep evidence under operator control. The worker smoke supplements independent acceptance and does not replace it.
+
+### Access-help recovery correction
+
+Published locked lessons can be referenced from `/help?lesson=<stable-id>` without
+membership. Help queries only the public lesson ID/title and requires both lesson
+and course to be published. It never fetches paid text, prompts, practice, media or
+resources. Submission still requires a signed-in identity, CSRF and a nonempty
+question; the administrator receives the stable lesson context. Draft/archived or
+unknown context returns 404. Existing content/attachment authorization is unchanged.
+No migration or seed operation is needed for this correction.
+
+`tests/test_access_help.py` adapts the independent tester's free/revoked regression
+to isolated fixtures and extends it to expired access, submissions, privacy,
+CSRF and unpublished context. `scripts/check_access_help_browser.py` verifies six
+actual recovery/submission journeys at 390/1440px plus administrator receipt using
+a disposable database. The repaired route browser check recognizes an already
+selected route and continues testing navigation, keyboard controls and offline save.
