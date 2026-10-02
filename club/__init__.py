@@ -352,6 +352,9 @@ def create_app(config=None):
         lesson = get_lesson(lesson_id)
         if not lesson['video'] or not re.fullmatch(r'[A-Za-z0-9_.-]+\.(webm|mp4)', lesson['video']):
             abort(404, 'Видео пока недоступно. Используйте текст урока ниже.')
+        if lesson_id.startswith('teaching-') and lesson['video'].startswith('teaching-'):
+            source_id = lesson['video'][len('teaching-'):].rsplit('.', 1)[0]
+            return app.view_functions['teaching_published_file'](lesson_id, source_id)
         path = Path(app.instance_path) / 'media' / lesson['video']
         if not path.exists():
             abort(404)
