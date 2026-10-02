@@ -74,7 +74,7 @@ with tempfile.TemporaryDirectory() as tmp:
             page.goto(origin+'/?node='+case['objective']);page.get_by_role('link',name='Уже знаю тему',exact=False).click();page.get_by_role('button',name='Начать проверку').click()
             page.get_by_text('Тренировка · без нового зачёта',exact=True).wait_for()
             for item in items:page.locator(f'input[name="{item["id"]}"][value="{item["answer"]}"]').check()
-            page.get_by_role('button',name='Проверить ответы').click();page.get_by_role('heading',name='Тренировка пройдена',exact=True).wait_for()
+            page.get_by_role('button',name='Проверить ответы').click();page.get_by_role('heading',name='Проверка пройдена · без нового зачёта',exact=True).wait_for()
             evidence['widths'].append({'width':width,'reload':True,'practice_distinct':True,'overflow':False})
         for width in [1440,390,360,768]:
             page.set_viewport_size({'width':width,'height':1000});page.goto(origin+'/profile')

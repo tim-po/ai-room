@@ -15,9 +15,15 @@
     return data;
   }
   function focusTitle(){document.querySelector('#challenge-title').focus({preventScroll:true});}
+  function showLifecycle(lifecycle){
+    if(lifecycle?.status!=='withdrawn')return;
+    body.append(el('h2','Проверка отозвана'),el('p',lifecycle.reason),el('p','Ответы и разбор сохраняются. Новая отправка по этой проверке не даёт зачёт навыка; ранее полученный зачёт сохраняется.'));
+    const replacement=detail?.assessments.find(a=>a.id===lifecycle.replacement_id);
+    if(replacement&&node){const a=el('a','Открыть актуальную проверку →');a.href='/challenge?'+new URLSearchParams({node,assessment:replacement.id});body.append(a);}
+  }
   function showResult(result){
-    body.replaceChildren();status.textContent='Результат сохранён';
-    body.append(el('h2',result.credited ? 'Понимание подтверждено' : result.passed ? 'Тренировка пройдена' : 'Есть темы для повторения'));
+    body.replaceChildren();status.textContent='Результат сохранён';showLifecycle(result.lifecycle||attempt.lifecycle);
+    body.append(el('h2',result.credited ? 'Понимание подтверждено' : result.passed ? 'Проверка пройдена · без нового зачёта' : 'Есть темы для повторения'));
     body.append(el('p',`${result.points} из ${attempt.items.length} верных ответов.`));
     body.append(el('p',result.credited ? 'Знание зачтено в вашем профиле. Просмотр урока и практическое выполнение отмечаются отдельно.' : result.mode==='practice' ? 'Знакомые вопросы помогают потренироваться. Эта попытка не добавляет подтверждённых навыков.' : 'Эта попытка не подтверждает навык целиком. Разберите ответы и связанные материалы.'));
     for(const feedback of result.feedback){
@@ -33,7 +39,7 @@
     attempt=data;
     if(data.result){showResult(data.result);return;}
     status.textContent=data.mode==='practice'?'Тренировка · без нового зачёта':'Проверка понимания · практическое выполнение оценивается отдельно';
-    body.replaceChildren();
+    body.replaceChildren();showLifecycle(data.lifecycle);
     body.append(el('p',`Для зачёта: минимум ${data.thresholds.overall} из ${data.items.length}, порог по каждой теме и все обязательные вопросы. Ответы отправятся только после нажатия «Проверить ответы».`));
     if(detail?.content.length){const sources=el('details');sources.append(el('summary','Учебный случай · открыть материалы'));for(const lesson of detail.content){const a=el('a',lesson.title+' ↗ (новая вкладка)');a.href='/lessons/'+encodeURIComponent(lesson.id);a.target='_blank';a.rel='noopener';sources.append(a);}body.append(sources);}
     const form=el('form');

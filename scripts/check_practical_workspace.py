@@ -7,6 +7,7 @@ from club import create_app
 from club.seed import seed_database
 sys.path.insert(0,str(Path('tests').resolve()))
 from test_teaching_pipeline import MockProvider
+withdrawn=os.environ.get('TEST_WITHDRAWAL')=='1'
 out=Path(os.environ.get('PRACTICAL_EVIDENCE','/tmp/practical-evidence'));out.mkdir(parents=True,exist_ok=True)
 with tempfile.TemporaryDirectory() as tmp:
     os.environ['CLUB_SEED_PASSWORD']='local-browser-test-only'
@@ -62,15 +63,23 @@ with tempfile.TemporaryDirectory() as tmp:
         learner.get_by_label('Ваш результат: действия, наблюдения и ссылки на доказательства').fill('Повторная работа: приведены цитата, наблюдение, вывод и границы достоверности.')
         learner.get_by_text('Другие попытки по этому заданию',exact=True).wait_for()
         learner.get_by_role('button',name='Отправить преподавателю').click();learner.get_by_text('Ожидает проверки преподавателем',exact=True).wait_for();accepted=learner.url
+        if withdrawn:
+            with sqlite3.connect(database) as db:
+                form_id=db.execute('SELECT form_id FROM skill_practical_tasks LIMIT 1').fetchone()[0]
+            response=teacher.evaluate('''async id => { const r=await fetch('/api/skills/forms/'+id+'/withdraw',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify({confirm_reviewed:true,reason:'Временная учебная фикстура отозвана редактором.'})}); return r.status; }''',form_id)
+            assert response==201
+            learner.reload();learner.get_by_role('heading',name='Задание отозвано').wait_for()
         teacher.goto(origin+'/admin/practice');teacher.get_by_role('link',name='Ожидает проверки преподавателем',exact=False).click()
         teacher.locator('#practical-body select').first.wait_for()
         for select in teacher.locator('#practical-body select').all():select.select_option('met')
         teacher.get_by_label('Обратная связь и следующий шаг').fill('Наблюдаемый результат соответствует всем критериям.')
-        teacher.get_by_role('button',name='Сохранить решение').click();teacher.get_by_role('heading',name='Применение подтверждено',exact=True).wait_for()
-        learner.goto('/'.join([origin,'profile']));learner.get_by_role('link',name='· Работа и решение преподавателя →',exact=True).click();assert learner.url==accepted
-        learner.get_by_role('heading',name='Применение подтверждено',exact=True).wait_for();learner.screenshot(path=str(out/'practical-accepted.png'),full_page=True)
+        teacher.get_by_role('button',name='Сохранить решение').click();teacher.get_by_role('heading',name='Критерии выполнены · без нового зачёта' if withdrawn else 'Применение подтверждено',exact=True).wait_for()
+        if not withdrawn:
+            learner.goto('/'.join([origin,'profile']));learner.get_by_role('link',name='· Работа и решение преподавателя →',exact=True).click();assert learner.url==accepted
+        learner.goto(accepted)
+        learner.get_by_role('heading',name='Критерии выполнены · без нового зачёта' if withdrawn else 'Применение подтверждено',exact=True).wait_for();learner.screenshot(path=str(out/'practical-accepted.png'),full_page=True)
         with sqlite3.connect(database) as db:
-            assert db.execute('SELECT COUNT(*) FROM skill_application_evidence').fetchone()[0]==1
+            assert db.execute('SELECT COUNT(*) FROM skill_application_evidence').fetchone()[0]==(0 if withdrawn else 1)
             assert db.execute('SELECT COUNT(*) FROM skill_evidence').fetchone()[0]==0
             assert db.execute('SELECT COUNT(*) FROM progress').fetchone()[0]==0
         learner.goto(origin+'/profile');hover=learner.locator('.profile-support summary').first;hover.hover()
@@ -78,4 +87,4 @@ with tempfile.TemporaryDirectory() as tmp:
         learner.goto(origin+'/?node=coding');disclosure=learner.get_by_text('Навыки этого раздела',exact=True);disclosure.hover()
         assert disclosure.evaluate('el=>getComputedStyle(el).color')=='rgb(16, 24, 33)'
         assert not errors,errors;browser.close()
-    server.shutdown();(out/'browser.json').write_text(json.dumps({'source':str(Path.cwd()),'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'origin':origin,'provider':'explicit mock only','rubric_approval':True,'save_refresh_resume':True,'network_failure_retains_text':True,'uncertain_then_revise_then_accept':True,'history_links':True,'application_only_evidence':True,'keyboard_save':True,'second_browser_resume':True,'cream_disclosure_ink':'#101821','widths':[360,390,768,1440],'errors':errors},ensure_ascii=False,indent=2))
+    server.shutdown();(out/'browser.json').write_text(json.dumps({'source':str(Path.cwd()),'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'origin':origin,'provider':'explicit mock only','rubric_approval':True,'save_refresh_resume':True,'network_failure_retains_text':True,'uncertain_then_revise_then_accept':True,'history_links':True,'withdrawal_without_credit':withdrawn,'application_only_evidence':not withdrawn,'keyboard_save':True,'second_browser_resume':True,'cream_disclosure_ink':'#101821','widths':[360,390,768,1440],'errors':errors},ensure_ascii=False,indent=2))
