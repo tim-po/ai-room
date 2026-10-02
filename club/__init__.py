@@ -522,6 +522,9 @@ def create_app(config=None):
     from .skills import register_skills
     register_skills(app, db, query, require_user)
 
+    from .challenge_ui import register_challenge_ui
+    register_challenge_ui(app, require_user)
+
     from .teaching import register_teaching
     register_teaching(app, db, query)
 

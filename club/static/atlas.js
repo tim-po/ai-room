@@ -84,6 +84,7 @@
       if((children.get(id)||[]).length){const more=el('details');more.append(el('summary','Навыки этого раздела'));for(const child of children.get(id))more.append(button(names.get(child)));body.append(more);}
       if(data.content.length) for(const lesson of data.content){const a=el('a',`${lesson.title} · ${lesson.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/lessons/'+encodeURIComponent(lesson.id);body.append(a);}
       else body.append(el('p','Материалы для этого навыка ещё готовятся.','detail-muted'));
+      for(const assessment of data.assessments){const a=el('a',`Уже знаю тему → ${assessment.item_count} задания · ${assessment.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/challenges?'+new URLSearchParams({node:id,assessment:assessment.id});body.append(a);}
       if(!data.assessments.length) body.append(el('p','Проверка знаний появится после редакторской проверки заданий.','detail-muted'));
       if(atlas.dataset.authenticated==='yes') { try {await api('/api/skills/explore',{node_id:id});}catch(e){body.append(el('p','Не удалось сохранить исследование. '+e.message));} }
       else {const a=el('a','Войти и сохранять своё развитие →');a.href='/login';body.append(a);}

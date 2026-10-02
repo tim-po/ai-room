@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Проверка знаний{% endblock %}
+{% block content %}
+<section class="development challenge-workspace">
+  <a id="challenge-back" href="/">← К карте навыков</a>
+  <p class="eyebrow">ПОКАЖИТЕ, ЧТО УЖЕ ЗНАЕТЕ</p>
+  <h1 id="challenge-title" tabindex="-1">Проверка знаний</h1>
+  <p id="challenge-status" role="status" aria-live="polite">Загружаем проверку…</p>
+  <div id="challenge-body"></div>
+  <noscript>Для проверки нужен JavaScript. Учебные материалы доступны в библиотеке.</noscript>
+</section>
+<script defer src="{{ url_for('static', filename='challenge.js') }}"></script>
+{% endblock %}
