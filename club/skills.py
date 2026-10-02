@@ -117,6 +117,9 @@ def register_skills(app, db, query, require_user):
                     mode=row['mode'], release=row['release_id'], created_at=row['created_at'],
                     resume_url='/api/skills/challenges/' + row['id'], access_required=not accessible)
 
+    from .practical import register_practical
+    register_practical(app, db, query, require_user, graph, data)
+
     from .diagnostics import register_diagnostics
     register_diagnostics(app, db, query, require_user, graph, data)
 
@@ -214,6 +217,13 @@ def register_skills(app, db, query, require_user):
                          review=dict(status='editor_reviewed', reviewed_at=row['reviewed_at']),
                          source_access_required=not accessible,
                          sources=[i['source'] for i in body['items'] if i['objective_id'] == entry['objective_id']] if accessible else [])
+        application_evidence = [dict(r) for r in query('''SELECT e.*,t.form_id AS assessment_id,f.release_id,
+                                  t.id AS task_id,d.created_at AS reviewed_at FROM skill_application_evidence e
+                                  JOIN skill_practical_submissions s ON s.id=e.submission_id
+                                  JOIN skill_practical_tasks t ON t.id=s.task_id
+                                  JOIN skill_forms f ON f.id=t.form_id
+                                  JOIN skill_practical_decisions d ON d.submission_id=s.id WHERE e.user_id=?''', (g.user['id'],))]
+        applied = {(r['objective_id'], r['objective_revision']) for r in application_evidence}
         verified = {(r['objective_id'], r['objective_revision']) for r in evidence}
         assessed = set(verified)
         for row in query('''SELECT f.body, sr.body AS release_body FROM skill_results r
@@ -247,11 +257,11 @@ def register_skills(app, db, query, require_user):
             tested = sum((id, nodes[id]['revision']) in assessed for id in eligible)
             return dict(node_id=node_id, eligible=len(eligible), assessed=tested, verified=count,
                         unknown=len(eligible) - tested,
-                        verified_coverage=count / len(eligible) if eligible else None, application_verified=0)
+                        verified_coverage=count / len(eligible) if eligible else None, application_verified=sum((id, nodes[id]['revision']) in applied for id in eligible))
 
         coverage = [summarize(n['id'], abilities(n['id'])) for n in tree['nodes']]
         foundation = dict(summarize(tree['root'], abilities(tree['root'], foundation_only=True)), scope='foundation_only')
-        return jsonify(release=tree['release'], score_rule=tree['score_rule'], coverage=coverage, evidence=evidence,
+        return jsonify(release=tree['release'], score_rule=tree['score_rule'], coverage=coverage, evidence=evidence, application_evidence=application_evidence,
                        foundation_coverage=foundation, pending_attempts=[pending_metadata(r) for r in pending_attempts()],
                        interests=[r['node_id'] for r in query('SELECT node_id FROM skill_interests WHERE user_id=? ORDER BY node_id', (g.user['id'],))],
                        explorations=[dict(r) for r in query('SELECT node_id,updated_at FROM skill_explorations WHERE user_id=? ORDER BY updated_at DESC,node_id', (g.user['id'],))])
