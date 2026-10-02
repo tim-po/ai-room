@@ -17,6 +17,16 @@
     next.append(el('h2',me.evidence.length?'Продолжайте развивать свои навыки':'Здесь появятся ваши подтверждённые навыки'));
     next.append(el('p',me.evidence.length?'Можно развивать несколько направлений одновременно.':'Пока не собрано свидетельств о ваших знаниях. Исследуйте карту и начните с интересующей темы.'));
     next.append(link(latest?'Вернуться: '+nodes.get(latest.node_id).title:'Исследовать общую основу →',latest?.node_id||graph.root));
+    const recent=document.querySelector('#character-recent');recent.replaceChildren();recent.hidden=!me.evidence.length;
+    const dateOf=item=>new Date(item.assessed_at.replace(' ','T').replace(/Z?$/,'Z'));
+    function evidenceRow(item){
+      const entry=el('li'),title=nodes.get(item.objective_id)?.title||item.objective_id;
+      entry.append(link(title,item.objective_id));
+      const date=el('time',dateOf(item).toLocaleDateString('ru-RU'));date.dateTime=dateOf(item).toISOString();entry.append(date);
+      const result=el('a','Результат проверки →');result.href='/challenges?'+new URLSearchParams({node:item.objective_id,attempt:item.attempt_id});result.setAttribute('aria-label','Результат проверки: '+title);entry.append(result);return entry;
+    }
+    const ordered=[...me.evidence].sort((a,b)=>dateOf(b)-dateOf(a));
+    if(ordered.length){recent.append(el('h2','Недавно подтверждено'));const list=el('ul');for(const item of ordered.slice(0,3))list.append(evidenceRow(item));recent.append(list);}
     const branches=document.querySelector('#character-branches');branches.replaceChildren();
     function row(node) {
       const c=coverage.get(node.id),r=el('div',null,'ability-coverage');r.append(link(node.title,node.id));
@@ -28,7 +38,7 @@
     for(const branch of graph.nodes.filter(n=>n.kind==='branch')) {
       const section=el('section',null,'character-branch family-'+branch.id);section.append(el('h2',branch.title));
       const c=coverage.get(branch.id);
-      section.append(el('p',c.verified?`${c.verified} из ${c.eligible} навыков подтверждено`:'Знания ещё не подтверждены','branch-strength'));
+      section.append(el('p',c.verified?`${c.verified} из ${c.eligible} навыков подтверждено`:'Свидетельства ещё не собраны','branch-strength'));
       const details=el('details');details.append(el('summary','Навыки направления'));
       details.append(el('p',`Не проверено: ${c.unknown} · Применение подтверждено: ${c.application_verified}`,'small'));
       for(const edge of graph.edges.filter(e=>e.type==='contains'&&e.source===branch.id)) {

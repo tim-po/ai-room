@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert app.test_cli_runner().invoke(args=['init-skills']).exit_code==0
     server=make_server('127.0.0.1',0,app);threading.Thread(target=server.serve_forever,daemon=True).start()
     origin=f'http://127.0.0.1:{server.server_port}'
-    evidence={'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'widths':[], 'errors':[]}
+    evidence={'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'source':str(Path.cwd()),'origin':origin,'widths':[], 'errors':[]}
     with sync_playwright() as pw:
         browser=pw.chromium.launch(headless=True)
         page=browser.new_page(viewport={'width':1440,'height':1000})
@@ -45,7 +45,9 @@ with tempfile.TemporaryDirectory() as tmp:
         assert page.evaluate("fetch('/api/skills/me').then(r=>r.json()).then(d=>d.interests)")==['coding','content']
         for width in [1440,390,360,768]:
             page.set_viewport_size({'width':width,'height':1000});page.goto(origin+'/profile');page.locator('.character-branch').first.wait_for();page.evaluate('document.fonts.ready')
-            assert page.locator('.character-branch').count()==5
+            assert page.locator('.character-branch').count()==6
+            assert page.locator('#character-recent').is_hidden()
+            assert page.locator('.profile-collection[open]').count()==0
             assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
             page.screenshot(path=str(out/f'character-{width}.png'),full_page=True)
             evidence['widths'].append({'width':width,'overflow':False})

@@ -2,6 +2,7 @@
 import json
 import os
 import sqlite3
+import subprocess
 import tempfile
 import threading
 from pathlib import Path
@@ -23,7 +24,7 @@ with tempfile.TemporaryDirectory() as tmp:
     with sqlite3.connect(database) as db:
         review_examples(db,db.execute("SELECT id FROM users WHERE role='admin'").fetchone()[0])
     server=make_server('127.0.0.1',0,app);threading.Thread(target=server.serve_forever,daemon=True).start()
-    origin=f'http://127.0.0.1:{server.server_port}';evidence={'widths':[],'errors':[]}
+    origin=f'http://127.0.0.1:{server.server_port}';evidence={'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'source':str(Path.cwd()),'origin':origin,'widths':[],'errors':[]}
     with sync_playwright() as pw:
         browser=pw.chromium.launch(headless=True)
         page=browser.new_page(viewport={'width':1440,'height':1000})
@@ -59,7 +60,7 @@ with tempfile.TemporaryDirectory() as tmp:
             page.get_by_role('heading',name='Есть темы для повторения' if width==1440 else 'Понимание подтверждено',exact=True).wait_for()
             assert page.locator('.challenge-feedback a').count()==3
             if width==390:
-                page.goto(origin+'/profile');page.locator('#character-branches .character-branch').first.wait_for();assert '<' not in page.title();page.screenshot(path=str(out/'character-earned.png'),full_page=True)
+                page.goto(origin+'/profile');page.locator('#character-branches .character-branch').first.wait_for();assert '<' not in page.title();assert page.locator('#character-recent li').count()==1;assert page.locator('#character-recent time').first.is_visible();assert page.locator('#character-recent a[href*=attempt]').first.is_visible();page.screenshot(path=str(out/'character-earned.png'),full_page=True)
                 page.goto(origin+'/?node='+case['objective']);page.locator('#skill-map .is-verified').first.wait_for();page.screenshot(path=str(out/'map-earned.png'),full_page=True);page.goto(saved_url)
             page.reload();page.get_by_text('Результат сохранён',exact=True).wait_for()
             assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
@@ -75,6 +76,15 @@ with tempfile.TemporaryDirectory() as tmp:
             for item in items:page.locator(f'input[name="{item["id"]}"][value="{item["answer"]}"]').check()
             page.get_by_role('button',name='Проверить ответы').click();page.get_by_role('heading',name='Тренировка пройдена',exact=True).wait_for()
             evidence['widths'].append({'width':width,'reload':True,'practice_distinct':True,'overflow':False})
+        for width in [1440,390,360,768]:
+            page.set_viewport_size({'width':width,'height':1000});page.goto(origin+'/profile')
+            page.locator('#character-recent li').first.wait_for()
+            assert page.locator('#character-recent li').count()==3
+            assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+            page.screenshot(path=str(out/f'character-earned-{width}.png'),full_page=True)
+        page.locator('#character-recent a[href*=attempt]').first.click()
+        page.get_by_role('heading',name='Понимание подтверждено',exact=True).wait_for()
+        evidence['recent_result_navigation']=True
         with sqlite3.connect(database) as db:
             assert db.execute('SELECT COUNT(*) FROM skill_evidence').fetchone()[0]==3
             assert db.execute('SELECT COUNT(*) FROM progress').fetchone()[0]==0
