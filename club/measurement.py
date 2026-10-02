@@ -4,6 +4,9 @@ from flask import abort, g, render_template
 
 
 def register_measurement(app, db, query, event):
+    from .skill_measurement import register_skill_measurement
+    register_skill_measurement(app, query)
+
     def activity(lesson_id):
         # Called inside the same transaction as the learning action. Editors and
         # admins are excluded so preview/maintenance cannot inflate learner rates.
