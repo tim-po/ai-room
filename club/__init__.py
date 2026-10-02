@@ -78,6 +78,9 @@ def create_app(config=None):
 
     @app.before_request
     def load_user():
+        # Increase the limit only for teaching uploads, before form parsing.
+        if request.endpoint == 'upload':
+            request.max_content_length = app.config['TEACHING_UPLOAD_LIMIT'] + 64 * 1024
         g.user = query('SELECT * FROM users WHERE id=?', (session['user_id'],), True) if session.get('user_id') else None
         session.setdefault('csrf', secrets.token_hex(32))
         if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
@@ -518,5 +521,8 @@ def create_app(config=None):
 
     from .skills import register_skills
     register_skills(app, db, query, require_user)
+
+    from .teaching import register_teaching
+    register_teaching(app, db, query)
 
     return app
