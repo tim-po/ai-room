@@ -55,4 +55,12 @@ CREATE TABLE IF NOT EXISTS resources (
  title TEXT NOT NULL, kind TEXT NOT NULL CHECK(kind IN ('text','link')), content TEXT NOT NULL,
  status TEXT NOT NULL DEFAULT 'published' CHECK(status IN ('published','archived'))
 );
-PRAGMA user_version = 2;
+CREATE TABLE IF NOT EXISTS course_starts (
+ user_id TEXT NOT NULL REFERENCES users(id), course_id TEXT NOT NULL REFERENCES courses(id),
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id,course_id)
+);
+CREATE TABLE IF NOT EXISTS learning_days (
+ user_id TEXT NOT NULL REFERENCES users(id), day TEXT NOT NULL,
+ PRIMARY KEY(user_id,day)
+);
+PRAGMA user_version = 3;

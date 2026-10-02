@@ -6,7 +6,7 @@ Independent Russian-first application in the previously empty `tim-po/ai-room` r
 
 Course discovery and combined search/goal/level filters; 4 synthetic courses including 37 lessons in 9 modules; readable text and an original generated silent video fixture; server-protected lesson text/media/downloads; explicit completion/uncompletion; drafts and saved practice results; server-persisted video position; favourites; preference editing and optional weekly goal; profile; contextual help tickets and role-protected administrator inbox. Anonymous free lessons work. Separate seeded free/member/revoked/editor/admin accounts use hashed passwords. Cookies are signed, HTTP-only, SameSite Lax; mutations require CSRF. No credentials ship in static assets.
 
-This is a first slice, **not an accepted complete release**. Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone materials, route composition, full measurement definitions/summary and registration/recovery are not implemented. Content is explicitly synthetic. Independent usability/product/functional reviews and HTTPS deployment remain required.
+This is a first slice, **not an accepted complete release**. Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone materials, route composition, registration/recovery are not implemented. Content is explicitly synthetic. Independent usability/product/functional reviews and HTTPS deployment remain required.
 
 ## Setup
 
@@ -39,7 +39,7 @@ The local installed instance has privately generated credentials at `instance/re
 
 ## Data and operations
 
-`club/schema.sql` sets schema `user_version=2`. Version 2 adds the resources table without changing existing IDs or learning records. `init-db` creates missing schema objects without deleting rows. Run it before `seed`. The seed uses stable IDs and `INSERT OR IGNORE`: re-running preserves existing content and user work. Never use the seed as a content-update migration. Future schema changes need explicit versioned migrations and backup/restore testing. SQLite foreign keys are enabled for every application connection. Progress and practice are keyed by user + stable lesson ID. User IDs are derived from the signed session, not accepted from client payloads.
+`club/schema.sql` sets schema `user_version=3`. Version 2 adds the resources table without changing existing IDs or learning records. `init-db` creates missing schema objects without deleting rows. Run it before `seed`. The seed uses stable IDs and `INSERT OR IGNORE`: re-running preserves existing content and user work. Never use the seed as a content-update migration. Future schema changes need explicit versioned migrations and backup/restore testing. SQLite foreign keys are enabled for every application connection. Progress and practice are keyed by user + stable lesson ID. User IDs are derived from the signed session, not accepted from client payloads.
 
 Back up using SQLite's backup API or the `sqlite3 .backup` command before upgrades. Also retain the private signing key and `instance/media`. Stop writers before restoring a backup. Reordering future modules/lessons must retain their IDs; do not reset the database to deploy code. Schema v2 has no destructive downgrade operation; the earlier code ignores the additional resources table. Roll back by stopping the service, restoring its pre-upgrade SQLite backup and matching code commit, then starting the service and checking `/health` and a persisted learning flow.
 
@@ -59,9 +59,23 @@ Upgrade v1 → v2: back up SQLite using its backup API, retain media/signing key
 
 Authoring verification: `.venv/bin/python -m pytest -q` (7 integration tests), `.venv/bin/python -m compileall -q club`; `scripts/check_authoring_browser.py` exercises editor forms, validation, offline retry, preview playback, protected downloads and 360/390/768/1440px layouts using private local fixture credentials. Worker tests do not replace independent acceptance review.
 
-## Measurement currently present
+## Learning measurement (schema v3)
 
-Server-authored events: first lesson start, first lesson completion, changed practice save/submission, first onboarding completion, help request. First-completion events are unique in behavior per learner/lesson even after uncomplete/recomplete; current completion state is a separate table. No raw draft, password, cookie, email or help text is copied into events. Counts reflect fixture actions, not learning mastery. Course-start and meaningful-return events, validated activation/time-to-first-result/module-drop-off/retention reports and denominators remain next-stage work. No renewal metrics or retention claims.
+`/admin/measurement` is restricted to administrators, including direct requests. It reports real database aggregates, with denominator and observation-window definitions alongside each number. Editors/admins are excluded; synthetic learner accounts are included and explicitly labelled.
+
+Validated server-authored event names: `onboarding_completed`, `course_started`, `lesson_started`, `lesson_completed`, `practice_saved`, `practice_submitted`, `help_requested`, `meaningful_return`. The event writer accepts only this allowlist. There is no client event-ingestion endpoint. Events contain only learner ID, optional lesson ID, event name and server timestamp; no draft, help text, email, password or cookie. Course identity is resolved through the referenced lesson.
+
+- Course start is unique per learner/course, enforced by the `course_starts` primary key in the learning transaction. A permitted lesson visit, completion toggle or valid practice save records course activity. Media polling, login and preview do not.
+- Lesson start/completion retain first-event uniqueness. Repeated identical practice saves produce no additional event. A changed result creates an event but activation counts distinct learners.
+- `learning_days` stores one row per learner/UTC date. The first activity on a later UTC date emits one meaningful-return event. It measures resumed activity, not quality or mastery.
+- Activation: learners with at least one `practice_submitted` event / all current learner accounts. Draft saves are not activation.
+- Time to first result: median seconds between first lesson/course start and first submission, restricted to learners with both timestamps in valid order. The report states this sample size and includes elapsed time off-site.
+- Module noncompletion: current starters lacking completion for all currently published lessons / current starters. This is a mutable snapshot, explicitly not proof of abandonment. Publishing new lessons may change it.
+- Weekly learning retention: distinct active learners in a UTC Monday–Sunday week also active the following week / distinct active learners in the first week. Four fully observed week pairs are displayed; zero denominators show no data. No partial current-week rate or unsupported renewal metric.
+
+Upgrade v2 → v3: back up SQLite, deploy source, run `flask --app club init-db` with the application venv, restart the service, check `/health` (schema 3) and `/admin/measurement`. New tables are additive; prior learning records are unchanged. Learning-day/course-start history begins at this upgrade and is not fabricated retrospectively. Earlier first-lesson/submission events remain available for time-to-result. Rollback uses the retained v2 database/code backup with writers stopped, as above. The local backup is `instance/pre-measurement-v2.sqlite` and is private.
+
+Verification: `tests/test_measurement.py` covers duplicate retries, role exclusion, authorization, absence of practice payloads in events, explicit metric denominators, median timing, fully observed calendar retention, module completion and repeatable migration preserving prior progress. Worker evidence is implementation verification, not independent release acceptance.
 
 ## Operational limits
 

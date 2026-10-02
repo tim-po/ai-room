@@ -56,10 +56,15 @@ def create_app(config=None):
         return (rows[0] if rows else None) if one else rows
 
     def event(name, lesson_id=None):
-        allowed = {'lesson_started', 'lesson_completed', 'practice_saved', 'practice_submitted', 'help_requested', 'onboarding_completed'}
+        allowed = {'lesson_started', 'lesson_completed', 'practice_saved', 'practice_submitted', 'help_requested', 'onboarding_completed', 'course_started', 'meaningful_return'}
         if name not in allowed:
             raise ValueError('Unsupported event')
+        if g.user['role'] != 'learner':
+            return
         db().execute('INSERT OR IGNORE INTO events(user_id,name,lesson_id) VALUES(?,?,?)', (g.user['id'], name, lesson_id))
+
+    from .measurement import register_measurement
+    learning_activity = register_measurement(app, db, query, event)
 
     def require_user(fn):
         @wraps(fn)
@@ -203,6 +208,7 @@ def create_app(config=None):
         progress = practice = None
         if g.user:
             with db():
+                learning_activity(lesson_id)
                 inserted = db().execute('INSERT OR IGNORE INTO progress(user_id,lesson_id) VALUES(?,?)', (g.user['id'], lesson_id)).rowcount
                 if inserted:
                     event('lesson_started', lesson_id)
@@ -241,6 +247,7 @@ def create_app(config=None):
             abort(400)
         completed = int(value)
         with db():
+            learning_activity(lesson_id)
             old = query('SELECT completed FROM progress WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
             db().execute('''INSERT INTO progress(user_id,lesson_id,completed) VALUES(?,?,?)
                 ON CONFLICT(user_id,lesson_id) DO UPDATE SET completed=excluded.completed,updated_at=CURRENT_TIMESTAMP''', (g.user['id'], lesson_id, completed))
@@ -263,6 +270,7 @@ def create_app(config=None):
         if not isinstance(body, str) or not body.strip() or len(body) > 12000 or status not in ('draft', 'submitted'):
             abort(400, 'Введите результат до 12 000 символов и выберите допустимый статус.')
         with db():
+            learning_activity(lesson_id)
             old = query('SELECT body,status FROM practice WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
             db().execute('''INSERT INTO practice(user_id,lesson_id,body,status) VALUES(?,?,?,?)
                 ON CONFLICT(user_id,lesson_id) DO UPDATE SET body=excluded.body,status=excluded.status,updated_at=CURRENT_TIMESTAMP''', (g.user['id'], lesson_id, body.strip(), status))
@@ -400,7 +408,7 @@ def create_app(config=None):
     @app.cli.command('init-db')
     def init_db():
         db().executescript(Path(__file__).with_name('schema.sql').read_text())
-        click.echo('Schema ready (version 2).')
+        click.echo('Schema ready (version 3).')
 
     @app.cli.command('seed')
     def seed():
