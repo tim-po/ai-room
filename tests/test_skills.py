@@ -122,3 +122,89 @@ def test_paid_form_access_and_immutable_versions(skills):
                     "UPDATE skill_releases SET body='{}'", 'DELETE FROM skill_attempts']:
             with pytest.raises(sqlite3.IntegrityError):
                 db.execute(sql)
+
+
+def publish_copy(app, form, id='copy', tree=None):
+    tree = tree or graph_fixture()
+    with sqlite3.connect(app.config['DATABASE']) as db:
+        reviewer = db.execute("SELECT id FROM users WHERE role='admin'").fetchone()[0]
+        publish_reviewed_form(db, id=id, graph=tree, node_id='basic-ai.verification', form=form, access='free', reviewer=reviewer)
+
+
+@pytest.mark.parametrize('variant', ['renamed', 'partial', 'lineage'])
+def test_cross_form_exposure_and_pending_race(skills, variant):
+    original = fixture_form()
+    original['items'][0]['lineage_id'] = 'source-observation-1'
+    publish_copy(skills, original, 'original')
+    copied = fixture_form()
+    for i, item in enumerate(copied['items']):
+        item['id'] = 'renamed-' + str(i)
+        item['choices'].reverse()
+        item['prompt'] = '  ' + item['prompt'].upper() + '  '
+    if variant in ('partial', 'lineage'):
+        copied['items'][1]['prompt'] = 'A genuinely different second observation'
+    if variant == 'lineage':
+        copied['items'][0]['prompt'] = 'Paraphrase of original observation'
+        copied['items'][0]['lineage_id'] = 'source-observation-1'
+    publish_copy(skills, copied)
+    c = skills.test_client(); csrf = login(c)
+    start = lambda form, key: post(c, '/api/skills/challenges', {'assessment_id':form, 'request_id':key}, csrf)
+    first = start('original', 'original-request').json
+    assert start('copy', 'copy-request').status_code == 409
+    post(c, '/api/skills/challenges/'+first['id']+'/submit', {'answers':{'q1':'trust','q2':'trust'}}, csrf)
+    copy = start('copy', 'copy-request').json
+    assert copy['mode'] == 'practice'
+    result = post(c, '/api/skills/challenges/'+copy['id']+'/submit', {'answers':{i['id']:'check' for i in copied['items']}}, csrf).json
+    assert result['passed'] and not result['credited']
+    assert c.get('/api/skills/me').json['evidence'] == []
+
+
+@pytest.mark.parametrize('passed', [True, False])
+def test_release_history_retirement_and_resume(skills, passed):
+    install_form(skills)
+    c = skills.test_client(); csrf = login(c)
+    payload = {'assessment_id':'test-form-v1', 'request_id':'pinned-request'}
+    attempt = post(c, '/api/skills/challenges', payload, csrf).json
+    path = '/api/skills/challenges/' + attempt['id']
+    assert c.get(path).json['result'] is None
+    other = skills.test_client(); login(other, 'member')
+    assert other.get(path).status_code == 404
+    tree = graph_fixture(); tree['release'] = 'compatible-release'
+    with sqlite3.connect(skills.config['DATABASE']) as db:
+        db.execute('INSERT INTO skill_releases(id,body) VALUES(?,?)', (tree['release'], json.dumps(tree)))
+        db.execute('UPDATE skill_active SET release_id=?', (tree['release'],))
+    assert post(c, '/api/skills/challenges', dict(payload, request_id='new-request'), csrf).status_code == 409
+    assert post(c, '/api/skills/challenges', payload, csrf).json == attempt
+    answers = {'q1':'check' if passed else 'trust', 'q2':'check' if passed else 'trust'}
+    result = post(c, path+'/submit', {'answers':answers}, csrf).json
+    assert c.get(path).json['result'] == result
+    publish_copy(skills, fixture_form(), tree=tree)
+    copy = post(c, '/api/skills/challenges', {'assessment_id':'copy','request_id':'copy-request'}, csrf).json
+    assert copy['mode'] == 'practice'
+    coverage = c.get('/api/skills/me').json['coverage'][0]
+    assert coverage['assessed'] == 1 and coverage['unknown'] == 25
+    assert coverage['verified'] == int(passed)
+    tree['release'] = 'changed-meaning'
+    next(n for n in tree['nodes'] if n['id']=='basic-ai.verification')['revision'] += 1
+    with sqlite3.connect(skills.config['DATABASE']) as db:
+        db.execute('INSERT INTO skill_releases(id,body) VALUES(?,?)', (tree['release'], json.dumps(tree)))
+        db.execute('UPDATE skill_active SET release_id=?', (tree['release'],))
+    me = c.get('/api/skills/me').json
+    assert me['coverage'][0]['assessed'] == 0 and me['coverage'][0]['unknown'] == 26
+    assert len(me['evidence']) == int(passed)
+
+
+def test_duplicate_observations_rejected_and_public_metadata_safe(skills):
+    form = fixture_form()
+    form['items'][1]['prompt'] = form['items'][0]['prompt']
+    with pytest.raises(ValueError, match='Repeated observation'):
+        validate_form(form, graph_fixture())
+    form = fixture_form()
+    for item in form['items']:
+        item['lineage_id'] = 'one-observation'
+    with pytest.raises(ValueError, match='Repeated observation'):
+        validate_form(form, graph_fixture())
+    install_form(skills)
+    metadata = skills.test_client().get('/api/skills/nodes/basic-ai.verification').json['assessments'][0]
+    assert metadata['item_count'] == 2 and metadata['credit_kind'] == 'understanding'
+    assert not {'body','items','answer','rationale','lineage_id'} & metadata.keys()

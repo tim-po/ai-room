@@ -4,6 +4,8 @@ Forms and releases are immutable. Source review is an explicit editorial operati
 there is intentionally no automatic certification from generated or saved text.
 """
 import json
+import hashlib
+import unicodedata
 import math
 import sqlite3
 import uuid
@@ -14,16 +16,33 @@ import click
 from flask import abort, g, jsonify, request
 
 
+def item_exposure_keys(item):
+    """Ignore packaging and choice ordering; retain editorial variant lineage."""
+    def normalize(value):
+        return ' '.join(unicodedata.normalize('NFKC', value).casefold().split())
+    payload = [normalize(item['prompt']), sorted(normalize(c['text']) for c in item['choices'])]
+    keys = {'content:' + hashlib.sha256(json.dumps(payload, ensure_ascii=False).encode()).hexdigest()}
+    if item.get('lineage_id'):
+        keys.add('lineage:' + item['lineage_id'])
+    return keys
+
+
+def form_exposure_keys(body):
+    return set().union(*(item_exposure_keys(item) for item in body['items']))
+
+
 def validate_form(form, graph):
     objectives = {n['id']: n for n in graph['nodes'] if n['kind'] == 'ability'}
     items = form.get('items', [])
     if not isinstance(items, list) or not 2 <= len(items) <= 40:
         raise ValueError('A reviewed form needs 2–40 items')
-    ids, coverage = set(), {}
+    ids, coverage, observations = set(), {}, set()
     for item in items:
         if item['id'] in ids or item['objective_id'] not in objectives:
             raise ValueError('Invalid item identity or objective')
         ids.add(item['id'])
+        if 'lineage_id' in item and (not isinstance(item['lineage_id'], str) or not 1 <= len(item['lineage_id']) <= 128):
+            raise ValueError('Invalid item lineage')
         choices = item['choices']
         if len(choices) < 2 or item['answer'] not in {c['id'] for c in choices} or len({c['id'] for c in choices}) != len(choices):
             raise ValueError('Invalid answer choices')
@@ -31,6 +50,10 @@ def validate_form(form, graph):
             raise ValueError('Source and rationale required')
         if item['type'] not in ('knowledge', 'scenario') or not isinstance(item.get('critical', False), bool):
             raise ValueError('Invalid item type')
+        keys = item_exposure_keys(item)
+        if keys & observations:
+            raise ValueError('Repeated observation cannot satisfy independent coverage')
+        observations.update(keys)
         coverage.setdefault(item['objective_id'], []).append(item)
     for group in coverage.values():
         if len(group) < 2 or not any(i['type'] == 'scenario' for i in group):
@@ -125,10 +148,13 @@ def register_skills(app, db, query, require_user):
         tree = graph()
         evidence = [dict(r) for r in query('SELECT * FROM skill_evidence WHERE user_id=?', (g.user['id'],))]
         verified = {(r['objective_id'], r['objective_revision']) for r in evidence}
-        assessed = set()
-        for row in query('''SELECT f.body FROM skill_results r JOIN skill_attempts a ON a.id=r.attempt_id
-                           JOIN skill_forms f ON f.id=a.form_id WHERE a.user_id=? AND f.release_id=?''', (g.user['id'], tree['release'])):
-            assessed.update(i['objective_id'] for i in json.loads(row['body'])['items'])
+        assessed = set(verified)
+        for row in query('''SELECT f.body, sr.body AS release_body FROM skill_results r
+                           JOIN skill_attempts a ON a.id=r.attempt_id
+                           JOIN skill_forms f ON f.id=a.form_id
+                           JOIN skill_releases sr ON sr.id=f.release_id WHERE a.user_id=?''', (g.user['id'],)):
+            revisions = {n['id']: n['revision'] for n in json.loads(row['release_body'])['nodes']}
+            assessed.update((i['objective_id'], revisions[i['objective_id']]) for i in json.loads(row['body'])['items'])
         children = {}
         for e in tree['edges']:
             if e['type'] == 'contains':
@@ -143,9 +169,9 @@ def register_skills(app, db, query, require_user):
         for n in tree['nodes']:
             eligible = abilities(n['id'])
             count = sum((id, nodes[id]['revision']) in verified for id in eligible)
-            tested = len(eligible & assessed)
+            tested = sum((id, nodes[id]['revision']) in assessed for id in eligible)
             coverage.append(dict(node_id=n['id'], eligible=len(eligible), assessed=tested, verified=count,
-                                 unknown=len(eligible - assessed - {id for id in eligible if (id, nodes[id]['revision']) in verified}),
+                                 unknown=len(eligible) - tested,
                                  verified_coverage=count / len(eligible) if eligible else None, application_verified=0))
         return jsonify(release=tree['release'], score_rule=tree['score_rule'], coverage=coverage, evidence=evidence,
                        interests=[r['node_id'] for r in query('SELECT node_id FROM skill_interests WHERE user_id=? ORDER BY node_id', (g.user['id'],))],
@@ -163,7 +189,12 @@ def register_skills(app, db, query, require_user):
                               JOIN courses c ON c.id=m.course_id WHERE l.id=? AND l.status='published' AND c.status='published' ''', (mapping['lesson_id'],), True)
             if lesson:
                 content.append(dict(lesson, source=mapping['source'], role=mapping['role']))
-        forms = [dict(r) for r in query('SELECT id,access FROM skill_forms WHERE node_id=? AND release_id=?', (node_id, tree['release']))]
+        forms = []
+        for row in query('SELECT id,access,body FROM skill_forms WHERE node_id=? AND release_id=?', (node_id, tree['release'])):
+            body = json.loads(row['body'])
+            forms.append(dict(id=row['id'], access=row['access'], item_count=len(body['items']),
+                              objective_ids=sorted(body['thresholds']['objectives']),
+                              availability='active', credit_kind='understanding'))
         return jsonify(node=node, content=content, assessments=forms,
                        readiness=[e for e in tree['edges'] if e['type'] == 'prerequisite' and e['target'] == node_id])
 
@@ -178,7 +209,7 @@ def register_skills(app, db, query, require_user):
     @app.post('/api/skills/challenges')
     @require_user
     def challenge():
-        graph()
+        tree = graph()
         value = data()
         key = value.get('request_id')
         if not isinstance(key, str) or not 8 <= len(key) <= 128:
@@ -194,15 +225,33 @@ def register_skills(app, db, query, require_user):
             if not form:
                 abort(404)
             form_access(form)
-            # Reserving one certification attempt prevents simultaneous repeats becoming credit.
-            pending = query('''SELECT 1 FROM skill_attempts a LEFT JOIN skill_results r ON r.attempt_id=a.id
-                               WHERE a.user_id=? AND a.form_id=? AND r.attempt_id IS NULL''', (g.user['id'], form['id']), True)
-            if pending:
-                abort(409, 'Сначала завершите начатую попытку или повторите её request_id.')
-            prior = query('SELECT 1 FROM skill_attempts WHERE user_id=? AND form_id=?', (g.user['id'], form['id']), True)
-            id, mode = str(uuid.uuid4()), 'practice' if prior else 'certification'
+            # New attempts require the active release; pinned attempts can finish.
+            if form['release_id'] != tree['release']:
+                abort(409, 'Эта версия проверки снята. Откройте актуальную проверку темы.')
+            keys = form_exposure_keys(json.loads(form['body']))
+            exposed = False
+            for prior in query('''SELECT f.body, r.attempt_id AS finished FROM skill_attempts a
+                                  JOIN skill_forms f ON f.id=a.form_id
+                                  LEFT JOIN skill_results r ON r.attempt_id=a.id WHERE a.user_id=?''', (g.user['id'],)):
+                if keys & form_exposure_keys(json.loads(prior['body'])):
+                    if not prior['finished']:
+                        abort(409, 'Сначала завершите начатую попытку с этими вопросами.')
+                    exposed = True
+            # Any overlap conservatively makes the whole form practice-only.
+            id, mode = str(uuid.uuid4()), 'practice' if exposed else 'certification'
             db().execute('INSERT INTO skill_attempts(id,user_id,form_id,request_id,mode) VALUES(?,?,?,?,?)', (id,g.user['id'],form['id'],key,mode))
             return jsonify(attempt_dto(dict(id=id, form_id=form['id'], mode=mode))), 201
+
+    @app.get('/api/skills/challenges/<attempt_id>')
+    @require_user
+    def resume_attempt(attempt_id):
+        attempt = query('SELECT * FROM skill_attempts WHERE id=? AND user_id=?', (attempt_id, g.user['id']), True)
+        if not attempt:
+            abort(404)
+        dto = attempt_dto(attempt)
+        result = query('SELECT body FROM skill_results WHERE attempt_id=?', (attempt_id,), True)
+        dto['result'] = json.loads(result['body']) if result else None
+        return jsonify(dto)
 
     @app.post('/api/skills/challenges/<attempt_id>/submit')
     @require_user
