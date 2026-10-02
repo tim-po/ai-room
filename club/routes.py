@@ -8,7 +8,7 @@ STATUSES = {'draft': 'Черновик', 'published': 'Опубликован', 
 def register_routes(app, db, query, can_access, require_user, goals):
     def steps(identity, preview=False):
         # Only public metadata is selected; bodies and resources use lesson authorization.
-        return query('''SELECT s.*,l.title,l.minutes,l.access,l.video,m.course_id,c.title course_title,
+        return query('''SELECT s.*,l.title,l.minutes,l.access,l.video,m.course_id,m.id module_id,m.title module_title,c.title course_title,
             COALESCE(p.completed,0) completed
             FROM route_steps s JOIN lessons l ON l.id=s.lesson_id
             JOIN modules m ON m.id=l.module_id JOIN courses c ON c.id=m.course_id
@@ -25,7 +25,29 @@ def register_routes(app, db, query, can_access, require_user, goals):
                         (route['id'], preview or not experienced), True)['n'] - len(visible)
         pending = [s for s in visible if not s['completed']]
         next_step = next((s for s in pending if can_access(s)), None)
-        route.update(steps=visible, total=len(visible)+missing, done=sum(s['completed'] for s in visible),
+        selection = query('SELECT route_id,visit_floor FROM route_selections WHERE user_id=?',
+                          (g.user['id'],), True) if g.user and not preview else None
+        selected_id = selection['route_id'] if selection else None
+        if g.user and not preview and not selected_id:
+            fallback = query("SELECT id FROM learning_routes WHERE goal=? AND status='published' ORDER BY id LIMIT 1",
+                             (g.user['goal'],), True)
+            selected_id = fallback['id'] if fallback else None
+        is_selected = selected_id == route['id']
+        resume_step = next_step
+        if is_selected:
+            eligible = {s['id']: s for s in pending if can_access(s)}
+            visits = query('SELECT lesson_id FROM lesson_visits WHERE user_id=? AND visit_order>? ORDER BY visit_order DESC',
+                           (g.user['id'], selection['visit_floor'] if selection else 0))
+            resume_step = next((eligible[v['lesson_id']] for v in visits if v['lesson_id'] in eligible), next_step)
+        groups = []
+        for number, step in enumerate(visible, 1):
+            if not groups or groups[-1]['id'] != step['module_id']:
+                groups.append(dict(id=step['module_id'], title=step['module_title'], course=step['course_title'],
+                                   steps=[], start=number, current=False))
+            groups[-1]['steps'].append(step)
+            if resume_step and step['id'] == resume_step['id']:
+                groups[-1]['current'] = True
+        route.update(selected=is_selected, resume_step=resume_step, groups=groups, steps=visible, total=len(visible)+missing, done=sum(s['completed'] for s in visible),
                      missing=missing, next_step=next_step,
                      complete=bool(visible) and not pending and not missing,
                      blocked=bool(pending) and not next_step,

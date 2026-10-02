@@ -64,8 +64,8 @@ with tempfile.TemporaryDirectory(prefix='club-editor-') as folder:
                 assert steps.nth(1).locator('select').input_value()==first
                 assert steps.nth(0).locator('.selected-step strong').inner_text() in steps.nth(0).locator('select').inner_text()
                 assert page.locator('[data-save-status]').inner_text().startswith('Есть несохранённые')
-                page.get_by_role('button',name='Сохранить маршрут',exact=True).click()
-                page.wait_for_load_state('networkidle')
+                with page.expect_navigation(wait_until='networkidle'):
+                    page.get_by_role('button',name='Сохранить маршрут',exact=True).click()
                 assert steps.nth(0).locator('select').input_value()==second
                 assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
                 steps.nth(0).scroll_into_view_if_needed()

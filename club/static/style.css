@@ -9,3 +9,7 @@
 .material-content{max-width:900px}.material-content .resource{margin-bottom:12px}
 
 .editor-module>.panel{border:0;border-radius:0;margin:0}.editor-module,.editor-row{scroll-margin-top:20px}.route-editor-step{border-top:1px solid var(--line);padding:20px 0}.route-editor-step label{margin-bottom:8px}.selected-step{overflow-wrap:anywhere}.selected-step span{display:block}.route-editor-step .actions{flex-wrap:nowrap}.route-editor-step .button{font-size:14px;padding:10px 12px}
+
+/* Keep account actions reachable on short desktop viewports. */
+@media(min-width:701px){.sidebar{overflow-y:auto;overscroll-behavior:contain}.sidebar>*{flex-shrink:0}}
+.route-steps{margin:0;padding:0 0 0 44px}.route-steps li::marker{color:var(--muted);font-size:14px}.route-steps .lesson-row{overflow-wrap:anywhere}.route-group summary{overflow-wrap:anywhere}

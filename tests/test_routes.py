@@ -132,3 +132,28 @@ def test_lesson_route_blocked_and_unpublished_endings(app):
     assert 'Маршрут завершён' not in section
     assert 'PRIVATE ENDING' not in section
     assert '/routes/path-work' in section
+
+
+def test_route_overview_resumes_intent_and_switch_resets_old_visits(app):
+    c = app.test_client(); csrf = login(c, 'member')
+    c.post('/routes/path-essentials/select', data={'csrf': csrf})
+    with sqlite3.connect(app.config['DATABASE']) as db:
+        lessons = [r[0] for r in db.execute("SELECT lesson_id FROM route_steps WHERE route_id='path-essentials' ORDER BY position")]
+    for identity in lessons[:28]:
+        post(c, '/api/lessons/'+identity+'/completion', {'completed': True}, csrf)
+    c.get('/lessons/'+lessons[32])
+    def primary():
+        return re.search(r'<section class="panel" aria-label="Продолжить маршрут">(.*?)</section>', c.get('/routes/path-essentials').text, re.S).group(1)
+    assert '/lessons/'+lessons[32] in primary()
+    page = c.get('/routes/path-essentials').text
+    assert page.count('class="module route-group"') == 9
+    assert page.count('class="module route-group" open') == 1
+    c.post('/routes/path-work/select', data={'csrf': csrf})
+    assert 'Выбрать этот маршрут' in primary()
+    assert '/lessons/' not in primary()
+    c.post('/routes/path-essentials/select', data={'csrf': csrf})
+    assert '/lessons/'+lessons[28] in primary()
+    for identity in lessons[28:]:
+        post(c, '/api/lessons/'+identity+'/completion', {'completed': True}, csrf)
+    assert 'Маршрут завершён' in c.get('/routes/path-essentials').text
+    assert '/lessons/' not in primary()

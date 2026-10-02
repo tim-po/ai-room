@@ -91,6 +91,8 @@ def create_app(config=None):
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Referrer-Policy'] = 'same-origin'
         response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; media-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+        if request.endpoint == 'prototypes':
+            response.headers['Content-Security-Policy'] = response.headers['Content-Security-Policy'].replace("style-src 'self'", "style-src 'self' 'unsafe-inline'")
         if not request.path.startswith('/static/'):
             response.headers['Cache-Control'] = 'private, no-store'
         return response
@@ -444,10 +446,23 @@ def create_app(config=None):
         tickets = query('SELECT h.*,u.name,l.title FROM help_requests h JOIN users u ON u.id=h.user_id LEFT JOIN lessons l ON l.id=h.lesson_id ORDER BY h.id DESC')
         return render_template('admin.html', tickets=tickets)
 
+    @app.get('/prototypes/')
+    @app.get('/prototypes/<filename>')
+    def prototypes(filename='index.html'):
+        directory = os.environ.get('CLUB_PROTOTYPES_DIR')
+        if not directory or filename not in ('index.html', 'app.js', 'style.css'):
+            abort(404)
+        path = Path(directory) / filename
+        if not path.is_file():
+            abort(404)
+        if filename == 'index.html':
+            return path.read_text().replace('href="/style.css"', 'href="/prototypes/style.css"').replace('src="/app.js"', 'src="/prototypes/app.js"')
+        return send_file(path)
+
     @app.get('/health')
     def health():
         db().execute('SELECT 1 FROM users LIMIT 1')
-        return jsonify(status='ok', schema=query('PRAGMA user_version', one=True)[0])
+        return jsonify(build=os.environ.get('CLUB_BUILD_ID', 'development'), status='ok', schema=query('PRAGMA user_version', one=True)[0])
 
     @app.errorhandler(400)
     @app.errorhandler(401)

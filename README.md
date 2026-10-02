@@ -6,7 +6,7 @@ Independent Russian-first application in the previously empty `tim-po/ai-room` r
 
 Course and standalone material discovery with combined search/goal/level/tool/format filters; 4 synthetic courses including 37 lessons in 9 modules; readable text and an original generated silent video fixture; server-protected lesson text/media/downloads; explicit completion/uncompletion; drafts and saved practice results; server-persisted video position; favourites; preference editing and optional weekly goal; profile; contextual help tickets and role-protected administrator inbox. Anonymous free lessons work. Separate seeded free/member/revoked/editor/admin accounts use hashed passwords. Cookies are signed, HTTP-only, SameSite Lax; mutations require CSRF. No credentials ship in static assets.
 
-This is a first slice, **not an accepted complete release**. Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone guides, use cases and workshops have protected authoring/publication, resources, favourites and video resume. Accounts are operator-provisioned; self-service registration/recovery is not implemented. Ordered shared-lesson routes and protected route authoring are implemented. Content is explicitly synthetic. Independent usability/product/functional reviews and HTTPS deployment remain required.
+This is a first slice, **not an accepted complete release**. Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone guides, use cases and workshops have protected authoring/publication, resources, favourites and video resume. Accounts are operator-provisioned; self-service registration/recovery is not implemented. Ordered shared-lesson routes and protected route authoring are implemented. Content is explicitly synthetic. Independent final usability/product/functional acceptance remains required; staging deployment is documented below.
 
 ## Setup
 
@@ -43,7 +43,7 @@ The local installed instance has privately generated credentials at `instance/re
 
 Back up using SQLite's backup API or the `sqlite3 .backup` command before upgrades. Also retain the private signing key and `instance/media`. Stop writers before restoring a backup. Reordering future modules/lessons must retain their IDs; do not reset the database to deploy code. Schema v2 has no destructive downgrade operation; the earlier code ignores the additional resources table. Roll back by stopping the service, restoring its pre-upgrade SQLite backup and matching code commit, then starting the service and checking `/health` and a persisted learning flow.
 
-`scripts/ai-room.service` runs an independent local service on port 8098. Install under `~/.config/systemd/user`, run `systemctl --user daemon-reload` and `systemctl --user enable --now ai-room`. Logs: `journalctl --user -u ai-room`. It does not replace `airoom-designs` on port 8097. Public deployment is pending coordinated routing that preserves the prototypes under a stable path. Do not repoint or alter the old live website.
+`scripts/ai-room.service` runs an independent local service on port 8098. Install under `~/.config/systemd/user`, run `systemctl --user daemon-reload` and `systemctl --user enable --now ai-room`. Logs: `journalctl --user -u ai-room`. It does not replace `airoom-designs` on port 8097. Public staging routing serves the application on port 8098 and preserves prototypes at /prototypes/. Do not repoint or alter the old live website.
 
 ## Content maintenance workflow
 
@@ -254,3 +254,37 @@ Run `scripts/check_editor_layout_browser.py` for isolated 37-lesson/9-module
 editor checks at 360/390/768/1440px, keyboard route reorder, persisted order,
 module rename location, wrapping and browser errors. `CLUB_EVIDENCE_DIR` selects
 the screenshot/result destination. Independent review is still required.
+
+## Staging candidate deployment (October 2026)
+
+The platform is served at `https://airoom.nolimlabs.uk/`. Preserved design references
+are `/prototypes/#/orbit/home` and `/prototypes/#/campus/home`; the original root hash
+bookmarks redirect there. Configure `CLUB_PROTOTYPES_DIR` to the existing read-only
+prototype public directory. This optional route serves only its three public assets.
+`CLUB_BUILD_ID` identifies the deployed source commit in `/health`.
+
+Set `CLUB_SECURE_COOKIE=1` and a stable `CLUB_SECRET_KEY` in a private systemd
+EnvironmentFile. On this host the operator-managed file is `instance/staging.env`
+(mode 0600), loaded by the ai-room user-service drop-in. Account provisioning remains
+private in `instance/reviewer-credentials.txt`; request access from the staging
+operator. These values are never put in this document or public bundles.
+
+Before deployment, back up the installed database with SQLite's backup API and retain
+media and signing key. Install dependencies, run additive `init-db`, run checks, then
+restart `ai-room`. `scripts/publish_staging.py` updates only the existing dedicated
+staging tunnel hostname to port 8098 and privately retains its previous configuration.
+The old live website and its data are not accessed. The prototype service on 8097
+continues running. Infrastructure access is operator-specific; this script is not
+needed for a fresh local setup.
+
+For application rollback, stop writers, restore the matching code and SQLite backup,
+retain the signing key/media, restore the build identifier, and restart. For routing
+rollback, restore only the staging hostname's previous service (8097) using the private
+snapshot, preserving any unrelated intervening tunnel edits. Never blindly replace the
+whole tunnel configuration or reset installed learner data. Final release acceptance
+still requires the independent reviewers to assess this exact candidate.
+
+`CLUB_MEDIA_OUTPUT` optionally directs fixture generation to an isolated output path.
+`scripts/check_operations.py` verifies actual process stop/start and SQLite backup/restore
+using disposable accounts/data. `scripts/check_route_resume_browser.py` verifies short-screen
+sign-out with pointer/keyboard for learner/editor/admin and late-route resume.

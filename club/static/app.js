@@ -1,3 +1,7 @@
+// Preserve bookmarked design references after the staging application moves to root.
+if (location.pathname === '/' && /^#\/(orbit|campus|studio)\//.test(location.hash)) {
+  location.replace('/prototypes/' + location.hash);
+}
 'use strict';
 const token = document.querySelector('meta[name="csrf-token"]').content;
 const sidebar = document.querySelector('.lesson-sidebar > details');
