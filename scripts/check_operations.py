@@ -55,21 +55,28 @@ with tempfile.TemporaryDirectory(prefix='club-operations-') as folder:
         lesson='foundations-start-01'
         request('/api/lessons/'+lesson+'/practice',dict(body='Isolated durable practical result',status='draft'),csrf)
         request('/api/lessons/'+lesson+'/completion',dict(completed=True),csrf)
+        def completed():
+            with sqlite3.connect(database) as connection:
+                return connection.execute('SELECT completed FROM progress WHERE lesson_id=?', (lesson,)).fetchone()[0]
+        assert completed() == 1
         before=json.loads(request('/api/lessons/'+lesson))
         stop(process);process=start()
         after=json.loads(request('/api/lessons/'+lesson))
         assert before==after
+        assert completed() == 1
         assert 'Isolated durable practical result' in request('/profile')
         backup=root/'backup.sqlite'
         with sqlite3.connect(database) as source, sqlite3.connect(backup) as target:
             source.backup(target)
         request('/api/lessons/'+lesson+'/completion',dict(completed=False),csrf)
+        assert completed() == 0
         request('/api/lessons/'+lesson+'/practice',dict(body='Post-backup change',status='draft'),csrf)
         stop(process)
         with sqlite3.connect(backup) as source, sqlite3.connect(database) as target:
             source.backup(target)
         process=start()
         assert json.loads(request('/api/lessons/'+lesson))==before
+        assert completed() == 1
         assert 'Isolated durable practical result' in request('/profile')
         assert 'Post-backup change' not in request('/profile')
         result=dict(process_restart=True,session_survives=True,draft_survives=True,completion_survives=True,
