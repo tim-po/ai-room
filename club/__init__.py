@@ -516,4 +516,7 @@ def create_app(config=None):
     from .materials import register_materials
     register_materials(app, db, query, can_access, require_user, GOALS)
 
+    from .skills import register_skills
+    register_skills(app, db, query, require_user)
+
     return app
