@@ -117,6 +117,9 @@ def register_skills(app, db, query, require_user):
                     mode=row['mode'], release=row['release_id'], created_at=row['created_at'],
                     resume_url='/api/skills/challenges/' + row['id'], access_required=not accessible)
 
+    from .diagnostics import register_diagnostics
+    register_diagnostics(app, db, query, require_user, graph, data)
+
     @app.cli.command('init-skills')
     def init_skills():
         database = Path(app.config['DATABASE'])
