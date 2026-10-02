@@ -2,11 +2,26 @@
 
 Independent Russian-first application in the previously empty `tim-po/ai-room` repository. Flask + Jinja server-rendered pages, SQLite, native HTML media, small progressive JavaScript. The existing website, its data, APIs, accounts and billing are not used. Orbit charcoal/green/lime and Campus warmth/rounded spacing inform one shared responsive shell.
 
+## Accepted staging release
+
+Staging: https://airoom.nolimlabs.uk/. The manager accepted application commit
+`bc700c5762f559a68b7c1caf9ad297ea29020e97` on branch `education/fresh-platform`
+on 2026-10-02. R01–R11 and A01–A10 are covered by the consolidated product
+matrix, independent functional/design reviews and manager verification of that
+exact build over HTTPS. This is staging acceptance, not production cutover.
+
+The durable acceptance and evidence index is
+`/home/claude/bot-swarm/data/_loops/_output/education-platform-for-people-learning/deliverables/manager-final-public/release-acceptance.json`.
+It records 35 passing integration tests, independent access-help/privacy checks,
+public browser verification and attributed setup/restart/restore evidence.
+Documentation-only commits after the accepted application commit do not change
+the deployed build identifier or imply a redeployment.
+
 ## Implemented learning and authoring slices
 
 Course and standalone material discovery with combined search/goal/level/tool/format filters; 4 synthetic courses including 37 lessons in 9 modules; readable text and an original generated silent video fixture; server-protected lesson text/media/downloads; explicit completion/uncompletion; drafts and saved practice results; server-persisted video position; favourites; preference editing and optional weekly goal; profile; contextual help tickets and role-protected administrator inbox. Anonymous free lessons work. Separate seeded free/member/revoked/editor/admin accounts use hashed passwords. Cookies are signed, HTTP-only, SameSite Lax; mutations require CSRF. No credentials ship in static assets.
 
-This is a first slice, **not an accepted complete release**. Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone guides, use cases and workshops have protected authoring/publication, resources, favourites and video resume. Accounts are operator-provisioned; self-service registration/recovery is not implemented. Ordered shared-lesson routes and protected route authoring are implemented. Content is explicitly synthetic. Independent final usability/product/functional acceptance remains required; staging deployment is documented below.
+Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone guides, use cases and workshops have protected authoring/publication, resources, favourites and video resume. Accounts are operator-provisioned; self-service registration/recovery is not implemented. Ordered shared-lesson routes and protected route authoring are implemented. Content is explicitly synthetic. Independent release acceptance is recorded above; staging operations are documented below.
 
 ## Setup
 
@@ -33,7 +48,7 @@ Open `http://127.0.0.1:8098`. Health: `/health`. Run verification with `.venv/bi
 - `CLUB_SECURE_COOKIE`: enable secure cookies for HTTPS staging.
 - `CLUB_SEED_PASSWORD`: private initial password for synthetic accounts; seed does not reset existing passwords or progress.
 
-Account identifiers: `learner@example.test` (free), `member@example.test` (member), `revoked@example.test` (revoked), `editor@example.test` (editor), `admin@example.test` (admin). Expired is a supported entitlement value; dedicated expiry lifecycle/testing is pending. No billing or automatic trial. Privileged roles may read all published lessons, while normal learner entitlement controls paid boundaries. New unauthenticated visitors can read free lessons but must sign in to persist work.
+Account identifiers: `learner@example.test` (free), `member@example.test` (member), `revoked@example.test` (revoked), `editor@example.test` (editor), `admin@example.test` (admin). Expired is a supported entitlement value, with content boundaries and access-help recovery tested; entitlement changes are operator-managed, without an automatic billing lifecycle. No billing or automatic trial. Privileged roles may read all published lessons, while normal learner entitlement controls paid boundaries. New unauthenticated visitors can read free lessons but must sign in to persist work.
 
 The local installed instance has privately generated credentials at `instance/reviewer-credentials.txt` (mode 0600). Do not copy this file into evidence, source control, browser bundles, or public reports. Reviewer agents on this host may read it in memory for isolated staging verification.
 
@@ -57,7 +72,7 @@ For protected videos, an operator places approved `.webm` or `.mp4` files in `in
 
 Upgrade v1 → v2: back up SQLite using its backup API, retain media/signing key, deploy source, run `.venv/bin/python -m flask --app club init-db`, restart `ai-room`, and check `/health` (schema 2), an existing saved practice and `/admin/content/`. The additive migration is repeatable; automated coverage verifies existing lessons and completion remain unchanged. Local pre-upgrade backup is `instance/pre-authoring-v1.sqlite` (private, not a deliverable). To roll back, stop writers and restore the matching database/code backup, then restart. Do not restore a stale backup after new learning activity without accounting for those later writes.
 
-Authoring verification: `.venv/bin/python -m pytest -q` (7 integration tests), `.venv/bin/python -m compileall -q club`; `scripts/check_authoring_browser.py` exercises editor forms, validation, offline retry, preview playback, protected downloads and 360/390/768/1440px layouts using private local fixture credentials. Worker tests do not replace independent acceptance review.
+Authoring verification: `.venv/bin/python -m pytest -q` (full integration suite), `.venv/bin/python -m compileall -q club`; `scripts/check_authoring_browser.py` exercises editor forms, validation, offline retry, preview playback, protected downloads and 360/390/768/1440px layouts using private local fixture credentials. Worker tests do not replace independent acceptance review.
 
 ## Learning measurement (schema v3)
 
@@ -148,11 +163,11 @@ Rollback: stop writers and restore the matching code/database backup; retain any
 post-upgrade work separately before restoring an older database. Never reset the
 shared database to upgrade.
 
-Verification: 19 integration tests cover routes plus previous regressions;
+Verification: route integration tests cover routes plus previous regressions;
 `scripts/check_routes_browser.py` creates an isolated temporary database and HTTP
 server for responsive route/home/profile/editor views, beginner next-step,
 explicit switch, offline save retry and keyboard disclosure. Evidence output is
-controlled by `CLUB_EVIDENCE_DIR`. Independent final-build acceptance remains open.
+controlled by `CLUB_EVIDENCE_DIR`. Final-build acceptance is recorded at the top of this runbook.
 
 
 ## Standalone materials (schema v6)
@@ -208,8 +223,8 @@ and copied media; tests playback/resume, failed media, favourite profile, combin
 filters/back, resource download, offline save/retry and keyboard draft/preview at
 360/390/768/1440px. Run with `CLUB_EVIDENCE_DIR` pointing to a report folder. The
 existing generated `instance/media/fixture.webm` is required. No shared learner
-records are mutated by this browser test. Independent acceptance review and public
-HTTPS deployment remain outstanding.
+records are mutated by this browser test. Independent acceptance and public HTTPS verification are recorded at the top
+of this runbook.
 
 ### Route continuity and media recovery regression (2026-10-02)
 
@@ -253,9 +268,9 @@ saving still works when that optional storage is disabled. No schema migration.
 Run `scripts/check_editor_layout_browser.py` for isolated 37-lesson/9-module
 editor checks at 360/390/768/1440px, keyboard route reorder, persisted order,
 module rename location, wrapping and browser errors. `CLUB_EVIDENCE_DIR` selects
-the screenshot/result destination. Independent review is still required.
+the screenshot/result destination. Independent review is included in the accepted-release evidence index above.
 
-## Staging candidate deployment (October 2026)
+## Staging deployment (October 2026)
 
 The platform is served at `https://airoom.nolimlabs.uk/`. Preserved design references
 are `/prototypes/#/orbit/home` and `/prototypes/#/campus/home`; the original root hash
@@ -281,8 +296,8 @@ For application rollback, stop writers, restore the matching code and SQLite bac
 retain the signing key/media, restore the build identifier, and restart. For routing
 rollback, restore only the staging hostname's previous service (8097) using the private
 snapshot, preserving any unrelated intervening tunnel edits. Never blindly replace the
-whole tunnel configuration or reset installed learner data. Final release acceptance
-still requires the independent reviewers to assess this exact candidate.
+whole tunnel configuration or reset installed learner data. The current application build has been independently accepted as recorded above.
+Future application changes require review of their own exact candidate build.
 
 `CLUB_MEDIA_OUTPUT` optionally directs fixture generation to an isolated output path.
 `scripts/check_operations.py` verifies actual process stop/start and SQLite backup/restore
