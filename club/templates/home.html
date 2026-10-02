@@ -1,8 +1,8 @@
 {% extends 'base.html' %}{% block content %}
 <section class="atlas" data-authenticated="{{ 'yes' if user else 'no' }}">
-<div class="atlas-heading"><div><p class="eyebrow">АТЛАС ВОЗМОЖНОСТЕЙ / AI ROOM</p><h1>Куда приведёт ваше любопытство?</h1><p>Одна основа. Пять направлений. Можно развивать несколько сразу.</p></div>{% if next_lesson %}<a class="atlas-continue" href="/lessons/{{ next_lesson.id }}">Продолжить урок ↗<small>{{ next_lesson.title }}</small></a>{% endif %}</div>
-{% if user and not user.onboarding_done %}<p><a class="atlas-welcome" href="/preferences">Найти своё начало: выбрать интересы →</a></p>{% endif %}
-<div class="atlas-toolbar"><label>Найти навык<input id="skill-search" type="search" placeholder="Например, мобильные приложения"></label><div class="atlas-controls"><button id="map-view" aria-pressed="true">Карта</button><button id="list-view" aria-pressed="false">Список</button><button id="map-reset" aria-label="Вернуться к общей карте">Вся карта ↺</button></div></div>
+<div class="atlas-heading"><div><h1>Ваше дерево навыков</h1></div>{% if next_lesson %}<a class="atlas-continue" href="/lessons/{{ next_lesson.id }}">Продолжить урок ↗<small>{{ next_lesson.title }}</small></a>{% endif %}</div>
+{% if user and not user.onboarding_done %}<a class="atlas-welcome" href="/preferences">Найти своё начало: выбрать интересы →</a>{% endif %}
+<div class="atlas-toolbar"><label><span class="visually-hidden">Найти навык</span><input id="skill-search" type="search" placeholder="Найти навык…"></label><div class="atlas-controls"><button id="map-view" aria-pressed="true">Карта</button><button id="list-view" aria-pressed="false">Список</button><button id="map-reset" aria-label="Вернуться к общей карте">Вся карта ↺</button></div></div>
 <noscript><p>Для интерактивной карты нужен JavaScript. <a href="/catalogue">Открыть библиотеку уроков</a>.</p></noscript><p id="atlas-status" role="status">Загружаем дерево навыков…</p>
 <div class="atlas-workspace"><div id="skill-map" class="skill-map" aria-label="Дерево навыков"></div><section id="node-detail" class="node-detail" aria-labelledby="detail-title" hidden></section></div>
 <p class="atlas-key"><span>◯ Ещё не проверено</span><span>✓ Подтверждено заданием</span><span>Линии показывают разделы дерева</span></p>
