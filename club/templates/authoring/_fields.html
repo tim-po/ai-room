@@ -1,0 +1,5 @@
+{% macro field(name, label, item, maximum=500, area=false, required=true) %}
+<label>{{ label }}{% if area %}<textarea name="{{ name }}" rows="{{ 10 if name=='body' else 4 }}" maxlength="{{ maximum }}" {% if required %}required{% endif %}>{{ item[name] if item else '' }}</textarea>{% else %}<input name="{{ name }}" value="{{ item[name] if item else '' }}" maxlength="{{ maximum }}" {% if required %}required{% endif %}>{% endif %}</label>
+{% endmacro %}
+{% macro status(item, statuses) %}<label>Статус<select name="status">{% for value, label in statuses.items() %}<option value="{{ value }}" {% if item and item.status==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>{% endmacro %}
+{% macro move(kind, item, csrf) %}<form class="actions" method="post" action="{{ url_for('authoring.move',kind=kind,identity=item.id) }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="button secondary" name="direction" value="up" aria-label="Выше: {{ item.title }}">↑ Выше</button><button class="button secondary" name="direction" value="down" aria-label="Ниже: {{ item.title }}">↓ Ниже</button></form>{% endmacro %}

@@ -1,4 +1,6 @@
 import hmac
+import mimetypes
+import re
 import os
 import secrets
 import sqlite3
@@ -209,7 +211,8 @@ def create_app(config=None):
         lessons = lesson_list(lesson['course_id'])
         index = next(i for i, l in enumerate(lessons) if l['id'] == lesson_id)
         return render_template('lesson.html', lesson=lesson, lessons=lessons, progress=progress, practice=practice,
-            previous=lessons[index-1] if index else None, following=lessons[index+1] if index+1 < len(lessons) else None)
+            previous=lessons[index-1] if index else None, following=lessons[index+1] if index+1 < len(lessons) else None,
+            resources=query("SELECT id,title,kind FROM resources WHERE lesson_id=? AND status='published'", (lesson_id,)))
 
     @app.get('/api/lessons/<lesson_id>')
     def lesson_api(lesson_id):
@@ -289,12 +292,24 @@ def create_app(config=None):
     @app.get('/lessons/<lesson_id>/media')
     def media(lesson_id):
         lesson = get_lesson(lesson_id)
-        if lesson['video'] != 'fixture.webm':
+        if not lesson['video'] or not re.fullmatch(r'[A-Za-z0-9_.-]+\.(webm|mp4)', lesson['video']):
             abort(404, 'Видео пока недоступно. Используйте текст урока ниже.')
-        path = Path(app.instance_path) / 'media' / 'fixture.webm'
+        path = Path(app.instance_path) / 'media' / lesson['video']
         if not path.exists():
             abort(404)
-        return send_file(path, mimetype='video/webm', conditional=True)
+        return send_file(path, mimetype=mimetypes.guess_type(lesson['video'])[0], conditional=True)
+
+    @app.get('/resources/<resource_id>')
+    def lesson_resource(resource_id):
+        resource = query("SELECT * FROM resources WHERE id=? AND status='published'", (resource_id,), True)
+        if not resource:
+            abort(404)
+        get_lesson(resource['lesson_id'])
+        if resource['kind'] == 'link':
+            return redirect(resource['content'])
+        response = app.response_class(resource['content'], mimetype='text/plain')
+        response.headers['Content-Disposition'] = 'attachment; filename="lesson-resource.txt"'
+        return response
 
     @app.post('/courses/<course_id>/favourite')
     @require_user
@@ -374,6 +389,7 @@ def create_app(config=None):
     @app.errorhandler(401)
     @app.errorhandler(403)
     @app.errorhandler(404)
+    @app.errorhandler(409)
     @app.errorhandler(413)
     @app.errorhandler(429)
     def error(err):
@@ -384,12 +400,15 @@ def create_app(config=None):
     @app.cli.command('init-db')
     def init_db():
         db().executescript(Path(__file__).with_name('schema.sql').read_text())
-        click.echo('Schema ready (version 1).')
+        click.echo('Schema ready (version 2).')
 
     @app.cli.command('seed')
     def seed():
         from .seed import seed_database
         seed_database(db())
         click.echo('Synthetic content and isolated accounts seeded. Existing learner data preserved.')
+
+    from .authoring import register_authoring
+    register_authoring(app, db, query, GOALS)
 
     return app

@@ -50,4 +50,9 @@ ON events(user_id,lesson_id,name) WHERE name IN ('lesson_started','lesson_comple
 CREATE TABLE IF NOT EXISTS login_attempts (
  identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, window_start INTEGER NOT NULL
 );
-PRAGMA user_version = 1;
+CREATE TABLE IF NOT EXISTS resources (
+ id TEXT PRIMARY KEY, lesson_id TEXT NOT NULL REFERENCES lessons(id),
+ title TEXT NOT NULL, kind TEXT NOT NULL CHECK(kind IN ('text','link')), content TEXT NOT NULL,
+ status TEXT NOT NULL DEFAULT 'published' CHECK(status IN ('published','archived'))
+);
+PRAGMA user_version = 2;
