@@ -115,6 +115,45 @@ def register_skills(app, db, query, require_user):
             seed_graph(db())
         click.echo('Competency tables and graph ready; baseline backup: ' + str(backup))
 
+    @app.cli.command('install-skill-examples')
+    def install_skill_examples():
+        """Install original text lessons/mappings, without publishing assessment keys."""
+        from .skill_content import install_examples
+        database = Path(app.config['DATABASE'])
+        backup = database.with_name(database.name + '.before-skill-examples-' + datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f') + '.sqlite')
+        with sqlite3.connect(backup) as dest:
+            db().backup(dest)
+        backup.chmod(0o600)
+        try:
+            with db():
+                db().execute('BEGIN IMMEDIATE')
+                changed = install_examples(db())
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+        click.echo(('Examples installed; assessments await review.' if changed else 'Examples already installed; no changes.') + ' Backup: ' + str(backup))
+
+    @app.cli.command('inspect-skill-examples')
+    def inspect_skill_examples():
+        """Private operator preview, including answer keys. Never serve publicly."""
+        from .skill_content import CASES, candidate_form
+        click.echo(json.dumps([candidate_form(case) for case in CASES], ensure_ascii=False, indent=2))
+
+    @app.cli.command('review-skill-examples')
+    @click.option('--reviewer', required=True, help='Existing editor/admin user ID.')
+    @click.option('--confirm-reviewed', is_flag=True, help='Confirm source support, independent coverage and unambiguous answers were reviewed.')
+    def review_skill_examples(reviewer, confirm_reviewed):
+        """Publish only after an operator has inspected each candidate and source."""
+        from .skill_content import review_examples
+        if not confirm_reviewed:
+            raise click.ClickException('Inspect candidates and sources first; explicit --confirm-reviewed is required.')
+        try:
+            with db():
+                db().execute('BEGIN IMMEDIATE')
+                review_examples(db(), reviewer)
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+        click.echo('Reviewed example forms published. Credit is understanding only.')
+
     @app.get('/api/skills/graph')
     def skill_graph():
         tree = graph()
