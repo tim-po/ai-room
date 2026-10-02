@@ -1,7 +1,7 @@
 """Private source ingestion and durable processing leases. No generated AI fallback.
 
 Source bytes never enter a public/static directory; download is owner/admin only.
-The next provider adapter must use the fenced lease API and retain source hashes.
+Provider processing uses fenced leases and retains source hashes and reviewed editions.
 """
 import hashlib
 import json
@@ -69,7 +69,7 @@ def claim_job(db, *, now=None):
             return None
         token = uuid.uuid4().hex
         db.execute("""UPDATE teaching_jobs SET state='running',attempt=attempt+1,revision=revision+1,
-            lease_token=?,lease_until=?,error_code=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?""", (token, now + 300, row[0]))
+            lease_token=?,lease_until=?,error_code=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?""", (token, now + 900, row[0]))
         record_event(db, row[0])
         return {'id': row[0], 'lease_token': token}
 
@@ -117,8 +117,13 @@ def register_teaching(app, db, query):
         return row
 
     def dto(row):
-        return {key: row[key] for key in ('id','upload_id','filename','media_type','size','sha256','state',
-                                        'attempt','revision','error_code','created_at','updated_at')}
+        value = {key: row[key] for key in ('id','upload_id','filename','media_type','size','sha256','state',
+                                         'attempt','revision','error_code','created_at','updated_at')}
+        value['source_ids'] = [s['upload_id'] for s in query(
+            'SELECT upload_id FROM teaching_package_sources WHERE job_id=? ORDER BY position', (row['id'],))] or [row['upload_id']]
+        draft = query('SELECT MAX(revision) revision FROM teaching_drafts WHERE job_id=?', (row['id'],), True)
+        value['draft_revision'] = draft['revision']
+        return value
 
     @app.cli.command('init-teaching')
     def init_teaching():
@@ -131,12 +136,15 @@ def register_teaching(app, db, query):
         storage()
         click.echo('Private uploads and jobs ready; backup: ' + str(backup))
 
+    from .teaching_provider import configured
+
     @app.get('/api/teaching/capabilities')
     @editor
     def capabilities():
         return jsonify(extensions=list(FORMATS), max_file_bytes=app.config['TEACHING_UPLOAD_LIMIT'],
                        max_text_bytes=TEXT_LIMIT, max_attempts=MAX_ATTEMPTS, url_import=False,
-                       processing_available=False, processing_dependency='provider_adapter_and_approved_configuration')
+                       processing_available=configured(), processing_dependency=None if configured() else 'CLUB_AI_APPROVED,CLUB_AI_API_KEY,CLUB_AI_MODEL',
+                       source_packages=True, max_package_files=5, draft_schema_version=1)
 
     @app.post('/api/teaching/uploads')
     @editor
@@ -184,7 +192,9 @@ def register_teaching(app, db, query):
                     abort(413, 'Лимит хранилища автора исчерпан.')
                 db().execute('INSERT INTO teaching_uploads(id,owner_id,request_id,filename,media_type,size,sha256) VALUES(?,?,?,?,?,?,?)',
                              (identity,g.user['id'],key,name,FORMATS[suffix],size,checksum))
-                db().execute("INSERT INTO teaching_jobs(id,upload_id,state) VALUES(?,?,'queued')", (identity,identity))
+                deferred = request.form.get('defer_processing') == '1'
+                db().execute("INSERT INTO teaching_jobs(id,upload_id,state,error_code) VALUES(?,?,?,?)",
+                             (identity,identity,'cancelled' if deferred else 'queued','awaiting_package' if deferred else None))
                 db().execute('INSERT INTO teaching_sources(upload_id,body) VALUES(?,?)', (identity,json.dumps(source,ensure_ascii=False)))
                 record_event(db(), identity)
             keep = True
@@ -231,10 +241,12 @@ def register_teaching(app, db, query):
             row = owned_job(id)
             if row['revision'] != body['revision']:
                 abort(409, 'Задание изменилось. Обновите его состояние.')
+            if row['error_code'] == 'included_in_package':
+                abort(409, 'Источник обрабатывается в составе пакета.')
             if action == 'retry':
                 if row['state'] not in ('blocked','failed','cancelled') or row['attempt'] >= MAX_ATTEMPTS:
                     abort(409, 'Повтор сейчас недоступен.')
-                if row['error_code'] in ('interrupted_outcome_unknown', 'cancelled_outcome_unknown') and body.get('acknowledge_possible_charge') is not True:
+                if row['error_code'] in ('interrupted_outcome_unknown', 'cancelled_outcome_unknown', 'provider_outcome_unknown') and body.get('acknowledge_possible_charge') is not True:
                     abort(409, 'Исход предыдущей обработки неизвестен; подтвердите возможный повторный расход.')
             elif row['state'] == 'ready':
                 abort(409, 'Обработка уже завершена.')
@@ -253,6 +265,8 @@ def register_teaching(app, db, query):
         if not claim:
             click.echo('No queued work.')
             return
-        # An unavailable provider must be visible, never replaced with pretend AI.
-        finish_job(db(), claim, state='blocked', error_code='provider_adapter_and_approved_configuration_required')
-        click.echo('Job blocked: provider adapter and approved configuration required.')
+        from .teaching_drafts import process_claim
+        click.echo('Job processing: ' + process_claim(app, db(), claim))
+
+    from .teaching_drafts import register_drafts
+    register_drafts(app, db, query, editor, owned_job, dto)

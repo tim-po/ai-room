@@ -20,3 +20,25 @@ CREATE TABLE IF NOT EXISTS teaching_sources (
  upload_id TEXT PRIMARY KEY REFERENCES teaching_uploads(id), body TEXT NOT NULL,
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS teaching_package_sources (
+ job_id TEXT NOT NULL REFERENCES teaching_jobs(id), upload_id TEXT NOT NULL REFERENCES teaching_uploads(id),
+ position INTEGER NOT NULL, PRIMARY KEY(job_id,upload_id)
+);
+CREATE TABLE IF NOT EXISTS teaching_transcripts (
+ upload_id TEXT PRIMARY KEY REFERENCES teaching_uploads(id), body TEXT NOT NULL,
+ provider TEXT NOT NULL, model TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS teaching_drafts (
+ job_id TEXT NOT NULL REFERENCES teaching_jobs(id), revision INTEGER NOT NULL, body TEXT NOT NULL,
+ sources TEXT NOT NULL, release_id TEXT NOT NULL, provider TEXT NOT NULL, model TEXT NOT NULL,
+ editor_id TEXT REFERENCES users(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(job_id,revision)
+);
+CREATE TABLE IF NOT EXISTS teaching_publications (
+ job_id TEXT PRIMARY KEY REFERENCES teaching_jobs(id), draft_revision INTEGER NOT NULL,
+ lesson_id TEXT NOT NULL REFERENCES lessons(id), release_id TEXT NOT NULL REFERENCES skill_releases(id),
+ reviewed_by TEXT NOT NULL REFERENCES users(id), review_note TEXT NOT NULL,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TRIGGER IF NOT EXISTS teaching_drafts_immutable BEFORE UPDATE ON teaching_drafts BEGIN SELECT RAISE(ABORT,'immutable draft edition'); END;
+CREATE TRIGGER IF NOT EXISTS teaching_drafts_retain BEFORE DELETE ON teaching_drafts BEGIN SELECT RAISE(ABORT,'retain draft edition'); END;
