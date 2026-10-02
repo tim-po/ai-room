@@ -288,3 +288,82 @@ def test_document_refs_discard_forged_media_fields(pipeline):
     saved = c.put(path+'/draft', json=dict(revision=1, draft=draft), headers={'X-CSRF-Token':csrf})
     assert saved.status_code == 200
     assert set(saved.json['draft']['practice']['refs'][0]) == {'source_id','edition','sha256','paragraph'}
+
+
+@pytest.mark.parametrize('kind', ['remap_outcome', 'reject_outcome', 'remove_question', 'remove_assessment'])
+def test_editorial_rejection_publishes_honest_unassessed_material(pipeline, kind):
+    c = pipeline.test_client(); csrf = login(c, 'editor'); job = upload(c, csrf).json
+    path = '/api/teaching/jobs/' + job['id']
+    assert 'ready' in process(pipeline)
+    original = c.get(path+'/draft').json
+    with sqlite3.connect(pipeline.config['DATABASE']) as db:
+        graph = json.loads(db.execute('SELECT body FROM skill_releases WHERE id=?', (original['release_id'],)).fetchone()[0])
+    target = next(n['id'] for n in graph['nodes'] if n['kind']=='ability' and n['id']!='basic-ai.verification')
+    action = dict(kind=kind, objective_id='basic-ai.verification', target_id=target, item_id='i0')
+    data = dict(revision=1, action=action)
+    stranger = pipeline.test_client(); login(stranger)
+    assert post(stranger, path+'/review', data, None).status_code in (400, 403)
+    changed = post(c, path+'/review', data, csrf)
+    assert changed.status_code == 200, changed.data
+    assert changed.json['revision'] == 2
+    assert changed.json['review_changes']['removed_assessments'] == ['basic-ai.verification']
+    assert changed.json['coverage']['challenge_available'] is False
+    assert changed.json['draft']['assessments'] == []
+    assert post(c, path+'/review', data, csrf).status_code == 409
+    assert c.get(path+'/draft').json['coverage'] == changed.json['coverage']
+    assert c.get(path+'/preview').json['coverage'] == changed.json['coverage']
+    published = post(c, path+'/publish', dict(revision=2, confirm_reviewed=True, access='free', review_note='Removed unsupported assessment.'), csrf)
+    assert published.status_code == 201, published.data
+    with sqlite3.connect(pipeline.config['DATABASE']) as db:
+        assert db.execute('SELECT COUNT(*) FROM skill_forms').fetchone()[0] == 0
+        release = json.loads(db.execute('SELECT body FROM skill_releases WHERE id=?', (published.json['release_id'],)).fetchone()[0])
+        mapped = {m['objective_id'] for m in release['mappings'] if m['lesson_id']==published.json['lesson_id']}
+        expected = {target} if kind=='remap_outcome' else set() if kind=='reject_outcome' else {'basic-ai.verification'}
+        assert mapped == expected
+        prior = json.loads(db.execute('SELECT body FROM teaching_drafts WHERE job_id=? AND revision=1', (job['id'],)).fetchone()[0])
+        assert prior == original['draft']
+    assert post(c, path+'/review', dict(revision=2, action=action), csrf).status_code == 409
+
+
+def test_review_invalid_action_is_atomic_and_source_selection_persists(pipeline):
+    c = pipeline.test_client(); csrf = login(c, 'editor')
+    job = upload(c, csrf, b'First paragraph.\n\nSecond paragraph.', 'notes.txt').json
+    path = '/api/teaching/jobs/' + job['id']
+    assert 'ready' in process(pipeline)
+    for action in (None, {'kind':'publish'}, {'kind':'remove_question','objective_id':'basic-ai.verification','item_id':'absent'},
+                   {'kind':'remap_outcome','objective_id':'basic-ai.verification','target_id':'missing'}):
+        assert post(c, path+'/review', dict(revision=1, action=action), csrf).status_code == 400
+        assert c.get(path+'/draft').json['revision'] == 1
+    draft = c.get(path+'/draft').json['draft']
+    draft['outcomes'][0]['refs'][0]['paragraph'] = 2
+    draft['assessments'][0]['items'][0]['refs'][0]['paragraph'] = 2
+    saved = c.put(path+'/draft', json=dict(revision=1,draft=draft), headers={'X-CSRF-Token':csrf})
+    assert saved.status_code == 200, saved.data
+    assert c.get(path+'/preview').json['outcomes'][0]['refs'][0]['paragraph'] == 2
+    published = post(c, path+'/publish', dict(revision=2,confirm_reviewed=True,access='free',review_note='Corrected source anchor.'), csrf)
+    assert published.status_code == 201
+    with sqlite3.connect(pipeline.config['DATABASE']) as db:
+        form = json.loads(db.execute('SELECT body FROM skill_forms WHERE release_id=?', (published.json['release_id'],)).fetchone()[0])
+        assert form['items'][0]['source']['paragraph'] == 2
+        assert form['items'][0]['source']['text'] == 'Second paragraph.'
+
+
+def test_remove_question_retains_sufficient_reviewed_form_and_enforces_owner(pipeline):
+    c = pipeline.test_client(); csrf = login(c, 'editor'); job = upload(c, csrf).json
+    path = '/api/teaching/jobs/' + job['id']
+    assert 'ready' in process(pipeline)
+    draft = c.get(path+'/draft').json['draft']
+    extra = copy.deepcopy(draft['assessments'][0]['items'][0])
+    extra.update(id='extra',lineage_id='extra-decision',prompt='Which source would resolve an uncertain claim?')
+    draft['assessments'][0]['items'].append(extra)
+    assert c.put(path+'/draft',json=dict(revision=1,draft=draft),headers={'X-CSRF-Token':csrf}).status_code == 200
+    with sqlite3.connect(pipeline.config['DATABASE']) as db:
+        db.execute("UPDATE users SET role='editor' WHERE email='member@example.test'")
+    other = pipeline.test_client(); other_csrf = login(other, 'member')
+    data = dict(revision=2,action=dict(kind='remove_question',objective_id='basic-ai.verification',item_id='extra'))
+    assert post(other,path+'/review',data,other_csrf).status_code == 404
+    saved = post(c,path+'/review',data,csrf)
+    assert saved.status_code == 200
+    assert saved.json['review_changes']['removed_assessments'] == []
+    assert saved.json['coverage']['challenge_available'] is True
+    assert len(saved.json['draft']['assessments'][0]['items']) == 2
