@@ -58,3 +58,6 @@ def seed_database(db):
 
         from .route_seed import seed_routes
         seed_routes(db)
+
+        from .material_seed import seed_materials
+        seed_materials(db)

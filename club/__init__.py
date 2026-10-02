@@ -205,9 +205,18 @@ def create_app(config=None):
         q = request.args.get('q', '').strip()[:150].lower()
         goal = request.args.get('goal', '')
         level = request.args.get('level', '')
-        courses = [c for c in cards() if (not q or q in (c['title'] + c['description'] + c['tools']).lower())
-                   and (not goal or c['goal'] == goal) and (not level or c['level'] == level)]
-        return render_template('catalogue.html', courses=courses)
+        tool = request.args.get('tool', '').strip()[:150].casefold()
+        content_format = request.args.get('format', '')
+        def matches(c):
+            return ((not q or q in (c['title'] + c['description'] + c['tools']).lower())
+                    and (not goal or c['goal'] == goal) and (not level or c['level'] == level)
+                    and (not tool or tool in c['tools'].casefold()))
+        courses = [c for c in cards() if matches(c)] if content_format in ('', 'course') else []
+        # Discovery exposes metadata only, never member-only body, prompt or video references.
+        materials = [m for m in query("""SELECT id,title,description,outcome,format,goal,level,tools,minutes,access
+            FROM materials WHERE status='published' ORDER BY updated_at DESC,id""")
+            if matches(m) and (not content_format or m['format'] == content_format)]
+        return render_template('catalogue.html', courses=courses, materials=materials)
 
     @app.get('/courses/<course_id>')
     def course(course_id):
@@ -384,7 +393,8 @@ def create_app(config=None):
         favourites = query('''SELECT c.* FROM favourites f JOIN courses c ON c.id=f.course_id
             WHERE f.user_id=? AND c.status='published' ''', (g.user['id'],))
         weekly = query("SELECT COUNT(*) n FROM events WHERE user_id=? AND name='lesson_completed' AND created_at>=datetime('now','-7 days')", (g.user['id'],), True)['n']
-        return render_template('profile.html', courses=cards(), practices=practices, favourites=favourites, weekly=weekly, route=selected_route())
+        material_favourites = query('''SELECT m.id,m.title,m.format,m.access FROM material_favourites f JOIN materials m ON m.id=f.material_id WHERE f.user_id=? AND m.status='published' ''', (g.user['id'],))
+        return render_template('profile.html', material_favourites=material_favourites, courses=cards(), practices=practices, favourites=favourites, weekly=weekly, route=selected_route())
 
     @app.route('/help', methods=['GET', 'POST'])
     def help_page():
@@ -432,7 +442,7 @@ def create_app(config=None):
     @app.cli.command('init-db')
     def init_db():
         db().executescript(Path(__file__).with_name('schema.sql').read_text())
-        click.echo('Schema ready (version 5).')
+        click.echo('Schema ready (version 6).')
 
     @app.cli.command('seed-routes')
     def seed_route_fixtures():
@@ -440,6 +450,13 @@ def create_app(config=None):
         with db():
             seed_routes(db())
         click.echo('Initial synthetic routes added; existing compositions preserved.')
+
+    @app.cli.command('seed-materials')
+    def seed_material_fixtures():
+        from .material_seed import seed_materials
+        with db():
+            seed_materials(db())
+        click.echo('Synthetic standalone materials added; existing content preserved.')
 
     @app.cli.command('seed')
     def seed():
@@ -452,5 +469,8 @@ def create_app(config=None):
 
     from .authoring import register_authoring
     register_authoring(app, db, query, GOALS)
+
+    from .materials import register_materials
+    register_materials(app, db, query, can_access, require_user, GOALS)
 
     return app

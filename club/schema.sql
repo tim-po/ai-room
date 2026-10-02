@@ -89,4 +89,26 @@ CREATE TABLE IF NOT EXISTS route_selections (
  user_id TEXT PRIMARY KEY REFERENCES users(id), route_id TEXT NOT NULL REFERENCES learning_routes(id),
  visit_floor INTEGER NOT NULL DEFAULT 0
 );
-PRAGMA user_version = 5;
+CREATE TABLE IF NOT EXISTS materials (
+ id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, outcome TEXT NOT NULL,
+ format TEXT NOT NULL CHECK(format IN ('guide','use_case','workshop')),
+ goal TEXT NOT NULL, level TEXT NOT NULL, tools TEXT NOT NULL, prerequisites TEXT NOT NULL,
+ author TEXT NOT NULL, minutes INTEGER NOT NULL CHECK(minutes>0), body TEXT NOT NULL,
+ prompt TEXT, video TEXT, access TEXT NOT NULL CHECK(access IN ('free','member')),
+ status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS material_resources (
+ id TEXT PRIMARY KEY, material_id TEXT NOT NULL REFERENCES materials(id), title TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('text','link')), content TEXT NOT NULL,
+ status TEXT NOT NULL DEFAULT 'published' CHECK(status IN ('published','archived'))
+);
+CREATE TABLE IF NOT EXISTS material_favourites (
+ user_id TEXT NOT NULL REFERENCES users(id), material_id TEXT NOT NULL REFERENCES materials(id),
+ PRIMARY KEY(user_id,material_id)
+);
+CREATE TABLE IF NOT EXISTS material_video_positions (
+ user_id TEXT NOT NULL REFERENCES users(id), material_id TEXT NOT NULL REFERENCES materials(id),
+ seconds REAL NOT NULL DEFAULT 0 CHECK(seconds>=0), PRIMARY KEY(user_id,material_id)
+);
+PRAGMA user_version = 6;

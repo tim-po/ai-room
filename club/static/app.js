@@ -50,7 +50,7 @@ for (const form of document.querySelectorAll('[data-dirty-form]')) {
   });
 }
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
-const video = document.querySelector('video[data-lesson]');
+const video = document.querySelector('video[data-lesson], video[data-material]');
 if (video) {
   const error = document.getElementById('video-error');
   video.addEventListener('error', () => error.hidden = false);
@@ -64,7 +64,7 @@ if (video) {
     if (video.dataset.auth !== '1' || (!force && Date.now() - lastSave < 5000)) return;
     lastSave = Date.now();
     try {
-      const response = await fetch(`/api/lessons/${video.dataset.lesson}/video`, {method:'POST',keepalive:true,headers:{'Content-Type':'application/json','X-CSRF-Token':token},body:JSON.stringify({seconds:video.currentTime})});
+      const response = await fetch((video.dataset.material ? `/api/materials/${video.dataset.material}/video` : `/api/lessons/${video.dataset.lesson}/video`), {method:'POST',keepalive:true,headers:{'Content-Type':'application/json','X-CSRF-Token':token},body:JSON.stringify({seconds:video.currentTime})});
       if (!response.ok) throw new Error('save');
       document.getElementById('video-status').textContent = 'Позиция просмотра сохранена.';
     } catch (_) { document.getElementById('video-status').textContent = 'Позиция не сохранена. Проверьте подключение.'; }

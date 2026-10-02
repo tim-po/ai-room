@@ -73,7 +73,7 @@ def test_v2_upgrade_preserves_data_and_does_not_invent_history(app):
     db.commit()
     for _ in range(2):
         assert app.test_cli_runner().invoke(args=['init-db']).exit_code == 0
-    assert db.execute('PRAGMA user_version').fetchone()[0] == 5
+    assert db.execute('PRAGMA user_version').fetchone()[0] == 6
     assert db.execute('SELECT completed FROM progress').fetchone()[0] == 1
     assert db.execute('SELECT COUNT(*) FROM learning_days').fetchone()[0] == 0
     assert db.execute('SELECT COUNT(*) FROM events').fetchone()[0] == 0

@@ -4,9 +4,9 @@ Independent Russian-first application in the previously empty `tim-po/ai-room` r
 
 ## Implemented learning and authoring slices
 
-Course discovery and combined search/goal/level filters; 4 synthetic courses including 37 lessons in 9 modules; readable text and an original generated silent video fixture; server-protected lesson text/media/downloads; explicit completion/uncompletion; drafts and saved practice results; server-persisted video position; favourites; preference editing and optional weekly goal; profile; contextual help tickets and role-protected administrator inbox. Anonymous free lessons work. Separate seeded free/member/revoked/editor/admin accounts use hashed passwords. Cookies are signed, HTTP-only, SameSite Lax; mutations require CSRF. No credentials ship in static assets.
+Course and standalone material discovery with combined search/goal/level/tool/format filters; 4 synthetic courses including 37 lessons in 9 modules; readable text and an original generated silent video fixture; server-protected lesson text/media/downloads; explicit completion/uncompletion; drafts and saved practice results; server-persisted video position; favourites; preference editing and optional weekly goal; profile; contextual help tickets and role-protected administrator inbox. Anonymous free lessons work. Separate seeded free/member/revoked/editor/admin accounts use hashed passwords. Cookies are signed, HTTP-only, SameSite Lax; mutations require CSRF. No credentials ship in static assets.
 
-This is a first slice, **not an accepted complete release**. Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone materials and registration/recovery are not implemented. Ordered shared-lesson routes and protected route authoring are implemented. Content is explicitly synthetic. Independent usability/product/functional reviews and HTTPS deployment remain required.
+This is a first slice, **not an accepted complete release**. Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone guides, use cases and workshops have protected authoring/publication, resources, favourites and video resume. Accounts are operator-provisioned; self-service registration/recovery is not implemented. Ordered shared-lesson routes and protected route authoring are implemented. Content is explicitly synthetic. Independent usability/product/functional reviews and HTTPS deployment remain required.
 
 ## Setup
 
@@ -39,7 +39,7 @@ The local installed instance has privately generated credentials at `instance/re
 
 ## Data and operations
 
-`club/schema.sql` sets schema `user_version=5`. Version 2 adds the resources table without changing existing IDs or learning records. `init-db` creates missing schema objects without deleting rows. Run it before `seed`. The seed uses stable IDs and `INSERT OR IGNORE`: re-running preserves existing content and user work. Never use the seed as a content-update migration. Future schema changes need explicit versioned migrations and backup/restore testing. SQLite foreign keys are enabled for every application connection. Progress and practice are keyed by user + stable lesson ID. User IDs are derived from the signed session, not accepted from client payloads.
+`club/schema.sql` sets schema `user_version=6`. Version 2 adds the resources table without changing existing IDs or learning records. `init-db` creates missing schema objects without deleting rows. Run it before `seed`. The seed uses stable IDs and `INSERT OR IGNORE`: re-running preserves existing content and user work. Never use the seed as a content-update migration. Future schema changes need explicit versioned migrations and backup/restore testing. SQLite foreign keys are enabled for every application connection. Progress and practice are keyed by user + stable lesson ID. User IDs are derived from the signed session, not accepted from client payloads.
 
 Back up using SQLite's backup API or the `sqlite3 .backup` command before upgrades. Also retain the private signing key and `instance/media`. Stop writers before restoring a backup. Reordering future modules/lessons must retain their IDs; do not reset the database to deploy code. Schema v2 has no destructive downgrade operation; the earlier code ignores the additional resources table. Roll back by stopping the service, restoring its pre-upgrade SQLite backup and matching code commit, then starting the service and checking `/health` and a persisted learning flow.
 
@@ -153,3 +153,60 @@ Verification: 19 integration tests cover routes plus previous regressions;
 server for responsive route/home/profile/editor views, beginner next-step,
 explicit switch, offline save retry and keyboard disclosure. Evidence output is
 controlled by `CLUB_EVIDENCE_DIR`. Independent final-build acceptance remains open.
+
+
+## Standalone materials (schema v6)
+
+`/catalogue` combines courses, guides, use cases and workshop recordings. Search,
+goal, level, format and tool filters combine in query parameters, retaining state
+on browser back. The tool field searches the real tool/cost disclosures without
+requiring a specific vendor. Cards disclose free/member access before opening;
+only public description/outcome metadata is queried for discovery. Member-only
+text, prompts, resources and media are authorized independently on every request.
+Expired/revoked accounts retain free access. Draft/archived materials are absent
+from discovery and return 404 at all learner boundaries, including staff learner
+URLs. Protected previews use separate staff routes and do not record activity.
+
+Open `/admin/materials` from the content editor. Create a draft, choose guide,
+use case or workshop, set goal/level/access, describe outcome/prerequisites/tools
+and costs, name the responsible author and add plain text, optional copyable
+prompt and installed video. Save, preview, then publish. Save feedback, offline
+retry preserving the form, and stale-revision rejection work as in lesson editing.
+To unpublish choose Draft; to withdraw choose Archive. Existing IDs, favourites
+and video positions remain. Changes to published material are immediately visible;
+use Draft before editing when review must precede publication. The update date is
+a server timestamp, not a claim of independent verification. Add downloadable TXT
+resources or public HTTPS references; archive resources to withdraw them. External
+sites enforce their own permissions. Operator-managed media stays in the protected
+`instance/media` directory, never under public static storage.
+
+Materials can be saved to profile favourites. Workshop video uses real HTML media
+playback, authenticated per-user resume and a visible error fallback with readable
+text. It does not create lesson completion, practice or learning events. There are
+no invented attendance counts, live events or tutor services. The three labelled
+fixtures are `guide-check-answer`, `case-meeting-plan`, `workshop-prompt-lab`.
+The workshop shares the synthetic silent video asset; it is not a real recording.
+
+Upgrade v5 → v6: take a private SQLite backup and preserve signing key/media, deploy
+source, run `.venv/bin/python -m flask --app club init-db`, then
+`.venv/bin/python -m flask --app club seed-materials`. The latter requires no account
+password and never changes existing editorial or learner records. Restart the
+independent `ai-room` service and check `/health` (schema 6), `/catalogue`, a protected
+material, and an existing saved practice. Tables are additive and seeding is
+idempotent. Rollback to v5 source can leave additive tables in place, preserving
+post-upgrade learning writes; it hides material features until the upgrade is
+reapplied. For full database restoration stop writers and restore the matching
+private pre-upgrade snapshot, explicitly accounting for any later writes first.
+Never operate on legacy-site storage.
+
+Verification: `tests/test_materials.py` exercises draft/publish/unpublish/archive,
+stale edits, role/CSRF checks, anonymous/free/member/expired/revoked boundaries,
+protected downloads and range media, safe URL validation, combined discovery,
+cross-user isolation, restarted-app persistence and repeatable migration/seeding.
+`scripts/check_materials_browser.py` uses a temporary DB, private generated accounts
+and copied media; tests playback/resume, failed media, favourite profile, combined
+filters/back, resource download, offline save/retry and keyboard draft/preview at
+360/390/768/1440px. Run with `CLUB_EVIDENCE_DIR` pointing to a report folder. The
+existing generated `instance/media/fixture.webm` is required. No shared learner
+records are mutated by this browser test. Independent acceptance review and public
+HTTPS deployment remain outstanding.

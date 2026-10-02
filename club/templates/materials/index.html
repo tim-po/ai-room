@@ -1,0 +1,3 @@
+{% extends 'base.html' %}{% block title %}Редактор материалов{% endblock %}{% block content %}
+<a href="/admin/content/">← Учебный контент</a><h1>Гайды, кейсы и воркшопы</h1><p>Самостоятельные материалы для конкретных задач. Сохраняйте черновик, проверьте предпросмотр и опубликуйте.</p><a class="button" href="/admin/materials/new">Создать материал</a>
+{% for m in items %}<article class="panel"><span class="chip">{{ statuses[m.status] }} · {{ material_formats[m.format] }}</span><h2><a href="/admin/materials/{{ m.id }}">{{ m.title }}</a></h2><p>{{ m.author }} · Обновлено {{ m.updated_at }} UTC</p></article>{% else %}<p>Материалов пока нет. Начните с короткого гайда.</p>{% endfor %}{% endblock %}

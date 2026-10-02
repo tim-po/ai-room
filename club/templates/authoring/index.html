@@ -1,5 +1,5 @@
 {% extends 'base.html' %}{% block title %}Редактор контента{% endblock %}{% block content %}
 <a href="/admin">← Администрирование</a><h1>Учебный контент</h1><p class="lead">Создайте курс, добавьте модули и уроки. Проверьте предпросмотр и опубликуйте, когда всё готово.</p>
-<a class="button" href="{{ url_for('authoring.course_edit') }}">Создать курс</a> <a class="button secondary" href="/admin/routes">Маршруты обучения</a>
+<a class="button secondary" href="/admin/materials">Гайды, кейсы и воркшопы</a> <a class="button" href="{{ url_for('authoring.course_edit') }}">Создать курс</a> <a class="button secondary" href="/admin/routes">Маршруты обучения</a>
 {% for c in courses %}<article class="panel"><span class="chip">{{ statuses[c.status] }}</span><h2><a href="{{ url_for('authoring.course_edit',identity=c.id) }}">{{ c.title }}</a></h2><p>{{ c.outcome }}</p><p class="small">Ответственный: {{ c.author }} · Обновлено: {{ c.updated_at }}</p></article>{% else %}<p>Курсов пока нет. Начните с небольшого полезного результата.</p>{% endfor %}
 {% endblock %}

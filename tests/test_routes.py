@@ -89,4 +89,4 @@ def test_migration_and_route_seed_preserve_editorial_order(app):
         assert app.test_cli_runner().invoke(args=['seed']).exit_code==0
     with sqlite3.connect(app.config['DATABASE']) as db:
         assert db.execute("SELECT lesson_id FROM route_steps WHERE route_id='path-work' ORDER BY position").fetchall()==[('everyday-ai-intro-01',),(FREE,)]
-        assert db.execute('PRAGMA user_version').fetchone()[0]==5
+        assert db.execute('PRAGMA user_version').fetchone()[0]==6
