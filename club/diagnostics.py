@@ -2,6 +2,7 @@
 import json
 import uuid
 from .form_lifecycle import lifecycle
+from .release_bindings import available_forms, form_available
 
 from flask import abort, g, jsonify
 
@@ -31,10 +32,12 @@ def register_diagnostics(app, db, query, require_user, graph, data):
             if accessible(attempt):
                 recommendations.extend(dict(objective_id=f['objective_id'], source=f['source'], reason='gap') for f in result['feedback'] if not f['correct'])
         next_form = None
-        if row['state'] == 'active' and row['release_id'] == graph()['release'] and len(plan['attempts']) < 8:
+        if row['state'] == 'active' and len(plan['attempts']) < 8:
             for form_id in plan['forms']:
                 form = query('SELECT * FROM skill_forms WHERE id=?', (form_id,), True)
                 objectives = set(json.loads(form['body'])['thresholds']['objectives'])
+                if not form_available(query, form, graph()['release']):
+                    continue
                 if objectives <= verified | tested or not accessible(form) or lifecycle(query, form_id)['status'] != 'active':
                     continue
                 pending = query('''SELECT a.id FROM skill_attempts a LEFT JOIN skill_results r ON r.attempt_id=a.id
@@ -81,7 +84,7 @@ def register_diagnostics(app, db, query, require_user, graph, data):
                 return result
             foundations = descendants(tree['root'], True)
             groups = [foundations] + [descendants(i) for i in interests]
-            forms = query('SELECT * FROM skill_forms WHERE release_id=? ORDER BY id', (tree['release'],))
+            forms = available_forms(query, tree['release'])
             queues = [[f['id'] for f in forms if set(json.loads(f['body'])['thresholds']['objectives']) <= group and accessible(f)] for group in groups]
             ordered = list(queues[0])
             # Foundations first, then interleave branches instead of exhausting one interest.
