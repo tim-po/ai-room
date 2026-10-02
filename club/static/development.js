@@ -12,36 +12,41 @@
   function character(graph,me) {
     const nodes=new Map(graph.nodes.map(n=>[n.id,n]));
     const coverage=new Map(me.coverage.map(c=>[c.node_id,c]));
+    const application=me.application_evidence||[];
+    const hasEvidence=me.evidence.length>0||application.length>0;
     const next=document.querySelector('#character-next');next.replaceChildren();
     const latest=me.explorations.find(e=>nodes.has(e.node_id));
-    next.append(el('h2',me.evidence.length?'Продолжайте развивать свои навыки':'Здесь появятся ваши подтверждённые навыки'));
-    next.append(el('p',me.evidence.length?'Можно развивать несколько направлений одновременно.':'Пока не собрано свидетельств о ваших знаниях. Исследуйте карту и начните с интересующей темы.'));
+    next.append(el('h2',hasEvidence?'Продолжайте развивать свои навыки':'Здесь появятся ваши подтверждённые навыки'));
+    next.append(el('p',hasEvidence?'Можно развивать несколько направлений одновременно.':'Пока не собрано свидетельств о ваших знаниях. Исследуйте карту и начните с интересующей темы.'));
     next.append(link(latest?'Вернуться: '+nodes.get(latest.node_id).title:'Исследовать общую основу →',latest?.node_id||graph.root));
     const diagnostic=el('p');const diagnosticLink=el('a','Найти точку старта · необязательная проверка →');diagnosticLink.href='/diagnostic';diagnostic.append(diagnosticLink);next.append(diagnostic);
-    const recent=document.querySelector('#character-recent');recent.replaceChildren();recent.hidden=!me.evidence.length;
-    const dateOf=item=>new Date(item.assessed_at.replace(' ','T').replace(/Z?$/,'Z'));
+    const recent=document.querySelector('#character-recent');recent.replaceChildren();recent.hidden=!hasEvidence;
+    const dateOf=item=>new Date((item.assessed_at||item.reviewed_at).replace(' ','T').replace(/Z?$/,'Z'));
     function evidenceRow(item){
       const entry=el('li'),title=nodes.get(item.objective_id)?.title||item.objective_id;
       entry.append(link(title,item.objective_id));
       const date=el('time',dateOf(item).toLocaleDateString('ru-RU'));date.dateTime=dateOf(item).toISOString();entry.append(date);
-      const result=el('a','Результат проверки →');result.href='/challenges?'+new URLSearchParams({node:item.objective_id,attempt:item.attempt_id});result.setAttribute('aria-label','Результат проверки: '+title);entry.append(result);return entry;
+      const result=el('a',item.submission_id?'Проверенная работа →':'Результат проверки →');result.href=item.submission_id?'/practice?submission='+encodeURIComponent(item.submission_id):'/challenges?'+new URLSearchParams({node:item.objective_id,attempt:item.attempt_id});result.setAttribute('aria-label','Результат проверки: '+title);entry.append(result);return entry;
     }
-    const ordered=[...me.evidence].sort((a,b)=>dateOf(b)-dateOf(a));
+    const ordered=[...me.evidence,...application].sort((a,b)=>dateOf(b)-dateOf(a));
     if(ordered.length){recent.append(el('h2','Недавно подтверждено'));const list=el('ul');for(const item of ordered.slice(0,3))list.append(evidenceRow(item));recent.append(list);}
     const branches=document.querySelector('#character-branches');branches.replaceChildren();
+    function understanding(c) {return c.verified?`Понимание: подтверждено ${c.verified} из ${c.eligible}`:c.assessed?'Понимание: проверено, пока не подтверждено':'Понимание: ещё не проверено';}
+    function applicationSummary(c) {return c.application_verified?`Применение: подтверждено ${c.application_verified} из ${c.eligible}`:'Применение: ещё не подтверждено';}
+    function summary(parent,c) {parent.append(el('p',understanding(c),'branch-strength'),el('p',applicationSummary(c),'small'));}
     function row(node) {
       const c=coverage.get(node.id),r=el('div',null,'ability-coverage');r.append(link(node.title,node.id));
-      r.append(el('span',c.verified?`Подтверждено ${c.verified} из ${c.eligible}`:c.assessed?'Есть проверенные темы; подтверждений пока нет':'Ещё не проверено'));
+      r.append(el('span',understanding(c)),el('span',applicationSummary(c)));
       if(c.verified){const meter=el('meter');meter.min=0;meter.max=c.eligible;meter.value=c.verified;meter.setAttribute('aria-label',node.title+': подтверждённые навыки');r.append(meter);}
       return r;
     }
-    const foundation=el('section',null,'character-branch');foundation.append(el('h2','Базовые знания об AI'));const f=me.foundation_coverage;foundation.append(el('p',f?.verified?`Подтверждено ${f.verified} из ${f.eligible}`:'Свидетельства ещё не собраны'));foundation.append(link('Исследовать основу →',graph.root));branches.append(foundation);
+    const foundation=el('section',null,'character-branch');foundation.append(el('h2','Базовые знания об AI'));const f=me.foundation_coverage;summary(foundation,f);foundation.append(link('Исследовать основу →',graph.root));branches.append(foundation);
     for(const branch of graph.nodes.filter(n=>n.kind==='branch')) {
       const section=el('section',null,'character-branch family-'+branch.id);section.append(el('h2',branch.title));
       const c=coverage.get(branch.id);
-      section.append(el('p',c.verified?`${c.verified} из ${c.eligible} навыков подтверждено`:'Свидетельства ещё не собраны','branch-strength'));
+      summary(section,c);
       const details=el('details');details.append(el('summary','Навыки направления'));
-      details.append(el('p',`Не проверено: ${c.unknown} · Применение подтверждено: ${c.application_verified}`,'small'));
+      details.append(el('p',`Понимание ещё не проверено у ${c.unknown} из ${c.eligible} навыков`,'small'));
       for(const edge of graph.edges.filter(e=>e.type==='contains'&&e.source===branch.id)) {
         const group=el('div',null,'coverage-group');group.append(row(nodes.get(edge.target)));
         function descendants(id){for(const child of graph.edges.filter(e=>e.type==='contains'&&e.source===id)){group.append(row(nodes.get(child.target)));descendants(child.target);}}descendants(edge.target);
@@ -50,11 +55,11 @@
       section.append(details);branches.append(section);
     }
     const evidence=document.querySelector('#character-evidence');evidence.replaceChildren();
-    if(!me.evidence.length)evidence.append(el('p','Пока нет подтверждений. Пройденные уроки и ваши работы сохранены ниже.'));
-    for(const item of me.evidence){const p=el('p');p.append(link(nodes.get(item.objective_id)?.title||item.objective_id,item.objective_id));p.append(el('small',` · ${new Date(item.assessed_at.replace(' ','T')+'Z').toLocaleDateString('ru-RU')} · Редакция навыка ${item.objective_revision}`));const result=el('a',' Посмотреть результат →');result.href='/challenges?'+new URLSearchParams({node:item.objective_id,attempt:item.attempt_id});p.append(result);evidence.append(p);}
+    if(!me.evidence.length)evidence.append(el('p','Понимание ещё не подтверждено проверкой. Пройденные уроки и практические работы сохраняются отдельно.'));
+    for(const item of me.evidence){const p=el('p');p.append(link(nodes.get(item.objective_id)?.title||item.objective_id,item.objective_id));p.append(el('small',` · ${new Date((item.assessed_at||item.reviewed_at).replace(' ','T')+'Z').toLocaleDateString('ru-RU')} · Редакция навыка ${item.objective_revision}`));const result=el('a',' Посмотреть результат →');result.href='/challenges?'+new URLSearchParams({node:item.objective_id,attempt:item.attempt_id});p.append(result);evidence.append(p);}
     const applied=document.querySelector('#character-application');applied.replaceChildren(el('h2','Подтверждённое применение'));
     if(!me.application_evidence?.length)applied.append(el('p','Проверенных практических результатов пока нет.'));
-    for(const item of me.application_evidence||[]){const p=el('p');p.append(link(nodes.get(item.objective_id)?.title||item.objective_id,item.objective_id));const a=el('a',' · Работа и решение преподавателя →');a.href='/practice?submission='+encodeURIComponent(item.submission_id);p.append(a);applied.append(p);}
+    for(const item of me.application_evidence||[]){const p=el('p');p.append(link(nodes.get(item.objective_id)?.title||item.objective_id,item.objective_id));const a=el('a',' · Работа и решение преподавателя →');a.href='/practice?submission='+encodeURIComponent(item.submission_id);p.append(el('small',' · Проверено '+dateOf(item).toLocaleDateString('ru-RU')),a);applied.append(p);}
     status.textContent='Данные сохранены в вашем аккаунте.';
   }
   function interests(graph,me) {
