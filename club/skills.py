@@ -1,0 +1,241 @@
+"""Additive graph and deterministic reviewed knowledge challenges.
+
+Forms and releases are immutable. Source review is an explicit editorial operation;
+there is intentionally no automatic certification from generated or saved text.
+"""
+import json
+import math
+import sqlite3
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+import click
+from flask import abort, g, jsonify, request
+
+
+def validate_form(form, graph):
+    objectives = {n['id']: n for n in graph['nodes'] if n['kind'] == 'ability'}
+    items = form.get('items', [])
+    if not isinstance(items, list) or not 2 <= len(items) <= 40:
+        raise ValueError('A reviewed form needs 2–40 items')
+    ids, coverage = set(), {}
+    for item in items:
+        if item['id'] in ids or item['objective_id'] not in objectives:
+            raise ValueError('Invalid item identity or objective')
+        ids.add(item['id'])
+        choices = item['choices']
+        if len(choices) < 2 or item['answer'] not in {c['id'] for c in choices} or len({c['id'] for c in choices}) != len(choices):
+            raise ValueError('Invalid answer choices')
+        if not item.get('source') or not item.get('rationale') or not item.get('prompt'):
+            raise ValueError('Source and rationale required')
+        if item['type'] not in ('knowledge', 'scenario') or not isinstance(item.get('critical', False), bool):
+            raise ValueError('Invalid item type')
+        coverage.setdefault(item['objective_id'], []).append(item)
+    for group in coverage.values():
+        if len(group) < 2 or not any(i['type'] == 'scenario' for i in group):
+            raise ValueError('Each objective needs two observations including a scenario')
+    # Independence and semantic source support additionally require human review.
+    return {'overall': math.ceil(len(items) * .8), 'total': len(items),
+            'objectives': {id: math.ceil(len(group) * .75) for id, group in coverage.items()},
+            'critical_required': [i['id'] for i in items if i.get('critical')]}
+
+
+def publish_reviewed_form(db, *, id, graph, node_id, form, access, reviewer):
+    """Internal editorial boundary; callers must supply an authenticated reviewer."""
+    user = db.execute('SELECT role FROM users WHERE id=?', (reviewer,)).fetchone()
+    if not user or user[0] not in ('admin', 'editor'):
+        raise ValueError('Editor review required')
+    if node_id not in {n['id'] for n in graph['nodes']}:
+        raise ValueError('Unknown node')
+    form = dict(form, thresholds=validate_form(form, graph), score_rule=graph['score_rule'])
+    db.execute('INSERT INTO skill_forms(id,release_id,node_id,body,access,reviewed_by) VALUES(?,?,?,?,?,?)',
+               (id, graph['release'], node_id, json.dumps(form, ensure_ascii=False), access, reviewer))
+
+
+def register_skills(app, db, query, require_user):
+    def graph():
+        try:
+            row = query('SELECT r.body FROM skill_active a JOIN skill_releases r ON r.id=a.release_id WHERE singleton=1', one=True)
+        except sqlite3.OperationalError:
+            abort(409, 'Дерево ещё не установлено. Требуется init-skills.')
+        if not row:
+            abort(409, 'Дерево ещё не опубликовано.')
+        return json.loads(row['body'])
+
+    def data():
+        value = request.get_json(silent=True)
+        if not isinstance(value, dict):
+            abort(400)
+        return value
+
+    def valid_node(id, tree):
+        node = next((n for n in tree['nodes'] if n['id'] == id), None)
+        if not node:
+            abort(404)
+        return node
+
+    def form_access(form):
+        if form['access'] != 'free' and g.user['entitlement'] != 'member' and g.user['role'] not in ('editor', 'admin'):
+            abort(403)
+
+    @app.cli.command('init-skills')
+    def init_skills():
+        database = Path(app.config['DATABASE'])
+        backup = database.with_name(database.name + '.before-skills-' + datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f') + '.sqlite')
+        with sqlite3.connect(backup) as dest:
+            db().backup(dest)
+        backup.chmod(0o600)
+        db().executescript(Path(__file__).with_name('skills_schema.sql').read_text())
+        from .skill_seed import seed_graph
+        with db():
+            seed_graph(db())
+        click.echo('Competency tables and graph ready; baseline backup: ' + str(backup))
+
+    @app.get('/api/skills/graph')
+    def skill_graph():
+        tree = graph()
+        return jsonify({k: v for k, v in tree.items() if k != 'mappings'})
+
+    @app.put('/api/skills/interests')
+    @require_user
+    def interests():
+        tree, values = graph(), data().get('node_ids')
+        if not isinstance(values, list) or len(values) > 100 or any(not isinstance(v, str) for v in values):
+            abort(400)
+        for value in values:
+            valid_node(value, tree)
+        with db():
+            db().execute('DELETE FROM skill_interests WHERE user_id=?', (g.user['id'],))
+            db().executemany('INSERT INTO skill_interests VALUES(?,?)', [(g.user['id'], v) for v in set(values)])
+        return jsonify(interests=sorted(set(values)))
+
+    @app.post('/api/skills/explore')
+    @require_user
+    def explore():
+        node = valid_node(data().get('node_id'), graph())
+        with db():
+            db().execute('''INSERT INTO skill_explorations(user_id,node_id) VALUES(?,?)
+                ON CONFLICT(user_id,node_id) DO UPDATE SET updated_at=CURRENT_TIMESTAMP''', (g.user['id'], node['id']))
+        return jsonify(ok=True)
+
+    @app.get('/api/skills/me')
+    @require_user
+    def skill_me():
+        tree = graph()
+        evidence = [dict(r) for r in query('SELECT * FROM skill_evidence WHERE user_id=?', (g.user['id'],))]
+        verified = {(r['objective_id'], r['objective_revision']) for r in evidence}
+        assessed = set()
+        for row in query('''SELECT f.body FROM skill_results r JOIN skill_attempts a ON a.id=r.attempt_id
+                           JOIN skill_forms f ON f.id=a.form_id WHERE a.user_id=? AND f.release_id=?''', (g.user['id'], tree['release'])):
+            assessed.update(i['objective_id'] for i in json.loads(row['body'])['items'])
+        children = {}
+        for e in tree['edges']:
+            if e['type'] == 'contains':
+                children.setdefault(e['source'], []).append(e['target'])
+        nodes = {n['id']: n for n in tree['nodes']}
+        def abilities(id):
+            result = {id} if nodes[id]['kind'] == 'ability' else set()
+            for child in children.get(id, []):
+                result.update(abilities(child))
+            return result
+        coverage = []
+        for n in tree['nodes']:
+            eligible = abilities(n['id'])
+            count = sum((id, nodes[id]['revision']) in verified for id in eligible)
+            tested = len(eligible & assessed)
+            coverage.append(dict(node_id=n['id'], eligible=len(eligible), assessed=tested, verified=count,
+                                 unknown=len(eligible - assessed - {id for id in eligible if (id, nodes[id]['revision']) in verified}),
+                                 verified_coverage=count / len(eligible) if eligible else None, application_verified=0))
+        return jsonify(release=tree['release'], score_rule=tree['score_rule'], coverage=coverage, evidence=evidence,
+                       interests=[r['node_id'] for r in query('SELECT node_id FROM skill_interests WHERE user_id=? ORDER BY node_id', (g.user['id'],))],
+                       explorations=[dict(r) for r in query('SELECT node_id,updated_at FROM skill_explorations WHERE user_id=? ORDER BY updated_at DESC,node_id', (g.user['id'],))])
+
+    @app.get('/api/skills/nodes/<node_id>')
+    def node_detail(node_id):
+        tree = graph()
+        node = valid_node(node_id, tree)
+        content = []
+        for mapping in tree['mappings']:
+            if mapping['objective_id'] != node_id:
+                continue
+            lesson = query('''SELECT l.id,l.title,l.access FROM lessons l JOIN modules m ON m.id=l.module_id
+                              JOIN courses c ON c.id=m.course_id WHERE l.id=? AND l.status='published' AND c.status='published' ''', (mapping['lesson_id'],), True)
+            if lesson:
+                content.append(dict(lesson, source=mapping['source'], role=mapping['role']))
+        forms = [dict(r) for r in query('SELECT id,access FROM skill_forms WHERE node_id=? AND release_id=?', (node_id, tree['release']))]
+        return jsonify(node=node, content=content, assessments=forms,
+                       readiness=[e for e in tree['edges'] if e['type'] == 'prerequisite' and e['target'] == node_id])
+
+    def attempt_dto(attempt):
+        form = query('SELECT * FROM skill_forms WHERE id=?', (attempt['form_id'],), True)
+        form_access(form)
+        body = json.loads(form['body'])
+        # Explicit allow-list: answer, rationale and future private fields cannot leak.
+        items = [{k: i[k] for k in ('id', 'prompt', 'choices', 'type', 'objective_id')} for i in body['items']]
+        return dict(id=attempt['id'], mode=attempt['mode'], items=items, thresholds=body['thresholds'], release=form['release_id'])
+
+    @app.post('/api/skills/challenges')
+    @require_user
+    def challenge():
+        graph()
+        value = data()
+        key = value.get('request_id')
+        if not isinstance(key, str) or not 8 <= len(key) <= 128:
+            abort(400, 'Требуется request_id длиной 8–128 символов.')
+        with db():
+            db().execute('BEGIN IMMEDIATE')
+            existing = query('SELECT * FROM skill_attempts WHERE user_id=? AND request_id=?', (g.user['id'], key), True)
+            if existing:
+                if existing['form_id'] != value.get('assessment_id'):
+                    abort(409)
+                return jsonify(attempt_dto(existing))
+            form = query('SELECT * FROM skill_forms WHERE id=?', (value.get('assessment_id'),), True)
+            if not form:
+                abort(404)
+            form_access(form)
+            # Reserving one certification attempt prevents simultaneous repeats becoming credit.
+            pending = query('''SELECT 1 FROM skill_attempts a LEFT JOIN skill_results r ON r.attempt_id=a.id
+                               WHERE a.user_id=? AND a.form_id=? AND r.attempt_id IS NULL''', (g.user['id'], form['id']), True)
+            if pending:
+                abort(409, 'Сначала завершите начатую попытку или повторите её request_id.')
+            prior = query('SELECT 1 FROM skill_attempts WHERE user_id=? AND form_id=?', (g.user['id'], form['id']), True)
+            id, mode = str(uuid.uuid4()), 'practice' if prior else 'certification'
+            db().execute('INSERT INTO skill_attempts(id,user_id,form_id,request_id,mode) VALUES(?,?,?,?,?)', (id,g.user['id'],form['id'],key,mode))
+            return jsonify(attempt_dto(dict(id=id, form_id=form['id'], mode=mode))), 201
+
+    @app.post('/api/skills/challenges/<attempt_id>/submit')
+    @require_user
+    def submit(attempt_id):
+        value = data()
+        with db():
+            db().execute('BEGIN IMMEDIATE')
+            attempt = query('SELECT * FROM skill_attempts WHERE id=? AND user_id=?', (attempt_id, g.user['id']), True)
+            if not attempt:
+                abort(404)
+            form = query('SELECT * FROM skill_forms WHERE id=?', (attempt['form_id'],), True)
+            form_access(form)
+            existing = query('SELECT body FROM skill_results WHERE attempt_id=?', (attempt_id,), True)
+            if existing:
+                return jsonify(json.loads(existing['body']))
+            body = json.loads(form['body'])
+            answers = value.get('answers')
+            if not isinstance(answers, dict) or set(answers) != {i['id'] for i in body['items']}:
+                abort(400, 'Ответьте на все вопросы формы.')
+            for item in body['items']:
+                if answers[item['id']] not in [c['id'] for c in item['choices']]:
+                    abort(400)
+            correct = {i['id']: answers[i['id']] == i['answer'] for i in body['items']}
+            scores = {obj: sum(correct[i['id']] for i in body['items'] if i['objective_id'] == obj) for obj in body['thresholds']['objectives']}
+            passed = sum(correct.values()) >= body['thresholds']['overall'] and all(scores[o] >= t for o,t in body['thresholds']['objectives'].items()) and all(correct[i] for i in body['thresholds']['critical_required'])
+            result = dict(id=attempt_id, passed=passed, mode=attempt['mode'], points=sum(correct.values()), thresholds=body['thresholds'],
+                          objective_scores=scores, credited=passed and attempt['mode']=='certification',
+                          feedback=[dict(item_id=i['id'], correct=correct[i['id']], objective_id=i['objective_id'], rationale=i['rationale'], source=i['source']) for i in body['items']])
+            db().execute('INSERT INTO skill_results(attempt_id,answers,body) VALUES(?,?,?)', (attempt_id,json.dumps(answers),json.dumps(result)))
+            if result['credited']:
+                release = json.loads(query('SELECT body FROM skill_releases WHERE id=?', (form['release_id'],), True)['body'])
+                for node in release['nodes']:
+                    if node['id'] in scores:
+                        db().execute('''INSERT OR IGNORE INTO skill_evidence(user_id,release_id,objective_id,objective_revision,attempt_id,kind)
+                                      VALUES(?,?,?,?,?,'understanding')''', (g.user['id'],form['release_id'],node['id'],node['revision'],attempt_id))
+            return jsonify(result)

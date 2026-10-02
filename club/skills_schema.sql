@@ -1,0 +1,36 @@
+CREATE TABLE IF NOT EXISTS skill_releases (
+ id TEXT PRIMARY KEY, body TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS skill_active (singleton INTEGER PRIMARY KEY CHECK(singleton=1), release_id TEXT NOT NULL REFERENCES skill_releases(id));
+CREATE TABLE IF NOT EXISTS skill_interests (user_id TEXT REFERENCES users(id), node_id TEXT NOT NULL, PRIMARY KEY(user_id,node_id));
+CREATE TABLE IF NOT EXISTS skill_explorations (user_id TEXT REFERENCES users(id), node_id TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id,node_id));
+CREATE TABLE IF NOT EXISTS skill_forms (
+ id TEXT PRIMARY KEY, release_id TEXT NOT NULL REFERENCES skill_releases(id), node_id TEXT NOT NULL,
+ body TEXT NOT NULL, access TEXT NOT NULL CHECK(access IN ('free','member')), reviewed_by TEXT NOT NULL REFERENCES users(id),
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS skill_attempts (
+ id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), form_id TEXT NOT NULL REFERENCES skill_forms(id),
+ request_id TEXT NOT NULL, mode TEXT NOT NULL CHECK(mode IN ('certification','practice')),
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id,request_id)
+);
+CREATE TABLE IF NOT EXISTS skill_results (
+ attempt_id TEXT PRIMARY KEY REFERENCES skill_attempts(id), answers TEXT NOT NULL, body TEXT NOT NULL,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS skill_evidence (
+ user_id TEXT NOT NULL REFERENCES users(id), release_id TEXT NOT NULL REFERENCES skill_releases(id),
+ objective_id TEXT NOT NULL, objective_revision INTEGER NOT NULL, attempt_id TEXT NOT NULL REFERENCES skill_attempts(id),
+ kind TEXT NOT NULL CHECK(kind='understanding'), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(user_id,objective_id,objective_revision,kind)
+);
+CREATE TRIGGER IF NOT EXISTS skill_forms_immutable BEFORE UPDATE ON skill_forms BEGIN SELECT RAISE(ABORT,'immutable form'); END;
+CREATE TRIGGER IF NOT EXISTS skill_releases_immutable BEFORE UPDATE ON skill_releases BEGIN SELECT RAISE(ABORT,'immutable release'); END;
+CREATE TRIGGER IF NOT EXISTS skill_results_immutable BEFORE UPDATE ON skill_results BEGIN SELECT RAISE(ABORT,'immutable result'); END;
+CREATE TRIGGER IF NOT EXISTS skill_evidence_immutable BEFORE UPDATE ON skill_evidence BEGIN SELECT RAISE(ABORT,'immutable evidence'); END;
+CREATE TRIGGER IF NOT EXISTS skill_attempts_immutable BEFORE UPDATE ON skill_attempts BEGIN SELECT RAISE(ABORT,'immutable attempt'); END;
+CREATE TRIGGER IF NOT EXISTS skill_forms_no_delete BEFORE DELETE ON skill_forms BEGIN SELECT RAISE(ABORT,'retain historical form'); END;
+CREATE TRIGGER IF NOT EXISTS skill_releases_no_delete BEFORE DELETE ON skill_releases BEGIN SELECT RAISE(ABORT,'retain historical release'); END;
+CREATE TRIGGER IF NOT EXISTS skill_attempts_no_delete BEFORE DELETE ON skill_attempts BEGIN SELECT RAISE(ABORT,'retain historical attempt'); END;
+CREATE TRIGGER IF NOT EXISTS skill_results_no_delete BEFORE DELETE ON skill_results BEGIN SELECT RAISE(ABORT,'retain historical result'); END;
+CREATE TRIGGER IF NOT EXISTS skill_evidence_no_delete BEFORE DELETE ON skill_evidence BEGIN SELECT RAISE(ABORT,'retain historical evidence'); END;
