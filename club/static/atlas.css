@@ -74,3 +74,5 @@ body:has(.lesson-layout) .breadcrumb{color:#ffe69a;display:inline-block;margin:0
 .teacher-edit summary{font-size:14px;color:#c5dfef}
 .teacher-publication{margin-top:20px}
 @media(max-width:800px){.teacher-review-actions{position:static;box-shadow:none}.teacher-review-actions button{flex:1 1 180px}}
+
+.diagnostic-interests{border:0;padding:0;display:grid;gap:12px;margin:24px 0}.diagnostic-interests legend{margin-bottom:16px}.diagnostic-interests .interest-option{min-height:60px}.challenge-workspace .development-actions{margin-top:24px}

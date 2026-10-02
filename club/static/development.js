@@ -17,6 +17,7 @@
     next.append(el('h2',me.evidence.length?'Продолжайте развивать свои навыки':'Здесь появятся ваши подтверждённые навыки'));
     next.append(el('p',me.evidence.length?'Можно развивать несколько направлений одновременно.':'Пока не собрано свидетельств о ваших знаниях. Исследуйте карту и начните с интересующей темы.'));
     next.append(link(latest?'Вернуться: '+nodes.get(latest.node_id).title:'Исследовать общую основу →',latest?.node_id||graph.root));
+    const diagnostic=el('p');const diagnosticLink=el('a','Найти точку старта · необязательная проверка →');diagnosticLink.href='/diagnostic';diagnostic.append(diagnosticLink);next.append(diagnostic);
     const recent=document.querySelector('#character-recent');recent.replaceChildren();recent.hidden=!me.evidence.length;
     const dateOf=item=>new Date(item.assessed_at.replace(' ','T').replace(/Z?$/,'Z'));
     function evidenceRow(item){

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Найти точку старта{% endblock %}
+{% block content %}
+<section class="development challenge-workspace">
+  <a href="/">← Исследовать карту</a>
+  <p class="eyebrow">НЕОБЯЗАТЕЛЬНАЯ ПРОВЕРКА</p>
+  <h1 id="diagnostic-title" tabindex="-1">Найти точку старта</h1>
+  <p id="diagnostic-intro">Покажите, что уже знаете. Начнём с основы, затем проверим интересные вам направления. Можно остановиться в любой момент — вся карта остаётся открытой.</p>
+  <p id="diagnostic-status" role="status" aria-live="polite">Загружаем…</p>
+  <div id="diagnostic-body"></div>
+  <noscript>Для проверки нужен JavaScript. Вы можете сразу исследовать карту и открыть учебные материалы.</noscript>
+</section>
+<script defer src="{{ url_for('static', filename='diagnostic.js') }}"></script>
+{% endblock %}

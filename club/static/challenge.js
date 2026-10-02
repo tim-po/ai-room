@@ -2,7 +2,9 @@
   const body=document.querySelector('#challenge-body'), status=document.querySelector('#challenge-status');
   const params=new URL(location).searchParams, node=params.get('node'), assessment=params.get('assessment');
   const back=document.querySelector('#challenge-back');
+  const diagnostic=params.get('diagnostic');
   if(node)back.href='/?'+new URLSearchParams({node});
+  if(diagnostic){back.href='/diagnostic?'+new URLSearchParams({id:diagnostic});back.textContent='← К точке старта';}
   let attempt, detail, requestId=crypto.randomUUID();
   const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
   async function api(url,value){
@@ -25,7 +27,7 @@
       if(source?.lesson_id){const a=el('a',`Открыть источник${source.paragraph?' · абзац '+source.paragraph:''}${source.edition?' · редакция '+source.edition:''}`);a.href='/lessons/'+encodeURIComponent(source.lesson_id);section.append(a);}
       body.append(section);
     }
-    const actions=el('div',null,'development-actions'), profile=el('a','Моё развитие →');profile.href='/profile';actions.append(profile);body.append(actions);focusTitle();
+    const actions=el('div',null,'development-actions'), profile=el('a','Моё развитие →');profile.href='/profile';actions.append(profile);if(diagnostic){const next=el('a','Продолжить поиск точки старта →');next.href='/diagnostic?'+new URLSearchParams({id:diagnostic,attempt:attempt.id});actions.prepend(next);}body.append(actions);focusTitle();
   }
   function showAttempt(data){
     attempt=data;
