@@ -75,3 +75,25 @@ CREATE TRIGGER IF NOT EXISTS practical_decisions_immutable BEFORE UPDATE ON skil
 CREATE TRIGGER IF NOT EXISTS practical_decisions_retain BEFORE DELETE ON skill_practical_decisions BEGIN SELECT RAISE(ABORT,'retain practical decision'); END;
 CREATE TRIGGER IF NOT EXISTS application_evidence_immutable BEFORE UPDATE ON skill_application_evidence BEGIN SELECT RAISE(ABORT,'immutable application evidence'); END;
 CREATE TRIGGER IF NOT EXISTS application_evidence_retain BEFORE DELETE ON skill_application_evidence BEGIN SELECT RAISE(ABORT,'retain application evidence'); END;
+
+CREATE TABLE IF NOT EXISTS skill_graph_proposals (
+ id TEXT PRIMARY KEY, base_release TEXT NOT NULL REFERENCES skill_releases(id), source TEXT NOT NULL,
+ created_by TEXT NOT NULL REFERENCES users(id), revision INTEGER NOT NULL DEFAULT 1,
+ state TEXT NOT NULL DEFAULT 'draft' CHECK(state IN ('draft','active','rejected','rolled_back')),
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS skill_graph_editions (
+ proposal_id TEXT NOT NULL REFERENCES skill_graph_proposals(id), revision INTEGER NOT NULL,
+ body TEXT NOT NULL, note TEXT NOT NULL, editor_id TEXT NOT NULL REFERENCES users(id),
+ PRIMARY KEY(proposal_id,revision)
+);
+CREATE TABLE IF NOT EXISTS skill_graph_events (
+ id INTEGER PRIMARY KEY, proposal_id TEXT NOT NULL REFERENCES skill_graph_proposals(id), revision INTEGER NOT NULL,
+ action TEXT NOT NULL CHECK(action IN ('activate','reject','rollback')), actor_id TEXT NOT NULL REFERENCES users(id),
+ note TEXT NOT NULL, from_release TEXT NOT NULL REFERENCES skill_releases(id), to_release TEXT NOT NULL REFERENCES skill_releases(id),
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TRIGGER IF NOT EXISTS graph_editions_immutable BEFORE UPDATE ON skill_graph_editions BEGIN SELECT RAISE(ABORT,'immutable graph proposal edition'); END;
+CREATE TRIGGER IF NOT EXISTS graph_editions_retain BEFORE DELETE ON skill_graph_editions BEGIN SELECT RAISE(ABORT,'retain graph proposal edition'); END;
+CREATE TRIGGER IF NOT EXISTS graph_events_immutable BEFORE UPDATE ON skill_graph_events BEGIN SELECT RAISE(ABORT,'immutable graph review event'); END;
+CREATE TRIGGER IF NOT EXISTS graph_events_retain BEFORE DELETE ON skill_graph_events BEGIN SELECT RAISE(ABORT,'retain graph review event'); END;

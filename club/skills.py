@@ -117,6 +117,9 @@ def register_skills(app, db, query, require_user):
                     mode=row['mode'], release=row['release_id'], created_at=row['created_at'],
                     resume_url='/api/skills/challenges/' + row['id'], access_required=not accessible)
 
+    from .graph_review import register_graph_review
+    register_graph_review(app, db, query, require_user, graph, data)
+
     from .practical import register_practical
     register_practical(app, db, query, require_user, graph, data)
 
