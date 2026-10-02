@@ -228,3 +228,11 @@ on initial navigation and reload. `scripts/check_routes_browser.py` checks keybo
 bridge exits for work and agents routes at all four review widths. Two additional
 route integration tests cover completed, interrupted, blocked and unpublished
 endings. No database migration is required (schema 6).
+
+### Personal learning and weekly goals
+
+Profile lists only courses with persisted course-start, progress or practice records for the signed-in learner. A course is completed when all its currently published lessons are completed (and at least one is published); otherwise it remains in progress. Publishing an additional lesson returns a completed course to in-progress without changing old completion records. Unstarted courses remain discoverable in the catalogue, and saved practice appears before learning cards. Home links directly to `/profile#practice`.
+
+Home and profile share the same weekly-goal display. The achievement is the count of unique first lesson-completion events within the trailing seven days, using UTC server timestamps. Uncompletion does not erase this historical credit, and re-completion/retries never add credit or move an old first completion into the current window. This differs deliberately from current course completion and from the calendar-week retention metric. Pausing hides the target/progress bar while keeping the factual count and learning history; the target can be resumed in preferences. The count is not a skill assessment. No schema change or data backfill is required.
+
+Verification: `tests/test_profile.py` covers empty/active/completed/reopened courses, newly published lessons, user isolation, unique weekly counts, rolling-window expiry, pause and Russian plural forms. `scripts/check_profile_browser.py` uses an isolated seeded database and checks 360/390/768/1440px empty and active profiles, actual saved practice/completion, keyboard activation of the results anchor, goal pause and browser errors. Set `CLUB_EVIDENCE_DIR` to retain screenshots and results.

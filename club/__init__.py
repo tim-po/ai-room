@@ -95,6 +95,15 @@ def create_app(config=None):
             response.headers['Cache-Control'] = 'private, no-store'
         return response
 
+    @app.template_filter('plural_ru')
+    def plural_ru(value, one, few, many):
+        number = abs(int(value))
+        return many if 11 <= number % 100 <= 14 else one if number % 10 == 1 else few if 2 <= number % 10 <= 4 else many
+
+    def weekly_completed():
+        # First-completion history is immutable: retries and re-completion never add credit.
+        return query("SELECT COUNT(*) n FROM events WHERE user_id=? AND name='lesson_completed' AND created_at>=datetime('now','-7 days') AND created_at<=datetime('now')", (g.user['id'],), True)['n'] if g.user else 0
+
     @app.context_processor
     def shared():
         return dict(user=g.user, csrf=session.get('csrf'), goals=GOALS, can_access=can_access)
@@ -198,7 +207,7 @@ def create_app(config=None):
             next_lesson = next((l for l in lesson_list(course['id']) if not l['completed'] and can_access(l)), None)
         started = bool(g.user and next_lesson and query('SELECT 1 FROM lesson_visits WHERE user_id=? AND lesson_id=?', (g.user['id'],next_lesson['id']), True))
         saved = query('SELECT COUNT(*) n FROM practice WHERE user_id=?', (g.user['id'],), True)['n'] if g.user else 0
-        return render_template('home.html', courses=courses, course=course, next_lesson=next_lesson, saved=saved, route=route, started=started)
+        return render_template('home.html', courses=courses, course=course, next_lesson=next_lesson, saved=saved, route=route, started=started, weekly=weekly_completed())
 
     @app.get('/catalogue')
     def catalogue():
@@ -398,9 +407,16 @@ def create_app(config=None):
             JOIN modules m ON m.id=l.module_id WHERE p.user_id=? ORDER BY p.updated_at DESC''', (g.user['id'],))
         favourites = query('''SELECT c.* FROM favourites f JOIN courses c ON c.id=f.course_id
             WHERE f.user_id=? AND c.status='published' ''', (g.user['id'],))
-        weekly = query("SELECT COUNT(*) n FROM events WHERE user_id=? AND name='lesson_completed' AND created_at>=datetime('now','-7 days')", (g.user['id'],), True)['n']
+        started_ids = {row['course_id'] for row in query('''SELECT course_id FROM course_starts WHERE user_id=?
+            UNION SELECT m.course_id FROM progress p JOIN lessons l ON l.id=p.lesson_id
+                JOIN modules m ON m.id=l.module_id WHERE p.user_id=?
+            UNION SELECT m.course_id FROM practice p JOIN lessons l ON l.id=p.lesson_id
+                JOIN modules m ON m.id=l.module_id WHERE p.user_id=?''', (g.user['id'],) * 3)}
+        learning = [c for c in cards() if c['id'] in started_ids]
+        completed_courses = [c for c in learning if c['total'] and c['done'] == c['total']]
+        active_courses = [c for c in learning if c not in completed_courses]
         material_favourites = query('''SELECT m.id,m.title,m.format,m.access FROM material_favourites f JOIN materials m ON m.id=f.material_id WHERE f.user_id=? AND m.status='published' ''', (g.user['id'],))
-        return render_template('profile.html', material_favourites=material_favourites, courses=cards(), practices=practices, favourites=favourites, weekly=weekly, route=selected_route())
+        return render_template('profile.html', material_favourites=material_favourites, active_courses=active_courses, completed_courses=completed_courses, practices=practices, favourites=favourites, weekly=weekly_completed(), route=selected_route())
 
     @app.route('/help', methods=['GET', 'POST'])
     def help_page():
