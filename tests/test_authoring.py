@@ -112,7 +112,7 @@ def test_schema_upgrade_is_additive_and_repeatable(app):
     runner = app.test_cli_runner()
     assert runner.invoke(args=['init-db']).exit_code == 0
     assert runner.invoke(args=['init-db']).exit_code == 0
-    assert db.execute('PRAGMA user_version').fetchone()[0] == 3
+    assert db.execute('PRAGMA user_version').fetchone()[0] == 4
     assert db.execute('SELECT * FROM lessons ORDER BY id').fetchall() == before
     assert db.execute('SELECT completed FROM progress').fetchone()[0] == 1
     db.close()

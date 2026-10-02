@@ -173,10 +173,12 @@ def create_app(config=None):
         course = next((c for c in courses if c['goal'] == goal), courses[0] if courses else None)
         next_lesson = None
         if g.user:
-            recent = query('''SELECT p.lesson_id FROM progress p JOIN lessons l ON l.id=p.lesson_id
+            recent = query('''SELECT v.lesson_id FROM lesson_visits v JOIN lessons l ON l.id=v.lesson_id
+                JOIN progress p ON p.lesson_id=v.lesson_id AND p.user_id=v.user_id
                 JOIN modules m ON l.module_id=m.id JOIN courses c ON c.id=m.course_id
-                WHERE p.user_id=? AND p.completed=0 AND l.status='published' AND c.status='published'
-                AND (l.access='free' OR ?='member') ORDER BY p.updated_at DESC LIMIT 1''', (g.user['id'], g.user['entitlement']), True)
+                WHERE v.user_id=? AND p.completed=0 AND l.status='published' AND c.status='published'
+                AND (l.access='free' OR ?='member' OR ? IN ('editor','admin'))
+                ORDER BY v.visit_order DESC LIMIT 1''', (g.user['id'], g.user['entitlement'], g.user['role']), True)
             if recent:
                 next_lesson = get_lesson(recent['lesson_id'])
                 course = next(c for c in courses if c['id'] == next_lesson['course_id'])
@@ -210,6 +212,12 @@ def create_app(config=None):
             with db():
                 learning_activity(lesson_id)
                 inserted = db().execute('INSERT OR IGNORE INTO progress(user_id,lesson_id) VALUES(?,?)', (g.user['id'], lesson_id)).rowcount
+                # Navigation is independent of video polling, practice and completion writes.
+                # A per-user sequence preserves ordering even for visits in the same second.
+                db().execute('''INSERT INTO lesson_visits(user_id,lesson_id,visit_order)
+                    VALUES(?,?,(SELECT COALESCE(MAX(visit_order),0)+1 FROM lesson_visits WHERE user_id=?))
+                    ON CONFLICT(user_id,lesson_id) DO UPDATE SET visit_order=excluded.visit_order''',
+                    (g.user['id'], lesson_id, g.user['id']))
                 if inserted:
                     event('lesson_started', lesson_id)
             progress = query('SELECT * FROM progress WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
@@ -339,8 +347,9 @@ def create_app(config=None):
                 abort(400)
             with db():
                 db().execute('UPDATE users SET goal=?,experience=?,weekly_goal=?,onboarding_done=1 WHERE id=?', (data['goal'], data['experience'], int(data['weekly_goal']), g.user['id']))
-                if not g.user['onboarding_done']:
-                    event('onboarding_completed')
+                # Dismissing the prompt is not completing the questionnaire.
+                # The partial unique index makes retries and later preference edits idempotent.
+                event('onboarding_completed')
             flash('Настройки сохранены. Можно менять маршрут в любое время.', 'success')
             return redirect(url_for('home'))
         return render_template('preferences.html')
@@ -408,7 +417,7 @@ def create_app(config=None):
     @app.cli.command('init-db')
     def init_db():
         db().executescript(Path(__file__).with_name('schema.sql').read_text())
-        click.echo('Schema ready (version 3).')
+        click.echo('Schema ready (version 4).')
 
     @app.cli.command('seed')
     def seed():

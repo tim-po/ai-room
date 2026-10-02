@@ -39,7 +39,7 @@ The local installed instance has privately generated credentials at `instance/re
 
 ## Data and operations
 
-`club/schema.sql` sets schema `user_version=3`. Version 2 adds the resources table without changing existing IDs or learning records. `init-db` creates missing schema objects without deleting rows. Run it before `seed`. The seed uses stable IDs and `INSERT OR IGNORE`: re-running preserves existing content and user work. Never use the seed as a content-update migration. Future schema changes need explicit versioned migrations and backup/restore testing. SQLite foreign keys are enabled for every application connection. Progress and practice are keyed by user + stable lesson ID. User IDs are derived from the signed session, not accepted from client payloads.
+`club/schema.sql` sets schema `user_version=4`. Version 2 adds the resources table without changing existing IDs or learning records. `init-db` creates missing schema objects without deleting rows. Run it before `seed`. The seed uses stable IDs and `INSERT OR IGNORE`: re-running preserves existing content and user work. Never use the seed as a content-update migration. Future schema changes need explicit versioned migrations and backup/restore testing. SQLite foreign keys are enabled for every application connection. Progress and practice are keyed by user + stable lesson ID. User IDs are derived from the signed session, not accepted from client payloads.
 
 Back up using SQLite's backup API or the `sqlite3 .backup` command before upgrades. Also retain the private signing key and `instance/media`. Stop writers before restoring a backup. Reordering future modules/lessons must retain their IDs; do not reset the database to deploy code. Schema v2 has no destructive downgrade operation; the earlier code ignores the additional resources table. Roll back by stopping the service, restoring its pre-upgrade SQLite backup and matching code commit, then starting the service and checking `/health` and a persisted learning flow.
 
@@ -80,3 +80,31 @@ Verification: `tests/test_measurement.py` covers duplicate retries, role exclusi
 ## Operational limits
 
 Single-host SQLite, local media, no email/password reset or public signup yet; no external support notifications or promised response time. Help requests can be read in the protected inbox; reply workflow is not built. Video is a generated 20-second silent test pattern, labelled as a fixture in the UI; text lessons provide instructional context. The video endpoint supports byte ranges. Assets are served through entitlement checks rather than public static storage. Original author-created training content remains a separate editorial input.
+
+## Navigation and onboarding correction (schema v4)
+
+The home continue action now uses the last opened, still unfinished, published and
+permitted lesson. `lesson_visits` keeps one row per learner/lesson with a monotonic
+per-learner order, including visits within the same second. Video autosaves,
+practice saves and completion writes cannot change that order. Anonymous reads,
+API reads and editor previews do not create navigation records. If a recent lesson
+becomes inaccessible or unpublished, the next eligible visited lesson is used;
+otherwise the selected course's first permitted unfinished lesson is offered.
+Historical navigation is not inferred from progress timestamps during upgrade.
+
+Skipping onboarding dismisses the prompt only. The first later submitted preference
+form records `onboarding_completed`; edits/retries do not add events. A unique index
+protects this rule across concurrent requests. The migration retains the earliest
+onboarding event if an older version recorded duplicate events for a learner.
+
+Upgrade v3 → v4: back up SQLite, retain signing key/media, stop writers, deploy code,
+run `.venv/bin/python -m flask --app club init-db`, then restart and check `/health`
+(schema 4). The migration preserves lesson IDs, completion, practice and video
+positions. Repeat initialization is supported. Rollback requires the matching v3
+code/database backup with writers stopped; account for any post-upgrade learning
+activity before restoring. This turn does not change running staging services.
+
+`tests/test_acceptance_regressions.py` integrates the independent tester's two
+regressions and verifies same-second reopen order, background writes, a recreated
+application/second device, unpublished-lesson fallback, skip/edit retries and
+repeatable v3 migration. These checks do not replace independent browser acceptance.

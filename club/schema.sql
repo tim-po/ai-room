@@ -63,4 +63,15 @@ CREATE TABLE IF NOT EXISTS learning_days (
  user_id TEXT NOT NULL REFERENCES users(id), day TEXT NOT NULL,
  PRIMARY KEY(user_id,day)
 );
-PRAGMA user_version = 3;
+CREATE TABLE IF NOT EXISTS lesson_visits (
+ user_id TEXT NOT NULL REFERENCES users(id), lesson_id TEXT NOT NULL REFERENCES lessons(id),
+ visit_order INTEGER NOT NULL, PRIMARY KEY(user_id,lesson_id)
+);
+-- Preserve the earliest event if concurrent submissions in an older version
+-- recorded the same learner's onboarding more than once.
+DELETE FROM events WHERE name='onboarding_completed' AND id NOT IN (
+ SELECT MIN(id) FROM events WHERE name='onboarding_completed' GROUP BY user_id
+);
+CREATE UNIQUE INDEX IF NOT EXISTS unique_onboarding_completion
+ON events(user_id) WHERE name='onboarding_completed';
+PRAGMA user_version = 4;
