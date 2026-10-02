@@ -210,3 +210,21 @@ filters/back, resource download, offline save/retry and keyboard draft/preview a
 existing generated `instance/media/fixture.webm` is required. No shared learner
 records are mutated by this browser test. Independent acceptance review and public
 HTTPS deployment remain outstanding.
+
+### Route continuity and media recovery regression (2026-10-02)
+
+Lesson pages belonging to the signed-in learner's selected route show their route
+position and a separate next-route-step action. Course previous/next links remain
+explicitly labelled as course navigation. Completed routes link to saved practice;
+member-only next steps offer access help, and unpublished endings cannot appear
+complete. Direct lessons outside the selected route retain course navigation.
+Shared lesson IDs and progress storage are unchanged.
+
+The video client reads existing error/network/metadata state on startup as well
+as listening for subsequent events. This recovers failures and resume metadata
+that arrive before the deferred script starts. `scripts/check_materials_browser.py`
+now checks lesson and workshop 404 recovery both before and after script startup,
+on initial navigation and reload. `scripts/check_routes_browser.py` checks keyboard
+bridge exits for work and agents routes at all four review widths. Two additional
+route integration tests cover completed, interrupted, blocked and unpublished
+endings. No database migration is required (schema 6).

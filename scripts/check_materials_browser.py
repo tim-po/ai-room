@@ -8,6 +8,7 @@ import sqlite3
 import sys
 import tempfile
 import threading
+import time
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from club import create_app
 from club.seed import seed_database
@@ -77,6 +78,30 @@ with tempfile.TemporaryDirectory(prefix='club-material-check-') as folder:
             (Path(folder)/'media/fixture.webm').unlink()
             page.reload();page.get_by_text('Видео недоступно. Обновите страницу или продолжите по тексту ниже.',exact=True).wait_for()
             results['media_fallback']=True
+            # Delay the deferred script until after media has failed: reproduce the
+            # reviewer's lost early event, then test errors after initialization.
+            results['media_failure_timing'] = []
+            for route_path in ['/materials/workshop-prompt-lab', '/lessons/foundations-start-01']:
+                for timing in ['before_script', 'after_script']:
+                    probe = browser.new_context(storage_state=context.storage_state())
+                    failed = probe.new_page()
+                    if timing == 'before_script':
+                        def slow_script(request):
+                            response = request.fetch()
+                            time.sleep(0.4)
+                            request.fulfill(response=response)
+                        failed.route('**/static/app.js', slow_script)
+                    else:
+                        def slow_media(request):
+                            time.sleep(0.4)
+                            request.fulfill(status=404, body='Missing fixture')
+                        failed.route('**/media', slow_media)
+                    for reload in [False, True]:
+                        failed.reload() if reload else failed.goto(base+route_path)
+                        failed.locator('#video-error').wait_for(state='visible')
+                        assert failed.locator('video').evaluate('(v)=>v.networkState') == 3
+                        results['media_failure_timing'].append({'route':route_path,'timing':timing,'reload':reload,'visible':True})
+                    probe.close()
             shutil.copyfile('instance/media/fixture.webm',Path(folder)/'media/fixture.webm')
             page.get_by_role('button',name='Выйти',exact=True).click();sign_in('editor')
             for width in [360,390,768,1440]:

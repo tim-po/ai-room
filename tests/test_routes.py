@@ -90,3 +90,45 @@ def test_migration_and_route_seed_preserve_editorial_order(app):
     with sqlite3.connect(app.config['DATABASE']) as db:
         assert db.execute("SELECT lesson_id FROM route_steps WHERE route_id='path-work' ORDER BY position").fetchall()==[('everyday-ai-intro-01',),(FREE,)]
         assert db.execute('PRAGMA user_version').fetchone()[0]==6
+
+
+def continuation(client, lesson):
+    page = client.get('/lessons/' + lesson).text
+    match = re.search(r'<section class="panel" aria-label="Продолжение маршрута">(.*?)</section>', page, re.S)
+    return match.group(1) if match else None
+
+
+def test_lesson_route_continuity_and_course_only_browsing(app):
+    client = app.test_client(); csrf = login(client)
+    for goal, next_id in [('work', 'everyday-ai-intro-01'), ('agents', 'agent-api-basics')]:
+        client.post('/preferences', data=dict(csrf=csrf, goal=goal, experience='beginner', weekly_goal='2'))
+        for identity in [FREE, 'foundations-start-02']:
+            post(client, '/api/lessons/'+identity+'/completion', {'completed':True}, csrf)
+        section = continuation(client, 'foundations-start-02')
+        assert '/lessons/'+next_id in section
+        assert '/lessons/foundations-start-03' not in section
+        assert 'Следующий урок курса' in client.get('/lessons/foundations-start-02').text
+        assert continuation(client, 'foundations-start-03') is None
+    client.post('/routes/path-work/select', data={'csrf':csrf})
+    assert 'Это последний шаг' in continuation(client, 'everyday-ai-intro-01')
+    post(client, '/api/lessons/everyday-ai-intro-01/completion', {'completed':True}, csrf)
+    assert 'Маршрут завершён' in continuation(client, 'everyday-ai-intro-01')
+    assert '/profile#practice' in continuation(client, 'everyday-ai-intro-01')
+    post(client, '/api/lessons/'+FREE+'/completion', {'completed':False}, csrf)
+    assert 'ещё остались' in continuation(client, 'everyday-ai-intro-01')
+    assert continuation(app.test_client(), FREE) is None
+
+
+def test_lesson_route_blocked_and_unpublished_endings(app):
+    client = app.test_client(); csrf = login(client)
+    client.post('/routes/path-essentials/select', data={'csrf':csrf})
+    section = continuation(client, 'foundations-start-04')
+    assert 'Помощь с доступом' in section
+    assert 'Следующий шаг маршрута:' not in section
+    client.post('/routes/path-work/select', data={'csrf':csrf})
+    with sqlite3.connect(app.config['DATABASE']) as db:
+        db.execute("UPDATE lessons SET status='draft',title='PRIVATE ENDING' WHERE id='everyday-ai-intro-01'")
+    section = continuation(client, 'foundations-start-02')
+    assert 'Маршрут завершён' not in section
+    assert 'PRIVATE ENDING' not in section
+    assert '/routes/path-work' in section

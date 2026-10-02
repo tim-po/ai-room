@@ -53,12 +53,19 @@ window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); 
 const video = document.querySelector('video[data-lesson], video[data-material]');
 if (video) {
   const error = document.getElementById('video-error');
-  video.addEventListener('error', () => error.hidden = false);
-  video.querySelector('source').addEventListener('error', () => error.hidden = false);
-  video.addEventListener('loadedmetadata', () => {
+  function showMediaError() { error.hidden = false; }
+  video.addEventListener('error', showMediaError);
+  video.querySelector('source')?.addEventListener('error', showMediaError);
+  // A deferred script may start after a cached/fast source failure or metadata load.
+  // Read the current state as well as subscribing to subsequent events.
+  function restorePosition() {
+    error.hidden = true;
     const position = Number(video.dataset.resume);
     if (position > 0 && position < video.duration - 1) video.currentTime = position;
-  });
+  }
+  video.addEventListener('loadedmetadata', restorePosition);
+  if (video.error || video.networkState === video.NETWORK_NO_SOURCE) showMediaError();
+  else if (video.readyState >= video.HAVE_METADATA) restorePosition();
   let lastSave = 0;
   async function savePosition(force = false) {
     if (video.dataset.auth !== '1' || (!force && Date.now() - lastSave < 5000)) return;

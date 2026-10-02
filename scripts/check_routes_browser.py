@@ -53,6 +53,23 @@ with tempfile.TemporaryDirectory(prefix='club-route-check-') as folder:
             page.get_by_role('button',name='Выбрать этот маршрут').click();page.wait_for_url(base+'/')
             assert 'AI для работы' in page.locator('.home-panels').inner_text()
             results['beginner_and_switch']=True
+            for goal, target in [('work','everyday-ai-intro-01'),('agents','agent-api-basics')]:
+                page.goto(base+'/routes/path-'+goal)
+                page.get_by_role('button',name='Выбрать этот маршрут').click()
+                for identity in ['foundations-start-01','foundations-start-02']:
+                    page.goto(base+'/lessons/'+identity)
+                    complete = page.get_by_role('button',name='Отметить завершённым',exact=True)
+                    if complete.count():
+                        complete.click();page.get_by_role('button',name='Вернуть в работу',exact=True).wait_for()
+                for width in [360,390,768,1440]:
+                    page.set_viewport_size({'width':width,'height':1000})
+                    page.goto(base+'/lessons/foundations-start-02')
+                    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+                    next_step=page.get_by_role('link',name='Следующий шаг маршрута:',exact=False)
+                    assert next_step.get_attribute('href')=='/lessons/'+target
+                    next_step.focus();page.keyboard.press('Enter');page.wait_for_url(base+'/lessons/'+target)
+                page.screenshot(path=str(out/f'route-transition-{goal}.png'),full_page=True)
+            results['route_bridge_keyboard_transitions']=True
             page.get_by_role('button',name='Выйти',exact=True).click()
             sign_in('editor')
             for width in [360,390,768,1440]:

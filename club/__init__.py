@@ -246,7 +246,13 @@ def create_app(config=None):
             practice = query('SELECT * FROM practice WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
         lessons = lesson_list(lesson['course_id'])
         index = next(i for i, l in enumerate(lessons) if l['id'] == lesson_id)
+        route = selected_route() if g.user else None
+        route_index = next((i for i, step in enumerate(route['steps']) if step['id'] == lesson_id), None) if route else None
+        if route_index is None:
+            route = None
+        route_following = route['steps'][route_index+1] if route and route_index+1 < len(route['steps']) else None
         return render_template('lesson.html', lesson=lesson, lessons=lessons, progress=progress, practice=practice,
+            route=route, route_index=route_index, route_following=route_following,
             previous=lessons[index-1] if index else None, following=lessons[index+1] if index+1 < len(lessons) else None,
             resources=query("SELECT id,title,kind FROM resources WHERE lesson_id=? AND status='published'", (lesson_id,)))
 
