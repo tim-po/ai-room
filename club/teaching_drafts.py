@@ -52,12 +52,24 @@ def validate_draft(value, sources, graph):
     def references(refs):
         if not isinstance(refs, list) or not 1 <= len(refs) <= 12:
             raise ValueError('Source references required')
-        for ref in refs:
+        for index, ref in enumerate(refs):
+            if not isinstance(ref, dict):
+                raise ValueError('Invalid source reference')
             src = source_map.get(ref.get('source_id'))
-            if not src or ref.get('edition') != src['edition'] or ref.get('sha256') != src['sha256']:
+            if not src or type(ref.get('edition')) is not int or ref.get('edition') != src['edition'] or ref.get('sha256') != src['sha256']:
                 raise ValueError('Unknown source edition/hash')
             if type(ref.get('paragraph')) is not int or ref['paragraph'] not in {p['paragraph'] for p in src['paragraphs']}:
                 raise ValueError('Invalid source paragraph')
+            # Provider/editor fields are untrusted, including plausible timestamps,
+            # URLs and quoted text. Rebuild EVERY anchor from the pinned snapshot.
+            span = next(p for p in src['paragraphs'] if p['paragraph'] == ref['paragraph'])
+            canonical = {k: src[k] for k in ('source_id', 'edition', 'sha256')}
+            canonical['paragraph'] = span['paragraph']
+            if src['kind'] == 'media':
+                canonical.update(start=span['start'], end=span['end'],
+                                 transcript_edition=src['transcript_edition'],
+                                 transcript_sha256=src['transcript_sha256'])
+            refs[index] = canonical
 
     def objective(item):
         node = abilities.get(item.get('objective_id'))
@@ -334,11 +346,14 @@ def register_drafts(app, db, query, editor, owned_job, dto):
             for index, form in enumerate(draft['assessments']):
                 form = copy.deepcopy(form)
                 for item in form['items']:
-                    ref = item['refs'][0]
-                    src = next(s for s in json.loads(row['sources']) if s['source_id']==ref['source_id'])
-                    span = next(p for p in src['paragraphs'] if p['paragraph']==ref['paragraph'])
-                    item['source'] = dict(ref,lesson_id=identity,text=span['text'],
-                        snapshot_url='/api/teaching/published/'+identity+'/sources/'+ref['source_id'])
+                    anchored = []
+                    for ref in item['refs']:
+                        src = next(s for s in json.loads(row['sources']) if s['source_id']==ref['source_id'])
+                        span = next(p for p in src['paragraphs'] if p['paragraph']==ref['paragraph'])
+                        anchored.append(dict(ref,lesson_id=identity,text=span['text'],
+                            snapshot_url='/api/teaching/published/'+identity+'/sources/'+ref['source_id']))
+                    item['refs'] = anchored
+                    item['source'] = anchored[0]
                 publish_reviewed_form(db(),id=identity+'-form-'+str(index),graph=graph,node_id=form['node_id'],form=form,access=value['access'],reviewer=g.user['id'])
             db().execute('INSERT INTO teaching_publications(job_id,draft_revision,lesson_id,release_id,reviewed_by,review_note) VALUES(?,?,?,?,?,?)',
                          (id,row['revision'],identity,release,g.user['id'],value['review_note']))

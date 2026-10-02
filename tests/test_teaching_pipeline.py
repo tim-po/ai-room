@@ -220,3 +220,71 @@ def test_real_adapter_requires_explicit_configuration_and_sanitizes_failure(monk
     with pytest.raises(ProviderError) as exc:
         OpenAIProvider().generate([],{'nodes':[]})
     assert str(exc.value)=='provider_http_429'
+
+
+def test_all_media_anchors_are_canonical_through_edit_publication_and_feedback(pipeline):
+    c = pipeline.test_client(); csrf = login(c, 'editor')
+    job = upload(c, csrf, b'RIFF'+b'\0'*4+b'WAVE'+b'\0'*20, 'voice.wav').json
+    path = '/api/teaching/jobs/' + job['id']
+    assert 'ready' in process(pipeline)
+    original = c.get(path+'/draft').json
+    draft = original['draft']
+    groups = [draft['outcomes'][0]['refs'], draft['practice']['refs']]
+    groups += [item['refs'] for item in draft['assessments'][0]['items']]
+    for refs in groups:
+        refs.append(copy.deepcopy(refs[0]))
+        for ref in refs:
+            ref.update(start=9999, end=10000, text='Forged quotation',
+                       snapshot_url='https://untrusted.invalid', transcript_sha256='forged')
+    saved = c.put(path+'/draft', json=dict(revision=1, draft=draft), headers={'X-CSRF-Token':csrf})
+    assert saved.status_code == 200, saved.data
+    canonical = saved.json['draft']['outcomes'][0]['refs'][0]
+    assert canonical['start'] == 0 and canonical['end'] == 10
+    assert canonical['transcript_sha256'] == original['sources'][0]['transcript_sha256']
+    assert canonical['transcript_edition'] == 1
+    assert 'text' not in canonical and 'snapshot_url' not in canonical
+    corrected = saved.json['draft']
+    all_refs = corrected['outcomes'][0]['refs'] + corrected['practice']['refs']
+    all_refs += [ref for item in corrected['assessments'][0]['items'] for ref in item['refs']]
+    assert all(ref == canonical for ref in all_refs)
+    # Later refs must be validated too, even when the first one is legitimate.
+    bad = copy.deepcopy(corrected)
+    bad['assessments'][0]['items'][0]['refs'][1]['paragraph'] = 999
+    assert c.put(path+'/draft', json=dict(revision=2, draft=bad), headers={'X-CSRF-Token':csrf}).status_code == 400
+    # A draft persisted by the old implementation must also be repaired at publish.
+    with sqlite3.connect(pipeline.config['DATABASE']) as db:
+        db.execute('''INSERT INTO teaching_drafts(job_id,revision,body,sources,release_id,provider,model,editor_id)
+                      SELECT job_id,3,?,sources,release_id,provider,model,editor_id
+                      FROM teaching_drafts WHERE job_id=? AND revision=2''', (json.dumps(draft), job['id']))
+    published = post(c, path+'/publish', dict(revision=3, confirm_reviewed=True, access='free', review_note='Synthetic anchor regression.'), csrf)
+    assert published.status_code == 201, published.data
+    with sqlite3.connect(pipeline.config['DATABASE']) as db:
+        form_id, body = db.execute('SELECT id,body FROM skill_forms WHERE release_id=?', (published.json['release_id'],)).fetchone()
+        form = json.loads(body)
+        for item in form['items']:
+            for ref in item['refs']:
+                assert ref['start'] == 0 and ref['end'] == 10
+                assert ref['text'] == 'Verify the original source.'
+                assert ref['transcript_sha256'] == canonical['transcript_sha256']
+    learner = pipeline.test_client(); learner_csrf = login(learner)
+    attempt = post(learner, '/api/skills/challenges', dict(request_id='canonical-anchor-attempt', assessment_id=form_id), learner_csrf)
+    result = post(learner, '/api/skills/challenges/'+attempt.json['id']+'/submit', dict(answers={i['id']:'a' for i in form['items']}), learner_csrf)
+    assert result.status_code == 200
+    for feedback in result.json['feedback']:
+        source = feedback['source']
+        assert source['start'] == 0 and source['end'] == 10
+        snapshot = learner.get(source['snapshot_url']).json
+        assert source['sha256'] == snapshot['sha256']
+        assert source['edition'] == snapshot['edition']
+        assert source['transcript_sha256'] == snapshot['transcript_sha256']
+
+
+def test_document_refs_discard_forged_media_fields(pipeline):
+    c = pipeline.test_client(); csrf = login(c, 'editor'); job = upload(c, csrf).json
+    assert 'ready' in process(pipeline)
+    path = '/api/teaching/jobs/' + job['id']
+    draft = c.get(path+'/draft').json['draft']
+    draft['practice']['refs'][0].update(start=9999, end=10000, transcript_sha256='fake')
+    saved = c.put(path+'/draft', json=dict(revision=1, draft=draft), headers={'X-CSRF-Token':csrf})
+    assert saved.status_code == 200
+    assert set(saved.json['draft']['practice']['refs'][0]) == {'source_id','edition','sha256','paragraph'}
