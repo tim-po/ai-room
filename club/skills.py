@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import click
+from .form_lifecycle import lifecycle, register_form_lifecycle
 from flask import abort, g, jsonify, request
 
 
@@ -116,6 +117,8 @@ def register_skills(app, db, query, require_user):
         return dict(id=row['id'], assessment_id=row['form_id'], node_id=row['node_id'],
                     mode=row['mode'], release=row['release_id'], created_at=row['created_at'],
                     resume_url='/api/skills/challenges/' + row['id'], access_required=not accessible)
+
+    register_form_lifecycle(app, db, query, require_user, graph, data)
 
     from .graph_review import register_graph_review
     register_graph_review(app, db, query, require_user, graph, data)
@@ -285,6 +288,8 @@ def register_skills(app, db, query, require_user):
         pending = pending_attempts()
         relevant = {r['id']: r for r in pending if r['node_id'] == node_id}
         for row in query('SELECT id,access,body FROM skill_forms WHERE node_id=? AND release_id=?', (node_id, tree['release'])):
+            if lifecycle(query, row['id'])['status'] != 'active':
+                continue
             body = json.loads(row['body'])
             overlaps = [r for r in pending if form_exposure_keys(body) & form_exposure_keys(json.loads(r['body']))]
             relevant.update({r['id']: r for r in overlaps})
@@ -302,7 +307,7 @@ def register_skills(app, db, query, require_user):
         body = json.loads(form['body'])
         # Explicit allow-list: answer, rationale and future private fields cannot leak.
         items = [{k: i[k] for k in ('id', 'prompt', 'choices', 'type', 'objective_id')} for i in body['items']]
-        return dict(id=attempt['id'], mode=attempt['mode'], items=items, thresholds=body['thresholds'], release=form['release_id'])
+        return dict(id=attempt['id'], mode=attempt['mode'], items=items, thresholds=body['thresholds'], release=form['release_id'], lifecycle=lifecycle(query, form['id']))
 
     @app.post('/api/skills/challenges')
     @require_user
@@ -323,6 +328,8 @@ def register_skills(app, db, query, require_user):
             if not form:
                 abort(404)
             form_access(form)
+            if lifecycle(query, form['id'])['status'] != 'active':
+                return jsonify(error='Проверка снята с публикации.', lifecycle=lifecycle(query, form['id'])), 409
             # New attempts require the active release; pinned attempts can finish.
             if form['release_id'] != tree['release']:
                 abort(409, 'Эта версия проверки снята. Откройте актуальную проверку темы.')
@@ -377,7 +384,8 @@ def register_skills(app, db, query, require_user):
             scores = {obj: sum(correct[i['id']] for i in body['items'] if i['objective_id'] == obj) for obj in body['thresholds']['objectives']}
             passed = sum(correct.values()) >= body['thresholds']['overall'] and all(scores[o] >= t for o,t in body['thresholds']['objectives'].items()) and all(correct[i] for i in body['thresholds']['critical_required'])
             result = dict(id=attempt_id, passed=passed, mode=attempt['mode'], points=sum(correct.values()), thresholds=body['thresholds'],
-                          objective_scores=scores, credited=passed and attempt['mode']=='certification',
+                          objective_scores=scores, credited=passed and attempt['mode']=='certification' and lifecycle(query, form['id'])['status']=='active',
+                          lifecycle=lifecycle(query, form['id']),
                           feedback=[dict(item_id=i['id'], correct=correct[i['id']], objective_id=i['objective_id'], rationale=i['rationale'], source=i['source']) for i in body['items']])
             db().execute('INSERT INTO skill_results(attempt_id,answers,body) VALUES(?,?,?)', (attempt_id,json.dumps(answers),json.dumps(result)))
             if result['credited']:

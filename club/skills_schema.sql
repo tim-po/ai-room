@@ -97,3 +97,13 @@ CREATE TRIGGER IF NOT EXISTS graph_editions_immutable BEFORE UPDATE ON skill_gra
 CREATE TRIGGER IF NOT EXISTS graph_editions_retain BEFORE DELETE ON skill_graph_editions BEGIN SELECT RAISE(ABORT,'retain graph proposal edition'); END;
 CREATE TRIGGER IF NOT EXISTS graph_events_immutable BEFORE UPDATE ON skill_graph_events BEGIN SELECT RAISE(ABORT,'immutable graph review event'); END;
 CREATE TRIGGER IF NOT EXISTS graph_events_retain BEFORE DELETE ON skill_graph_events BEGIN SELECT RAISE(ABORT,'retain graph review event'); END;
+
+-- Withdrawal never mutates published forms, past results or earned evidence.
+CREATE TABLE IF NOT EXISTS skill_form_withdrawals (
+ form_id TEXT PRIMARY KEY REFERENCES skill_forms(id),
+ replacement_id TEXT REFERENCES skill_forms(id), reason TEXT NOT NULL,
+ reviewer_id TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CHECK(replacement_id IS NULL OR replacement_id <> form_id)
+);
+CREATE TRIGGER IF NOT EXISTS form_withdrawals_immutable BEFORE UPDATE ON skill_form_withdrawals BEGIN SELECT RAISE(ABORT,'immutable form withdrawal'); END;
+CREATE TRIGGER IF NOT EXISTS form_withdrawals_retain BEFORE DELETE ON skill_form_withdrawals BEGIN SELECT RAISE(ABORT,'retain form withdrawal'); END;

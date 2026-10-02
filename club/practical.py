@@ -2,6 +2,7 @@
 import json
 import re
 import uuid
+from .form_lifecycle import lifecycle
 
 from flask import abort, g, jsonify, request
 
@@ -26,7 +27,7 @@ def register_practical(app, db, query, require_user, graph, data):
     def task_dto(row):
         return dict(id=row['id'], assessment_id=row['form_id'], objective_id=row['objective_id'],
                     objective_revision=row['objective_revision'], release=row['release_id'], access=row['access'],
-                    reviewed_at=row['created_at'], **json.loads(row['body']))
+                    reviewed_at=row['created_at'], lifecycle=lifecycle(query, row['form_id']), **json.loads(row['body']))
 
     def submission(id, owner_only=False):
         row = query('SELECT * FROM skill_practical_submissions WHERE id=?', (id,), True)
@@ -63,7 +64,7 @@ def register_practical(app, db, query, require_user, graph, data):
             db().execute('BEGIN IMMEDIATE')
             tree = graph()
             form = query('SELECT * FROM skill_forms WHERE id=? AND release_id=?', (value['assessment_id'], tree['release']), True)
-            if not form:
+            if not form or lifecycle(query, form['id'])['status'] != 'active':
                 abort(409)
             objective = next((n for n in tree['nodes'] if n['id'] == value['objective_id'] and n['kind'] == 'ability'), None)
             sources = [i['source'] for i in json.loads(form['body'])['items'] if i['objective_id'] == value['objective_id']]
@@ -82,6 +83,7 @@ def register_practical(app, db, query, require_user, graph, data):
         rows = query('''SELECT t.*,f.release_id,f.access FROM skill_practical_tasks t JOIN skill_forms f ON f.id=t.form_id
                         WHERE f.release_id=? ORDER BY t.created_at,t.id''', (graph()['release'],))
         return jsonify(tasks=[task_dto(r) for r in rows if (not request.args.get('node_id') or r['objective_id'] == request.args['node_id'])
+                              and lifecycle(query, r['form_id'])['status'] == 'active'
                               and (r['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin'))])
 
     @app.get('/api/skills/practical-tasks/<id>')
@@ -103,7 +105,7 @@ def register_practical(app, db, query, require_user, graph, data):
                 if prior['task_id'] != rubric['id']:
                     abort(409)
                 return jsonify(submission_dto(prior))
-            if rubric['release_id'] != graph()['release']:
+            if rubric['release_id'] != graph()['release'] or lifecycle(query, rubric['form_id'])['status'] != 'active':
                 abort(409)
             pending = query('''SELECT s.id FROM skill_practical_submissions s LEFT JOIN skill_practical_decisions d ON d.submission_id=s.id
                                WHERE s.user_id=? AND s.task_id=? AND d.submission_id IS NULL''', (g.user['id'], rubric['id']), True)
@@ -183,7 +185,7 @@ def register_practical(app, db, query, require_user, graph, data):
             existing = query('SELECT 1 FROM skill_application_evidence WHERE user_id=? AND objective_id=? AND objective_revision=?',
                              (row['user_id'], rubric['objective_id'], rubric['objective_revision']), True)
             decision = dict(ratings=ratings, feedback=value['feedback'].strip(), passed=passed,
-                            credited=passed and not bool(existing), kind='application', grading='human_reviewed')
+                            credited=passed and not bool(existing) and lifecycle(query, rubric['form_id'])['status']=='active', lifecycle=lifecycle(query, rubric['form_id']), kind='application', grading='human_reviewed')
             db().execute('INSERT INTO skill_practical_decisions(submission_id,reviewer_id,body) VALUES(?,?,?)', (id, g.user['id'], json.dumps(decision)))
             if decision['credited']:
                 db().execute('INSERT INTO skill_application_evidence(user_id,objective_id,objective_revision,submission_id) VALUES(?,?,?,?)',

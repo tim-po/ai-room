@@ -1,6 +1,7 @@
 """Optional, bounded placement orchestration; grades remain in challenge service."""
 import json
 import uuid
+from .form_lifecycle import lifecycle
 
 from flask import abort, g, jsonify
 
@@ -34,7 +35,7 @@ def register_diagnostics(app, db, query, require_user, graph, data):
             for form_id in plan['forms']:
                 form = query('SELECT * FROM skill_forms WHERE id=?', (form_id,), True)
                 objectives = set(json.loads(form['body'])['thresholds']['objectives'])
-                if objectives <= verified | tested or not accessible(form):
+                if objectives <= verified | tested or not accessible(form) or lifecycle(query, form_id)['status'] != 'active':
                     continue
                 pending = query('''SELECT a.id FROM skill_attempts a LEFT JOIN skill_results r ON r.attempt_id=a.id
                                    WHERE a.user_id=? AND a.form_id=? AND r.attempt_id IS NULL''', (g.user['id'], form_id), True)
