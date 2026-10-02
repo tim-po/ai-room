@@ -59,9 +59,34 @@
     if(['failed','blocked','cancelled'].includes(job.state)){const label=el('label'),check=el('input');check.type='checkbox';label.append(check,el('span','При повторе возможна повторная оплата запроса к AI'));row.append(label,action('Повторить обработку',async()=>{await api(`jobs/${job.id}/retry`,'POST',{revision:job.revision,acknowledge_possible_charge:check.checked});await list();}));}
     jobs.append(row);}if(!jobs.children.length)jobs.append(el('p','Здесь появятся ваши загруженные материалы и черновики.'));}
   async function open(id){if(dirty){status.textContent='Сначала сохраните открытый черновик или отмените правки.';return;}current=await api(`jobs/${id}/draft`);render();review.querySelector('h2').focus();}
+  async function practicalApproval(parent,d,publication){
+    const section=el('section');section.className='teacher-preview';parent.append(section);
+    section.append(el('h3','Практика с проверкой преподавателем'),el('p','Предложение AI ещё не даёт подтверждения навыка. Проверьте, что работа демонстрирует именно выбранное умение. Для выполнения действий нужны наблюдения и результат, а не только план.'));
+    async function skillApi(path,method='GET',value){const r=await fetch('/api/skills/'+path,{method,headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},...(value?{body:JSON.stringify(value)}:{})});if(!r.ok)throw Error(r.status===409?'Версия навыков изменилась. Обновите страницу перед утверждением.':'Не удалось утвердить задание. Проверьте: инструкция от 30 символов, 2–12 критериев от 10 символов.');return r.json();}
+    try{const existing=(await skillApi('practical-tasks')).tasks;
+      if(!d.assessments.length){section.append(el('p','Урок опубликован без проверки знаний. Практическую рубрику пока нельзя привязать к проверенному навыку.'));return;}
+      for(const [index,form] of d.assessments.entries()){
+        const assessmentId=publication.lesson_id+'-form-'+index;
+        const approved=existing.find(t=>t.assessment_id===assessmentId&&t.objective_id===form.node_id);
+        const card=el('details');card.append(el('summary',names.get(form.node_id)||form.node_id));section.append(card);
+        if(approved){const a=el('a','Практическое задание утверждено · открыть →');a.href='/practice?node='+encodeURIComponent(form.node_id);card.append(a);continue;}
+        let instructions=d.practice.instructions,criteria=d.practice.checklist.join('\n');
+        field(card,'Задание для демонстрации навыка',instructions,v=>instructions=v,true,false);
+        field(card,'Критерии наблюдаемого результата — по одному на строку',criteria,v=>criteria=v,true,false);
+        const label=el('label'),check=el('input');check.type='checkbox';label.append(check,el('span','Каждый критерий проверяем по работе и относится к этому навыку.'));card.append(label);
+        card.append(action('Утвердить практическое задание',async()=>{
+          if(!check.checked)throw Error('Подтвердите соответствие критериев навыку.');
+          // Reconcile a lost response before issuing a second publication request.
+          const saved=(await skillApi('practical-tasks')).tasks.find(t=>t.assessment_id===assessmentId&&t.objective_id===form.node_id);
+          if(!saved)await skillApi('practical-tasks','POST',{assessment_id:assessmentId,objective_id:form.node_id,instructions,criteria:criteria.split('\n').map(t=>t.trim()).filter(Boolean).map((text,i)=>({id:'criterion-'+(i+1),text})),confirm_reviewed:true});
+          card.replaceChildren(el('summary',names.get(form.node_id)||form.node_id),el('p','Практическое задание утверждено. Ученики могут отправить работу на проверку.'));status.textContent='Рубрика опубликована. Решения по работам доступны в очереди проверки.';
+        }));
+      }
+    }catch(e){section.append(el('p',e.message),action('Повторить загрузку рубрики',async()=>{section.remove();await practicalApproval(parent,d,publication);}));}
+  }
   function render(){document.querySelector('#teacher-intake').hidden=true;document.querySelector('#teacher-introduction').hidden=true;review.hidden=false;review.replaceChildren();const d=current.draft;
     review.append(action('← К загрузкам и черновикам',async()=>{if(dirty)throw new Error('Сохраните или отмените правки перед выходом.');review.before(status);review.hidden=true;document.querySelector('#teacher-intake').hidden=false;document.querySelector('#teacher-introduction').hidden=false;current=null;await list();document.querySelector('#teacher-refresh').focus();}));
-    const heading=el('h2','Проверка перед публикацией');heading.tabIndex=-1;review.append(heading);if(current.publication){const a=el('a','Открыть опубликованный урок →');a.href='/lessons/'+encodeURIComponent(current.publication.lesson_id);review.append(a,status);return;}
+    const heading=el('h2','Проверка перед публикацией');heading.tabIndex=-1;review.append(heading);if(current.publication){const a=el('a','Открыть опубликованный урок →');a.href='/lessons/'+encodeURIComponent(current.publication.lesson_id);review.append(a,status);practicalApproval(review,d,current.publication);return;}
     const title=el('h3',d.title),summary=el('p',d.summary);review.append(title,summary);coverage(review,current.coverage);
     editable(review,'название и описание',section=>{field(section,'Название урока',d.title,v=>{d.title=v;title.textContent=v;});field(section,'Что узнает ученик',d.summary,v=>{d.summary=v;summary.textContent=v;},true);});
     const placement=el('details');placement.open=true;placement.append(el('summary','Место на карте и учебный результат'));for(const o of d.outcomes){const block=el('div');block.append(el('h3',names.get(o.objective_id)||o.objective_id));const explanation=el('p',o.explanation);block.append(explanation);editable(block,'учебный результат',section=>field(section,'Результат обучения',o.explanation,v=>{o.explanation=v;explanation.textContent=v;},true));refs(block,o.refs,current.sources);

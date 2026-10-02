@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Проверка практики' if review else 'Практика' }}{% endblock %}
+{% block content %}
+<section class="development practical-workspace" data-practical="{{ 'review' if review else 'learner' }}">
+<a href="{{ '/admin' if review else '/' }}">{{ '← В мастерскую' if review else '← К карте навыков' }}</a>
+<p class="eyebrow">ОТ ЗНАНИЯ К ДЕЙСТВИЮ</p>
+<h1>{{ 'Проверка практики' if review else 'Покажите навык в деле' }}</h1>
+<p id="practical-status" role="status" aria-live="polite">Загружаем работы…</p>
+<div id="practical-body"></div>
+<noscript>Для сохранения и проверки работ нужен JavaScript.</noscript>
+</section>
+<script defer src="{{ url_for('static', filename='practical.js') }}"></script>
+{% endblock %}

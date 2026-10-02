@@ -76,3 +76,6 @@ body:has(.lesson-layout) .breadcrumb{color:#ffe69a;display:inline-block;margin:0
 @media(max-width:800px){.teacher-review-actions{position:static;box-shadow:none}.teacher-review-actions button{flex:1 1 180px}}
 
 .diagnostic-interests{border:0;padding:0;display:grid;gap:12px;margin:24px 0}.diagnostic-interests legend{margin-bottom:16px}.diagnostic-interests .interest-option{min-height:60px}.challenge-workspace .development-actions{margin-top:24px}
+
+.profile-support summary:hover,.profile-support summary:focus-visible,.node-detail summary,.node-detail summary:hover{color:#101821}
+.practical-workspace{max-width:820px}.practical-workspace textarea,.practical-workspace select{background:#fffcf5;color:#101821;width:100%;max-width:100%}.practical-workspace label{display:block;margin:18px 0}.practical-rubric{background:#f6f0e5;color:#101821;border-radius:16px;padding:24px;margin:24px 0}.practical-rubric p{color:#415160}.practical-rubric summary:hover{color:#101821}.practical-rubric li{margin:12px 0}.practical-workspace .preserve{overflow-wrap:anywhere}.practical-workspace article button{margin-top:16px}

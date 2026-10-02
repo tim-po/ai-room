@@ -89,6 +89,7 @@
       else if(!(children.get(id)||[]).length) body.append(el('p','Материалы для этого навыка ещё готовятся.','detail-muted'));
       for(const pending of data.pending_attempts||[]){const a=el('a','Продолжить начатую проверку →','resource-link');a.href='/challenges?'+new URLSearchParams({node:pending.node_id,attempt:pending.id});body.append(a);}
       for(const assessment of data.assessments.filter(a=>!a.pending_attempt)){const a=el('a',`Уже знаю тему → ${assessment.item_count} задания · ${assessment.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/challenges?'+new URLSearchParams({node:id,assessment:assessment.id});body.append(a);}
+      if(atlas.dataset.authenticated==='yes'&&data.node.kind==='ability'){const practical=await api('/api/skills/practical-tasks?node_id='+encodeURIComponent(id));if(seq!==detailSequence)return;if(practical.tasks.length){const a=el('a','Показать навык на практике →','resource-link');a.href='/practice?node='+encodeURIComponent(id);body.append(a);}}
       if(!data.assessments.length && !(children.get(id)||[]).length) body.append(el('p','Проверка знаний появится после редакторской проверки заданий.','detail-muted'));
       if((children.get(id)||[]).length){
         const descendants=[];function collect(parent){for(const child of children.get(parent)||[]){if(names.get(child).kind==='ability')descendants.push(child);collect(child);}}collect(id);
