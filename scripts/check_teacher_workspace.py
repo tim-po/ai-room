@@ -37,9 +37,41 @@ with tempfile.TemporaryDirectory() as tmp:
         page.screenshot(path=str(out/'teacher-upload.png'),full_page=True)
         result=app.test_cli_runner().invoke(args=['process-teaching-once']);assert result.exit_code==0,result.output;assert 'ready' in result.output,result.output
         page.reload();page.get_by_role('button',name='Открыть проверку').click();page.locator('#teacher-intake').wait_for(state='hidden');page.get_by_text('Изменить · название и описание',exact=True).click();page.get_by_label('Название урока',exact=True).fill('Учебный пример: проверка источников');page.route('**/api/teaching/jobs/*/draft',lambda route:route.abort());page.get_by_role('button',name='Отменить правки',exact=True).click();page.get_by_text('Нет связи с сервером. Ваши изменения остаются на странице.',exact=True).wait_for();assert page.get_by_label('Название урока',exact=True).input_value()=='Учебный пример: проверка источников';page.unroute('**/api/teaching/jobs/*/draft');page.get_by_role('button',name='← К загрузкам и черновикам',exact=True).click();page.get_by_text('Сохраните или отмените правки перед выходом.',exact=True).wait_for();page.locator('#teacher-intake').wait_for(state='hidden');page.get_by_role('button',name='Сохранить правки').click();page.get_by_text('Правки сохранены.',exact=True).wait_for()
-        page.get_by_role('button',name='Предпросмотр ученика').click();page.locator('.teacher-preview h3').wait_for();assert page.locator('.teacher-preview').get_by_text('Source supports verification.',exact=True).count()==0
+        # Correct a pinned source anchor, save/reopen, then reject insufficient coverage.
+        page.get_by_text('Проверить по источнику',exact=True).first.click()
+        page.get_by_label('Источник · ссылка 1',exact=True).first.focus()
+        page.keyboard.press('ArrowDown');page.keyboard.press('Tab')
+        page.get_by_role('button',name='Сохранить правки',exact=True).click()
+        page.get_by_text('Правки сохранены.',exact=True).wait_for()
+        page.get_by_text('Проверить по источнику',exact=True).first.click()
+        assert page.get_by_label('Источник · ссылка 1',exact=True).first.input_value()=='1'
+        page.get_by_text('Проверить вопросы и правильные ответы',exact=True).click()
+        page.get_by_text('Отклонить вопрос',exact=True).first.click()
+        page.get_by_role('button',name='Подтвердить: отклонить вопрос',exact=True).first.click()
+        page.get_by_role('heading',name='Только учебный материал',exact=True).wait_for()
+        assert page.get_by_label('Вопрос',exact=True).count()==0
+        page.get_by_text('Изменить навык',exact=True).click()
+        page.get_by_label('Существующий навык',exact=True).select_option('basic-ai.context')
+        for width in [1440,390]:
+            page.set_viewport_size({'width':width,'height':1000})
+            assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+            page.screenshot(path=str(out/f'teacher-mapping-{width}.png'),full_page=True)
+        # A failed review request retains the editor's selection and current edition.
+        page.route('**/api/teaching/jobs/*/review',lambda route:route.fulfill(status=409,json={}))
+        page.get_by_role('button',name='Сохранить новый навык',exact=True).click()
+        page.get_by_text('Данные изменились.',exact=False).wait_for()
+        assert page.get_by_label('Существующий навык',exact=True).input_value()=='basic-ai.context'
+        page.unroute('**/api/teaching/jobs/*/review')
+        page.get_by_role('button',name='Сохранить новый навык',exact=True).click()
+        page.get_by_text('Решение сохранено.',exact=True).wait_for()
+        page.get_by_text('Изменить навык',exact=True).click()
+        assert page.get_by_label('Существующий навык',exact=True).input_value()=='basic-ai.context'
+        page.get_by_text('Отклонить результат',exact=True).click()
+        page.get_by_role('button',name='Подтвердить: отклонить результат',exact=True).click()
+        page.get_by_text('Урок появится в каталоге без привязки к карте.',exact=True).wait_for()
+        page.get_by_role('button',name='Предпросмотр ученика').click();page.locator('.teacher-preview h3').first.wait_for();assert page.locator('.teacher-preview').get_by_text('Source supports verification.',exact=True).count()==0
         for width in [1440,390,360,768]:
             page.set_viewport_size({'width':width,'height':1000});assert not page.evaluate('document.documentElement.scrollWidth>innerWidth');page.screenshot(path=str(out/f'teacher-review-{width}.png'),full_page=True)
         page.get_by_role('button',name='← К загрузкам и черновикам',exact=True).click();page.locator('#teacher-intake').wait_for(state='visible');page.get_by_role('button',name='Открыть проверку').click();page.get_by_role('heading',name='Учебный пример: проверка источников',exact=True).wait_for();page.get_by_text('Доступ и публикация',exact=True).click();page.get_by_label('Краткий итог редакторской проверки').fill('Synthetic mock fixture reviewed for UI verification only.');page.get_by_label('Я проверил источники',exact=False).check();page.get_by_role('button',name='Опубликовать урок',exact=True).click();page.get_by_role('link',name='Открыть опубликованный урок').wait_for();page.get_by_role('link',name='Открыть опубликованный урок').click();page.get_by_role('heading',name='Учебный пример: проверка источников',exact=True).wait_for()
         assert not errors,errors;browser.close()
-    server.shutdown();(out/'browser.json').write_text(json.dumps({'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'source':str(Path.cwd()),'interrupted_package_recovery':True,'no_duplicate_uploads':True,'provider':'explicit mock only','origin':origin,'upload_package':True,'refresh_resume':True,'correct_preview_publish':True,'widths':[1440,390,360,768],'errors':errors},ensure_ascii=False,indent=2))
+    server.shutdown();(out/'browser.json').write_text(json.dumps({'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'source':str(Path.cwd()),'interrupted_package_recovery':True,'no_duplicate_uploads':True,'provider':'explicit mock only','origin':origin,'upload_package':True,'refresh_resume':True,'correct_preview_publish':True,'source_anchor_saved':True,'question_rejection':True,'remap_conflict_retains_selection':True,'remap_and_reject':True,'unmapped_teaching_only_publication':True,'widths':[1440,390,360,768],'errors':errors},ensure_ascii=False,indent=2))
