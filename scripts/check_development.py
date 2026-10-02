@@ -30,7 +30,15 @@ with tempfile.TemporaryDirectory() as tmp:
         page.goto(origin+'/preferences');page.locator('[name=interest]').first.wait_for()
         page.locator('[name=interest][value=coding]').check();page.locator('[name=interest][value=content]').check()
         for width in [1440,390,360,768]:
-            page.set_viewport_size({'width':width,'height':1000});page.evaluate('document.fonts.ready')
+            page.set_viewport_size({'width':width,'height':844 if width<801 else 1000});page.evaluate('document.fonts.ready')
+            for option in page.locator('[name=interest]').all():
+                previous=option.is_checked()
+                option.click()
+                assert option.is_checked()!=previous
+                option.click()
+            last=page.locator('.interest-option').last.bounding_box()
+            next_button=page.locator('#interest-next').bounding_box()
+            assert next_button['y'] >= last['y']+last['height']
             assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
             page.screenshot(path=str(out/f'interests-{width}.png'),full_page=True)
         page.locator('#interest-next').focus();page.keyboard.press('Enter')

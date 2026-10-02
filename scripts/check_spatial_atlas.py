@@ -2,6 +2,7 @@
 import json
 import os
 import sqlite3
+import subprocess
 import tempfile
 import threading
 from pathlib import Path
@@ -18,9 +19,10 @@ with tempfile.TemporaryDirectory() as tmp:
         db.executescript(Path('club/schema.sql').read_text());seed_database(db)
     app=create_app({'DATABASE':database,'SECRET_KEY':'disposable-browser-check','TESTING':True})
     assert app.test_cli_runner().invoke(args=['init-skills']).exit_code==0
+    assert app.test_cli_runner().invoke(args=['install-skill-examples']).exit_code==0
     server=make_server('127.0.0.1',0,app);threading.Thread(target=server.serve_forever,daemon=True).start()
     origin=f'http://127.0.0.1:{server.server_port}'
-    evidence={'widths':[], 'errors':[]}
+    evidence={'source':str(Path.cwd()),'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'origin':origin,'widths':[], 'errors':[]}
     with sync_playwright() as pw:
         browser=pw.chromium.launch(headless=True)
         page=browser.new_page(viewport={'width':1440,'height':1000})
@@ -40,7 +42,13 @@ with tempfile.TemporaryDirectory() as tmp:
             page.locator('#skill-map [data-node="coding.mobile"]').click();page.locator('#node-detail .evidence-label').wait_for()
             node=page.locator('#skill-map [data-node="coding.mobile"]').bounding_box();detail=page.locator('#node-detail').bounding_box()
             assert node['x']+node['width']<=detail['x'] or node['y']+node['height']<=detail['y']
+            if width < 801:
+                title=page.locator('#detail-title').bounding_box()
+                nav=page.locator('.club-header nav').bounding_box()
+                assert 0 <= title['y'] < title['y']+title['height'] < nav['y'], (width,title,nav)
+                assert page.locator('#node-detail').evaluate('(e)=>e.scrollHeight===e.clientHeight')
             page.screenshot(path=str(out/f'focus-{width}.png'),full_page=True)
+            page.screenshot(path=str(out/f'focus-viewport-{width}.png'))
             page.keyboard.press('Escape');assert 'node=' not in page.url;assert page.evaluate('document.activeElement.dataset.node')=='coding.mobile'
             page.locator('#map-reset').click();page.locator('#skill-map [data-node=content]').click();page.locator('#node-detail .evidence-label').wait_for()
             page.reload();page.locator('#node-detail .evidence-label').wait_for()
@@ -50,6 +58,18 @@ with tempfile.TemporaryDirectory() as tmp:
             assert page.locator('#skill-map ul ul').count()>5
             page.locator('#skill-search').fill('несуществующий навык');assert page.locator('#atlas-status').inner_text()=='Найдено навыков: 0'
             evidence['widths'].append({'width':width,'map_top':top,'overflow':False,'selected_node_visible':True})
+        for width in [1440,390,360,768]:
+            page.set_viewport_size({'width':width,'height':844 if width<801 else 1000})
+            page.goto(origin+'/?node=basic-ai.verification')
+            page.locator('#node-detail a[href^="/lessons/"]').first.click()
+            page.locator('#ability-return:not([hidden])').wait_for()
+            assert 'node=basic-ai.verification' in page.url
+            assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+            page.screenshot(path=str(out/f'lesson-{width}.png'),full_page=True)
+            page.locator('#ability-return').click()
+            page.locator('#detail-title').wait_for()
+            assert 'node=basic-ai.verification' in page.url
+        evidence['lesson_return']=True
         assert not evidence['errors'],evidence
         browser.close()
     server.shutdown()

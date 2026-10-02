@@ -32,7 +32,7 @@
     b.onclick=()=>choose(node.id); return b;
   }
   function render() {
-    map.replaceChildren(); map.classList.toggle('as-list',list);
+    map.replaceChildren(); map.classList.toggle('as-list',list); map.classList.remove('sparse-map');
     const q=search.value.trim().toLocaleLowerCase('ru');
     if(q) {
       map.classList.add('as-list');
@@ -49,7 +49,7 @@
     status.textContent=overview ? 'Пять направлений · выбирайте любое' : names.get(focus).title+' · стрелки переключают узлы';
     const crumb=el('div',null,'map-breadcrumb');
     if(!overview){const back=el('button','← '+(focus===graph.root?'Вся карта':names.get(parents.get(focus)||graph.root).title));back.onclick=()=>focus===graph.root?document.querySelector('#map-reset').click():choose(parents.get(focus)||graph.root);crumb.append(back);}
-    map.append(crumb);
+    map.append(crumb); map.classList.toggle('sparse-map', !overview && ids.length <= 2);
     const stage=el('div',null,'spatial-stage');
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 1000 600');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-hidden','true');svg.classList.add('map-paths');stage.append(svg);
     const positions=new Map();
@@ -70,12 +70,13 @@
     if(descendants.length){const disclosure=el('details');disclosure.open=id===graph.root || selected===id || selected?.startsWith(id+'.');const summary=el('summary',node.title);disclosure.append(summary,button(node));const ul=el('ul');for(const child of descendants)appendList(ul,child);disclosure.append(ul);li.append(disclosure);}
     else li.append(button(node));container.append(li);
   }
-  function close(updateUrl=true) { if(updateUrl){const u=new URL(location);u.searchParams.delete('node');history.replaceState({},'',u);} detailSequence++; panel.hidden=true; document.querySelector(`#skill-map [data-node="${selected}"]`)?.focus({preventScroll:true}); }
+  function close(updateUrl=true) { if(updateUrl){const u=new URL(location);u.searchParams.delete('node');history.replaceState({},'',u);} detailSequence++; panel.hidden=true; document.querySelector(`#skill-map [data-node="${selected}"]`)?.focus(); }
   async function choose(id, push=true) {
     selected=id; panel.hidden=false; if(push) { const u=new URL(location);u.searchParams.set('node',id);history.pushState({node:id},'',u); } render();
     const seq=++detailSequence; panel.hidden=false; panel.replaceChildren();
     const closeButton=el('button','Закрыть ×','detail-close');closeButton.onclick=close; panel.append(closeButton);
     const heading=el('h2',names.get(id).title);heading.id='detail-title';heading.tabIndex=-1; panel.append(el('p', 'ВАША СЛЕДУЮЩАЯ ВОЗМОЖНОСТЬ','eyebrow'),heading); heading.focus({preventScroll:true});
+    if(matchMedia('(max-width:800px)').matches) panel.scrollIntoView({block:'start',behavior:'instant'});
     const body=el('div');panel.append(body);body.append(el('p','Загружаем материалы…'));
     try {
       const data=await api('/api/skills/nodes/'+encodeURIComponent(id)); if(seq!==detailSequence)return;
@@ -84,7 +85,7 @@
       body.append(el('p',coverage?.verified ? `Подтверждено заданием: ${coverage.verified} из ${coverage.eligible}` : 'Пока не проверено','evidence-label'));
       if(data.readiness.length){const ready=el('details');ready.append(el('summary','Что поможет начать'));for(const edge of data.readiness)ready.append(el('p',`Будет полезно: ${names.get(edge.source)?.title}. Это рекомендация, не ограничение.`));body.append(ready);}
       if((children.get(id)||[]).length){const more=el('details');more.append(el('summary','Навыки этого раздела'));for(const child of children.get(id))more.append(button(names.get(child)));body.append(more);}
-      if(data.content.length) for(const lesson of data.content){const a=el('a',`${lesson.title} · ${lesson.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/lessons/'+encodeURIComponent(lesson.id);body.append(a);}
+      if(data.content.length) for(const lesson of data.content){const a=el('a',`${lesson.title} · ${lesson.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/lessons/'+encodeURIComponent(lesson.id)+'?'+new URLSearchParams({node:id});body.append(a);}
       else if(!(children.get(id)||[]).length) body.append(el('p','Материалы для этого навыка ещё готовятся.','detail-muted'));
       for(const pending of data.pending_attempts||[]){const a=el('a','Продолжить начатую проверку →','resource-link');a.href='/challenges?'+new URLSearchParams({node:pending.node_id,attempt:pending.id});body.append(a);}
       for(const assessment of data.assessments.filter(a=>!a.pending_attempt)){const a=el('a',`Уже знаю тему → ${assessment.item_count} задания · ${assessment.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/challenges?'+new URLSearchParams({node:id,assessment:assessment.id});body.append(a);}
@@ -93,7 +94,7 @@
         const descendants=[];function collect(parent){for(const child of children.get(parent)||[]){if(names.get(child).kind==='ability')descendants.push(child);collect(child);}}collect(id);
         const related=await Promise.all(descendants.slice(0,12).map(child=>api('/api/skills/nodes/'+encodeURIComponent(child))));if(seq!==detailSequence)return;
         const available=related.filter(d=>d.content.length||d.assessments.length).slice(0,3);
-        if(available.length){const section=el('section');section.append(el('h3','Начать с навыка'));for(const d of available){const group=el('div');group.append(el('strong',d.node.title));if(d.content[0]){const a=el('a','Изучить →','resource-link');a.href='/lessons/'+encodeURIComponent(d.content[0].id);group.append(a);}if(d.assessments[0]){const a=el('a','Проверить понимание →','resource-link');a.href='/challenges?'+new URLSearchParams({node:d.node.id,assessment:d.assessments[0].id});group.append(a);}section.append(group);}body.append(section);}
+        if(available.length){const section=el('section');section.append(el('h3','Начать с навыка'));for(const d of available){const group=el('div');group.append(el('strong',d.node.title));if(d.content[0]){const a=el('a','Изучить →','resource-link');a.href='/lessons/'+encodeURIComponent(d.content[0].id)+'?'+new URLSearchParams({node:d.node.id});group.append(a);}if(d.assessments[0]){const a=el('a','Проверить понимание →','resource-link');a.href='/challenges?'+new URLSearchParams({node:d.node.id,assessment:d.assessments[0].id});group.append(a);}section.append(group);}body.append(section);}
       }
       if(atlas.dataset.authenticated==='yes') { try {await api('/api/skills/explore',{node_id:id});}catch(e){body.append(el('p','Не удалось сохранить исследование. '+e.message));} }
       else {const a=el('a','Войти и сохранять своё развитие →');a.href='/login';body.append(a);}

@@ -29,3 +29,39 @@ body:has(.atlas) .club-header{padding-block:12px}.atlas-heading{height:36px;min-
 @media(max-width:800px){.atlas .spatial-node{width:120px}.spatial-node strong{overflow-wrap:normal}.spatial-node small{font-size:11px}.atlas-workspace:has(.node-detail:not([hidden])) .skill-map:not(.as-list),.skill-map{height:510px}.spatial-stage,.atlas-workspace:has(.node-detail:not([hidden])) .spatial-stage{min-height:454px}}
 
 #character-recent{margin-block:28px}#character-recent h2{font-size:20px}#character-recent ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}#character-recent li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:14px 18px;background:#1b2733;border-left:3px solid #b1ebc7;border-radius:0 10px 10px 0}#character-recent time{font-size:14px;color:#b6c2cf}#character-recent li>a:last-child{grid-column:1/-1;font-size:14px;min-height:44px;display:flex;align-items:center}.profile-collection{border-top:1px solid #c4c7be;padding-block:8px}.profile-collection>summary{font-size:19px;font-weight:600}.teacher-workspace #teacher-saved-sources{border:1px solid #64717e;border-radius:12px;padding:16px;margin-block:16px;min-width:0}.teacher-workspace #teacher-saved-sources[hidden]{display:none}#teacher-saved-sources label{display:flex;align-items:center;gap:12px;min-height:44px;overflow-wrap:anywhere}#teacher-saved-sources input{width:20px;height:20px;flex-shrink:0;margin:0}@media(max-width:600px){#character-recent li{grid-template-columns:1fr}#character-recent time{grid-row:2}}
+
+/* Selected mobile details use document scrolling, with visible keyboard focus. */
+.node-detail{scroll-margin-top:16px}
+@media(max-width:800px){
+  .atlas-workspace:has(.node-detail:not([hidden])) .skill-map.sparse-map:not(.as-list){height:360px}
+  .atlas-workspace:has(.node-detail:not([hidden])) .sparse-map .spatial-stage{min-height:304px}
+  .onboarding #interest-next{position:static;box-shadow:none;margin-block:20px}
+}
+.profile-support .meta,.profile-support .progress-label,.profile-support .card .meta,.profile-support .card .progress-label{color:#415160}
+/* Shared ink shell and cream reading surface. */
+body:has(.lesson-layout){background:#101821;color:#f3f3ed}
+body:has(.lesson-layout) footer{color:#b6c2cf;border-color:#43515e}
+body:has(.lesson-layout) .breadcrumb{color:#ffe69a;display:inline-block;margin:0 20px 16px 0}
+.lesson-content{background:#f6f0e5;color:#101821;padding:clamp(18px,3vw,40px);border-radius:20px;min-width:0}
+.lesson-content p,.lesson-content .small,.lesson-content .eyebrow,.lesson-content .lead{color:#415160}
+.lesson-content a,.lesson-sidebar a{color:#204d68}
+.lesson-content .panel,.lesson-content .resource{background:#fffcf5;color:#101821;border-color:#c4c7be}
+.lesson-content .button{background:#204d68;color:#fff;border-color:#204d68}
+.lesson-content .button.secondary{background:#fff;color:#204d68}
+.lesson-content textarea{background:#fff;color:#101821;border-color:#64717e}
+.lesson-content .chip{background:#e2e9ec;color:#204d68}
+.lesson-sidebar{background:#f6f0e5;color:#101821;border-radius:16px;padding:20px;align-self:start}
+.lesson-sidebar .small,.lesson-sidebar .meta{color:#415160}
+.lesson-content :focus-visible,.lesson-sidebar :focus-visible{outline:3px solid #204d68;outline-offset:3px}
+.lesson-content h1{font-size:clamp(26px,3vw,40px);line-height:1.2;overflow-wrap:anywhere}
+.lesson-content .reading{line-height:1.8}
+.lesson-content .notice{background:#e2e9ec;color:#101821;border-color:#64717e}
+@media(max-width:800px){.lesson-content{padding:18px 16px}.lesson-sidebar{padding:16px}}
+.profile-support .metadata{color:#415160}
+.lesson-content,.lesson-sidebar{color-scheme:light}
+.lesson-sidebar .module{background:#fffcf5;border-color:#c4c7be}
+.lesson-sidebar .lesson-row{border-color:#c4c7be}
+.lesson-sidebar .lesson-row:hover,.lesson-sidebar .lesson-row[aria-current]{background:#e2e9ec}
+.lesson-sidebar summary:hover,.lesson-sidebar .lesson-marker{color:#204d68}
+.lesson-content small,.lesson-sidebar small{color:#415160}
+.lesson-content textarea::placeholder{color:#596775}
