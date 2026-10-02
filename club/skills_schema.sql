@@ -34,3 +34,11 @@ CREATE TRIGGER IF NOT EXISTS skill_releases_no_delete BEFORE DELETE ON skill_rel
 CREATE TRIGGER IF NOT EXISTS skill_attempts_no_delete BEFORE DELETE ON skill_attempts BEGIN SELECT RAISE(ABORT,'retain historical attempt'); END;
 CREATE TRIGGER IF NOT EXISTS skill_results_no_delete BEFORE DELETE ON skill_results BEGIN SELECT RAISE(ABORT,'retain historical result'); END;
 CREATE TRIGGER IF NOT EXISTS skill_evidence_no_delete BEFORE DELETE ON skill_evidence BEGIN SELECT RAISE(ABORT,'retain historical evidence'); END;
+
+CREATE TABLE IF NOT EXISTS skill_diagnostics (
+ id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), request_id TEXT NOT NULL,
+ release_id TEXT NOT NULL REFERENCES skill_releases(id), body TEXT NOT NULL,
+ state TEXT NOT NULL DEFAULT 'active' CHECK(state IN ('active','skipped')),
+ revision INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE(user_id,request_id)
+);
