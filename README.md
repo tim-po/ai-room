@@ -236,3 +236,21 @@ Profile lists only courses with persisted course-start, progress or practice rec
 Home and profile share the same weekly-goal display. The achievement is the count of unique first lesson-completion events within the trailing seven days, using UTC server timestamps. Uncompletion does not erase this historical credit, and re-completion/retries never add credit or move an old first completion into the current window. This differs deliberately from current course completion and from the calendar-week retention metric. Pausing hides the target/progress bar while keeping the factual count and learning history; the target can be resumed in preferences. The count is not a skill assessment. No schema change or data backfill is required.
 
 Verification: `tests/test_profile.py` covers empty/active/completed/reopened courses, newly published lessons, user isolation, unique weekly counts, rolling-window expiry, pause and Russian plural forms. `scripts/check_profile_browser.py` uses an isolated seeded database and checks 360/390/768/1440px empty and active profiles, actual saved practice/completion, keyboard activation of the results anchor, goal pause and browser errors. Set `CLUB_EVIDENCE_DIR` to retain screenshots and results.
+
+### Long editorial curricula
+
+Course modules use native keyboard-accessible disclosures. Create, rename and
+reorder redirects identify the affected stable module/lesson in the URL fragment;
+the editor opens its module and scrolls to it. Returning from a lesson editor also
+opens its parent module. Route selectors put lesson titles first and repeat the
+full selected title and course beneath each selector, including at mobile widths.
+Up/down buttons swap existing lesson references and mark the form unsaved; the
+existing explicit save and revision checks persist the order. Route bridges remain
+attached to lesson IDs. Browser session storage holds only a one-use path/scroll
+position after editorial saves; content and progress remain server-owned and
+saving still works when that optional storage is disabled. No schema migration.
+
+Run `scripts/check_editor_layout_browser.py` for isolated 37-lesson/9-module
+editor checks at 360/390/768/1440px, keyboard route reorder, persisted order,
+module rename location, wrapping and browser errors. `CLUB_EVIDENCE_DIR` selects
+the screenshot/result destination. Independent review is still required.

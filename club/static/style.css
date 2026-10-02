@@ -7,3 +7,5 @@
 .check-option{display:flex;align-items:start;gap:12px}.check-option input{width:20px;height:20px;flex-shrink:0;margin-top:2px}
 
 .material-content{max-width:900px}.material-content .resource{margin-bottom:12px}
+
+.editor-module>.panel{border:0;border-radius:0;margin:0}.editor-module,.editor-row{scroll-margin-top:20px}.route-editor-step{border-top:1px solid var(--line);padding:20px 0}.route-editor-step label{margin-bottom:8px}.selected-step{overflow-wrap:anywhere}.selected-step span{display:block}.route-editor-step .actions{flex-wrap:nowrap}.route-editor-step .button{font-size:14px;padding:10px 12px}

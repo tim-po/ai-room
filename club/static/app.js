@@ -41,7 +41,12 @@ for (const form of document.querySelectorAll('[data-dirty-form]')) {
         throw new Error('Не удалось сохранить. Текст остаётся в форме. Проверьте подключение и повторите попытку.');
       }
       dirty = false;
-      if (editor) location.assign(response.url);
+      if (editor) {
+        if (new URL(response.url).pathname === location.pathname) {
+          try { sessionStorage.setItem('editor-return', JSON.stringify({path:location.pathname,y:scrollY})); } catch (_) { /* Storage is optional UI state. */ }
+        }
+        location.assign(response.url);
+      }
       else location.reload();
     } catch (error) {
       status.textContent = error.message === 'Failed to fetch' ? 'Нет связи с сервером. Текст остаётся в форме; повторите сохранение.' : error.message;
@@ -79,4 +84,52 @@ if (video) {
   video.addEventListener('timeupdate', () => savePosition());
   video.addEventListener('pause', () => savePosition(true));
   video.addEventListener('ended', () => savePosition(true));
+}
+
+// Reveal the affected stable module/lesson after a native editorial action.
+function revealEditorLocation() {
+  const target = document.getElementById(location.hash.slice(1));
+  if (!target || !target.closest('.editor-module')) return;
+  target.closest('.editor-module').open = true;
+  requestAnimationFrame(() => target.scrollIntoView({block:'start'}));
+}
+revealEditorLocation();
+window.addEventListener('hashchange', revealEditorLocation);
+const routeSteps = [...document.querySelectorAll('[data-route-step]')];
+function describeStep(step) {
+  const option = step.querySelector('select').selectedOptions[0];
+  const description = step.querySelector('.selected-step');
+  const title = document.createElement('strong');
+  title.textContent = option.dataset.title || 'Без шага';
+  const course = document.createElement('span');
+  course.className = 'small'; course.textContent = option.dataset.course || '';
+  description.replaceChildren(title, course);
+}
+routeSteps.forEach((step, index) => {
+  step.querySelector('[data-step-moves]').hidden = false;
+  const select = step.querySelector('select');
+  select.addEventListener('change', () => describeStep(step));
+  for (const [selector, offset] of [['[data-step-up]', -1], ['[data-step-down]', 1]]) {
+    const button = step.querySelector(selector);
+    button.disabled = !routeSteps[index + offset];
+    button.addEventListener('click', () => {
+      const other = routeSteps[index + offset];
+      const otherSelect = other.querySelector('select');
+      [select.value, otherSelect.value] = [otherSelect.value, select.value];
+      describeStep(step); describeStep(other);
+      select.dispatchEvent(new Event('input', {bubbles:true}));
+      otherSelect.focus();
+      other.scrollIntoView({block:'center'});
+    });
+  }
+});
+
+if (document.querySelector('[data-editor-form]')) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('editor-return') || 'null');
+    sessionStorage.removeItem('editor-return');
+    if (saved?.path === location.pathname && Number.isFinite(saved.y)) {
+      requestAnimationFrame(() => window.scrollTo({top:saved.y,behavior:'instant'}));
+    }
+  } catch (_) { /* Saving content never depends on browser storage. */ }
 }

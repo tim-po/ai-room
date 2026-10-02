@@ -114,10 +114,11 @@ def register_authoring(app, db, query, goals):
             title = text('title', 200)
         except ValueError as exc:
             abort(400, str(exc))
+        module_id = 'module-'+uuid.uuid4().hex
         with db():
-            db().execute('INSERT INTO modules(id,course_id,title,position) SELECT ?,?,?,COALESCE(MAX(position),0)+1 FROM modules WHERE course_id=?', ('module-'+uuid.uuid4().hex,identity,title,identity))
+            db().execute('INSERT INTO modules(id,course_id,title,position) SELECT ?,?,?,COALESCE(MAX(position),0)+1 FROM modules WHERE course_id=?', (module_id,identity,title,identity))
         flash('Модуль добавлен. Теперь добавьте урок.', 'success')
-        return redirect(url_for('authoring.course_edit', identity=identity))
+        return redirect(url_for('authoring.course_edit', identity=identity, _anchor=module_id))
 
     @bp.post('/modules/<identity>/rename')
     def module_rename(identity):
@@ -129,7 +130,7 @@ def register_authoring(app, db, query, goals):
         with db():
             db().execute('UPDATE modules SET title=? WHERE id=?', (title,identity))
         flash('Название модуля сохранено.', 'success')
-        return redirect(url_for('authoring.course_edit', identity=current['course_id']))
+        return redirect(url_for('authoring.course_edit', identity=current['course_id'], _anchor=identity))
 
     @bp.post('/<kind>/<identity>/move')
     def move(kind, identity):
@@ -151,7 +152,7 @@ def register_authoring(app, db, query, goals):
                 db().executemany(f'UPDATE {kind} SET position=? WHERE id=?', enumerate(ids, 1))
         course_id = current['course_id'] if kind == 'modules' else row('modules', current['module_id'])['course_id']
         flash('Порядок сохранён. Прогресс учеников сохранён.', 'success')
-        return redirect(url_for('authoring.course_edit', identity=course_id))
+        return redirect(url_for('authoring.course_edit', identity=course_id, _anchor=identity))
 
     @bp.route('/modules/<module_id>/lessons/new', methods=['GET', 'POST'])
     @bp.route('/lessons/<identity>', methods=['GET', 'POST'])
