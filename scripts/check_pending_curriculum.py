@@ -75,7 +75,12 @@ for attempt_id, user_id, body, form_id in attempts:
         source = feedback['source']
         assert client.get('/lessons/'+source['lesson_id']).status_code == 200
     retry = client.post('/api/skills/challenges', json={'assessment_id':form_id,'request_id':'rehearsal-repeat-'+attempt_id}, headers={'X-CSRF-Token':'private-rehearsal-token'})
-    assert retry.status_code == 201 and retry.json['mode'] == 'practice'
+    if retry.status_code == 409 and retry.json.get('code') == 'pending_attempt':
+        retry = client.get(retry.json['pending_attempt']['resume_url'])
+        assert retry.status_code == 200
+    else:
+        assert retry.status_code == 201
+    assert retry.json['mode'] == 'practice'
     checks.append(dict(form_id=form_id, historical_feedback_unchanged=True, lesson_access=200, repeat_mode='practice'))
 # Browser uses the retained learner session on the local copy, no credential changes.
 server = make_server('127.0.0.1', 0, app)
