@@ -129,3 +129,13 @@ CREATE TRIGGER IF NOT EXISTS skill_transfer_sources_immutable BEFORE UPDATE ON s
  BEGIN SELECT RAISE(ABORT,'immutable transfer source edition'); END;
 CREATE TRIGGER IF NOT EXISTS skill_transfer_sources_retain BEFORE DELETE ON skill_transfer_sources
  BEGIN SELECT RAISE(ABORT,'retain transfer source edition'); END;
+
+-- Exact before/after teaching rows survive edits; learner state is never rewritten.
+CREATE TABLE IF NOT EXISTS skill_curriculum_revisions (
+ id TEXT PRIMARY KEY, body TEXT NOT NULL,
+ reviewed_by TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TRIGGER IF NOT EXISTS curriculum_revisions_immutable BEFORE UPDATE ON skill_curriculum_revisions
+ BEGIN SELECT RAISE(ABORT,'immutable curriculum revision'); END;
+CREATE TRIGGER IF NOT EXISTS curriculum_revisions_retain BEFORE DELETE ON skill_curriculum_revisions
+ BEGIN SELECT RAISE(ABORT,'retain curriculum revision'); END;
