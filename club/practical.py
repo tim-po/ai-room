@@ -2,6 +2,7 @@
 import json
 import re
 import uuid
+from .reviewer_identity import reviewer_identity
 from .form_lifecycle import lifecycle
 from .release_bindings import available_forms, form_available
 
@@ -28,7 +29,7 @@ def register_practical(app, db, query, require_user, graph, data):
     def task_dto(row):
         return dict(id=row['id'], assessment_id=row['form_id'], objective_id=row['objective_id'],
                     objective_revision=row['objective_revision'], release=row['release_id'], access=row['access'],
-                    reviewed_at=row['created_at'], lifecycle=lifecycle(query, row['form_id']), **json.loads(row['body']))
+                    reviewer=reviewer_identity(row['reviewed_by']), reviewed_at=row['created_at'], lifecycle=lifecycle(query, row['form_id']), **json.loads(row['body']))
 
     def submission(id, owner_only=False):
         row = query('SELECT * FROM skill_practical_submissions WHERE id=?', (id,), True)
@@ -43,7 +44,7 @@ def register_practical(app, db, query, require_user, graph, data):
         decision = query('SELECT * FROM skill_practical_decisions WHERE submission_id=?', (row['id'],), True)
         return dict(id=row['id'], task_id=row['task_id'], body=row['body'], revision=row['revision'],
                     state='reviewed' if decision else row['state'],
-                    decision=dict(**json.loads(decision['body']), reviewed_at=decision['created_at']) if decision else None)
+                    decision=dict(**json.loads(decision['body']), reviewed_at=decision['created_at'], reviewer=reviewer_identity(decision['reviewer_id'])) if decision else None)
 
     @app.post('/api/skills/practical-tasks')
     @require_user

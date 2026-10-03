@@ -148,3 +148,40 @@ def test_pinned_rubric_survives_graph_change_and_new_attempts_retire(skills):
     assert len(me['application_evidence']) == 1
     assert me['coverage'][0]['application_verified'] == 0  # history isn't mastery of changed objective
     assert c.get('/api/skills/practical-tasks/'+task['id']).json == task
+
+
+def test_reviewer_attribution_uses_recorded_actor_not_viewer(skills):
+    admin, at, task, _ = setup_task(skills)
+    c = skills.test_client(); token = login(c)
+    alias = task['reviewer']
+    assert alias['attribution'] == 'recorded_reviewer_alias'
+    with sqlite3.connect(skills.config['DATABASE']) as db:
+        actor = db.execute("SELECT id FROM users WHERE role='admin'").fetchone()[0]
+        db.execute("INSERT INTO users(id,email,password_hash,name,role) VALUES(?,?,?,?,?)",
+                   ('second-editor', 'private-editor@example.test', 'unused', 'Private name', 'editor'))
+    second = skills.test_client()
+    with second.session_transaction() as session:
+        session['user_id'] = 'second-editor'
+    s = draft(c, token, task).json
+    path = '/api/skills/practical-submissions/' + s['id']
+    assert s['decision'] is None
+    save(c, token, s['id'], 1)
+    review = dict(revision=2, ratings={'source':'met','reason':'met'}, feedback='Проверены источники и обоснование вывода.')
+    result = post(admin, path+'/review', review, at).json
+    assert result['decision']['reviewer'] == alias
+    assert c.get(path).json['decision']['reviewer'] == alias
+    assert second.get(path).json['decision']['reviewer'] == alias
+    with sqlite3.connect(skills.config['DATABASE']) as db:
+        db.execute("UPDATE users SET name=?,email=?,role='learner' WHERE id=?",
+                   ('changed-private-name', 'changed-private@example.test', actor))
+    restarted = create_app(dict(TESTING=True, DATABASE=skills.config['DATABASE'], SECRET_KEY='another')).test_client()
+    login(restarted)
+    assert restarted.get(path).json['decision']['reviewer'] == alias
+    evidence = restarted.get('/api/skills/me').json['application_evidence'][0]
+    assert evidence['reviewer'] == alias
+    assert 'reviewer_id' not in evidence
+    assert restarted.get('/api/skills/practical-tasks/'+task['id']).json['reviewer'] == alias
+    output = json.dumps([result, evidence, task], ensure_ascii=False)
+    for private in ('@', 'password_hash', 'changed-private-name', 'Private name'):
+        assert private not in output
+    assert skills.test_client().get(path).status_code == 401

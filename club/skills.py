@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import click
+from .reviewer_identity import reviewer_identity
 from .form_lifecycle import lifecycle, register_form_lifecycle
 from .release_bindings import available_forms, form_available, carry_forms
 from flask import abort, g, jsonify, request
@@ -230,11 +231,13 @@ def register_skills(app, db, query, require_user):
                          source_access_required=not accessible,
                          sources=[i['source'] for i in body['items'] if i['objective_id'] == entry['objective_id']] if accessible else [])
         application_evidence = [dict(r) for r in query('''SELECT e.*,t.form_id AS assessment_id,f.release_id,
-                                  t.id AS task_id,d.created_at AS reviewed_at FROM skill_application_evidence e
+                                  t.id AS task_id,d.created_at AS reviewed_at,d.reviewer_id FROM skill_application_evidence e
                                   JOIN skill_practical_submissions s ON s.id=e.submission_id
                                   JOIN skill_practical_tasks t ON t.id=s.task_id
                                   JOIN skill_forms f ON f.id=t.form_id
                                   JOIN skill_practical_decisions d ON d.submission_id=s.id WHERE e.user_id=?''', (g.user['id'],))]
+        for entry in application_evidence:
+            entry['reviewer'] = reviewer_identity(entry.pop('reviewer_id'))
         applied = {(r['objective_id'], r['objective_revision']) for r in application_evidence}
         verified = {(r['objective_id'], r['objective_revision']) for r in evidence}
         assessed = set(verified)
