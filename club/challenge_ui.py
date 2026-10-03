@@ -31,3 +31,10 @@ def register_challenge_ui(app, require_user):
         if g.user['role'] not in ('editor', 'admin'):
             abort(403)
         return render_template('graph_review.html')
+
+    @app.get('/admin/assessments')
+    @require_user
+    def assessment_maintenance_workspace():
+        if g.user['role'] not in ('editor', 'admin'):
+            abort(403)
+        return render_template('assessment_maintenance.html')

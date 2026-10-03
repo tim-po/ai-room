@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Опубликованные проверки{% endblock %}
+{% block content %}
+<section class="development practical-workspace">
+<a href="/admin">← В мастерскую</a><p class="eyebrow">КАЧЕСТВО ОБУЧЕНИЯ</p>
+<h1>Опубликованные проверки</h1><p>Отзовите проверку, если в ней обнаружена ошибка. История обучения и ранее полученный зачёт сохранятся.</p>
+<p id="forms-status" role="status" tabindex="-1">Загружаем проверки…</p><div id="forms-body"></div>
+</section><script defer src="{{ url_for('static', filename='assessment_maintenance.js') }}"></script>
+{% endblock %}

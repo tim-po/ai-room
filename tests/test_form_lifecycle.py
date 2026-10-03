@@ -110,3 +110,24 @@ def test_mapping_only_copies_inherit_withdrawal_even_when_issued_earlier(skills)
     publish_copy(skills, dict(fixture_form(), inherited_from_form='mapping-copy'), 'nested-copy')
     assert start(c, token, 'nested-copy', 'nested-new-request').status_code == 409
     assert c.get('/api/skills/nodes/basic-ai.verification').json['assessments'] == []
+
+
+def test_editor_inventory_filters_replacements_and_protects_metadata(skills):
+    install_form(skills)
+    publish_copy(skills, fixture_form(), 'replacement')
+    publish_copy(skills, dict(fixture_form(), inherited_from_form='test-form-v1'), 'descendant')
+    learner = skills.test_client(); login(learner)
+    assert learner.get('/api/skills/forms').status_code == 403
+    assert learner.get('/admin/assessments').status_code == 403
+    admin = skills.test_client(); token = login(admin, 'admin')
+    assert admin.get('/admin/assessments').status_code == 200
+    inventory = admin.get('/api/skills/forms').json
+    original = next(f for f in inventory['forms'] if f['id']=='test-form-v1')
+    assert original['eligible_replacements'] == ['replacement']
+    assert original['available'] and original['lifecycle']['status']=='active'
+    assert 'items' not in original and 'body' not in original
+    assert withdraw(admin, token, 'descendant').status_code == 409
+    assert withdraw(admin, token, 'replacement').status_code == 201
+    original = next(f for f in admin.get('/api/skills/forms').json['forms'] if f['id']=='test-form-v1')
+    assert original['lifecycle']['replacement_id']=='replacement'
+    assert original['eligible_replacements']==[]
