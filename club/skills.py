@@ -80,6 +80,8 @@ def publish_reviewed_form(db, *, id, graph, node_id, form, access, reviewer):
 
 
 def register_skills(app, db, query, require_user):
+    from .transfer_sources import register_transfer_sources
+    register_transfer_sources(app, db)
     def graph():
         try:
             row = query('SELECT r.body FROM skill_active a JOIN skill_releases r ON r.id=a.release_id WHERE singleton=1', one=True)

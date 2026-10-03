@@ -44,3 +44,28 @@ a second completed runtime attempt to be practice-only with no duplicate credit.
 The publication inside that test is disposable engine verification, not editorial
 acceptance. No shared DB, graph release, historical form or baseline progress is
 modified by this package.
+
+## Retained editorial storage (direction030 increment)
+
+After the backed-up additive `flask --app club init-skills` migration, run
+`flask --app club install-transfer-sources --reviewer <existing-editor-id>`.
+The command makes a mode0600 SQLite backup, uses a locked transaction and
+idempotently stores all seven exact source editions. Immutable/update-delete
+triggers preserve historical snapshots; conflicting text requires a new edition.
+It changes no graph, lesson, assessment, rubric or evidence. Installation records
+an operator identity, not an approval verdict.
+
+`flask --app club inspect-transfer-sources` exports PRIVATE keyed candidates with
+canonical snapshot URLs and recalculated bound-form hashes. `unbound_sha256`
+identifies the preceding review bundle. All prompts, choices, keys, source text,
+lineage and practical hashes are preserved. Review must name the bound hash.
+The endpoint `/api/skills/editorial-sources/<source_id>/<edition>` is editor/admin
+only and no-store. Anonymous and learner requests are forbidden, including free
+members: these are unpublished editorial documents, not public course resources.
+The endpoint returns source text only, never assessment keys.
+
+This closes retained private storage, not learner publication. An explicitly
+reviewed publication must still bind each source to the resulting lesson/form
+and enforce its entitlement/lifecycle. Do not publish these forms while their
+snapshot URLs are editor-only. Equivalence and mobile/tools practical decisions
+remain pending independent review. No actual AI-provider processing is implied.

@@ -118,3 +118,14 @@ CREATE TABLE IF NOT EXISTS skill_form_bindings (
 );
 CREATE TRIGGER IF NOT EXISTS form_bindings_immutable BEFORE UPDATE ON skill_form_bindings BEGIN SELECT RAISE(ABORT,'immutable release binding'); END;
 CREATE TRIGGER IF NOT EXISTS form_bindings_retain BEFORE DELETE ON skill_form_bindings BEGIN SELECT RAISE(ABORT,'retain release binding'); END;
+
+-- Editorial snapshots are retained independently of current teaching text.
+CREATE TABLE IF NOT EXISTS skill_transfer_sources (
+ source_id TEXT NOT NULL, edition INTEGER NOT NULL CHECK(edition>0), body TEXT NOT NULL,
+ installed_by TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(source_id,edition)
+);
+CREATE TRIGGER IF NOT EXISTS skill_transfer_sources_immutable BEFORE UPDATE ON skill_transfer_sources
+ BEGIN SELECT RAISE(ABORT,'immutable transfer source edition'); END;
+CREATE TRIGGER IF NOT EXISTS skill_transfer_sources_retain BEFORE DELETE ON skill_transfer_sources
+ BEGIN SELECT RAISE(ABORT,'retain transfer source edition'); END;
