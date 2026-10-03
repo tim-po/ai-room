@@ -1,0 +1,27 @@
+# Template only: manager must substitute REVIEWED_RELEASE and PRIVATE_STATE.
+# Keep the same database/upload paths as the web service. Never install verbatim.
+[Unit]
+Description=AI Room private teaching queue
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+WorkingDirectory=REVIEWED_RELEASE
+EnvironmentFile=PRIVATE_STATE/teaching.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=REVIEWED_RELEASE/.venv/bin/python -m flask --app club process-teaching-worker --poll-seconds 5
+Restart=on-failure
+RestartSec=15
+# Sequential job: up to five 90-second transcriptions plus one generation.
+# Forced termination still requires lease expiry and explicit charged retry.
+TimeoutStopSec=960
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
