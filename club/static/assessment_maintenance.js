@@ -24,8 +24,9 @@
     const replacementLabel=el('label','Проверенная замена'),replacement=el('select'),none=el('option','Без замены');none.value='';replacement.append(none);
     for(const id of f.eligible_replacements){const target=forms.find(r=>r.id===id),o=el('option',label(target));o.value=id;replacement.append(o);}
     replacementLabel.append(replacement);
-    const confirmLabel=el('label','Я проверил причину, замену и последствия отзыва'),confirm=el('input');confirm.type='checkbox';confirm.required=true;confirmLabel.prepend(confirm);
-    form.append(reasonLabel,el('p','Не указывайте ответы на задания или личные данные. Причину увидят ученики.'),replacementLabel);
+    const selectedReplacement=el('p','Замена не выбрана');selectedReplacement.className='replacement-summary';selectedReplacement.setAttribute('aria-live','polite');replacement.onchange=()=>{const selected=forms.find(r=>r.id===replacement.value);selectedReplacement.textContent=selected?'Выбрана замена: '+label(selected):'Замена не выбрана';};
+    const confirmLabel=el('label','Я проверил причину, замену и последствия отзыва'),confirm=el('input');confirm.type='checkbox';confirm.required=true;confirmLabel.className='withdraw-confirm';const confirmText=el('span',confirmLabel.textContent);confirmLabel.replaceChildren(confirm,confirmText);
+    form.append(reasonLabel,el('p','Не указывайте ответы на задания или личные данные. Причину увидят ученики.'),replacementLabel,selectedReplacement);
     if(!f.eligible_replacements.length)form.append(el('p','Совместимых опубликованных замен пока нет. Проверку можно отозвать без замены.'));
     const submit=el('button','Отозвать проверку');submit.type='submit';form.append(confirmLabel,submit);
     form.oninput=()=>dirty=true;

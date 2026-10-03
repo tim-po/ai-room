@@ -13,3 +13,9 @@
 /* Keep account actions reachable on short desktop viewports. */
 @media(min-width:701px){.sidebar{overflow-y:auto;overscroll-behavior:contain}.sidebar>*{flex-shrink:0}}
 .route-steps{margin:0;padding:0 0 0 44px}.route-steps li::marker{color:var(--muted);font-size:14px}.route-steps .lesson-row{overflow-wrap:anywhere}.route-group summary{overflow-wrap:anywhere}
+
+/* Assessment decisions remain readable on small screens. */
+.withdraw-confirm { display:flex; align-items:flex-start; gap:.65rem; }
+.withdraw-confirm input[type=checkbox] { width:1.15rem; height:1.15rem; flex:0 0 1.15rem; margin:.2rem 0 0; }
+.replacement-summary { overflow-wrap:anywhere; }
+.challenge-start { margin-top:1.5rem; }

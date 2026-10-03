@@ -67,11 +67,15 @@ with tempfile.TemporaryDirectory() as tmp:
             page.screenshot(path=str(out/f'result-{width}.png'),full_page=True)
             if width==390:
                 context=browser.new_context();other=context.new_page();login(other)
-                other.goto(saved_url);other.get_by_role('heading',name='Понимание подтверждено',exact=True).wait_for();context.close()
+                other.goto(origin+'/?node='+case['objective']);other.get_by_role('link',name='Сохранённый разбор →',exact=True).click();other.get_by_role('heading',name='Понимание подтверждено',exact=True).wait_for();context.close()
                 context=browser.new_context();other=context.new_page();login(other,'member@example.test')
                 other.goto(saved_url);other.get_by_role('button',name='Повторить загрузку').wait_for();assert other.locator('.challenge-feedback').count()==0;context.close()
             # A new attempt is visibly practice-only and cannot award fresh credit.
-            page.goto(origin+'/?node='+case['objective']);page.get_by_role('link',name='Уже знаю тему',exact=False).click();page.get_by_role('button',name='Начать проверку').click()
+            page.goto(origin+'/?node='+case['objective']);page.get_by_role('link',name='Тренировка · без нового зачёта',exact=False).click()
+            page.get_by_role('link',name='Открыть сохранённый разбор →').wait_for()
+            page.get_by_text('Знакомые задания доступны как тренировка.',exact=False).wait_for()
+            page.screenshot(path=str(out/f'practice-before-start-{width}.png'),full_page=True)
+            page.get_by_role('button',name='Начать тренировку').focus();page.keyboard.press('Enter')
             page.get_by_text('Тренировка · без нового зачёта',exact=True).wait_for()
             for item in items:page.locator(f'input[name="{item["id"]}"][value="{item["answer"]}"]').check()
             page.get_by_role('button',name='Проверить ответы').click();page.get_by_role('heading',name='Проверка пройдена · без нового зачёта',exact=True).wait_for()

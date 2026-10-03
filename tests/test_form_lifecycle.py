@@ -112,7 +112,6 @@ def test_mapping_only_copies_inherit_withdrawal_even_when_issued_earlier(skills)
     assert c.get('/api/skills/nodes/basic-ai.verification').json['assessments'] == []
 
 
-<<<<<<< HEAD
 def test_editor_inventory_filters_replacements_and_protects_metadata(skills):
     install_form(skills)
     publish_copy(skills, fixture_form(), 'replacement')
@@ -132,7 +131,6 @@ def test_editor_inventory_filters_replacements_and_protects_metadata(skills):
     original = next(f for f in admin.get('/api/skills/forms').json['forms'] if f['id']=='test-form-v1')
     assert original['lifecycle']['replacement_id']=='replacement'
     assert original['eligible_replacements']==[]
-=======
 def test_node_attempt_metadata_is_private_and_matches_start_exposure(skills):
     install_form(skills)
     publish_copy(skills, fixture_form(), 'replacement')
@@ -169,4 +167,3 @@ def test_node_attempt_metadata_is_private_and_matches_start_exposure(skills):
     assert anonymous['latest_completed_attempt'] is None
     assert anonymous['assessments'][0]['start_blocker'] == 'sign_in'
     assert anonymous['assessments'][0]['start_mode'] is None
->>>>>>> 0748830 (Expose owner-private map eligibility and completed feedback references)

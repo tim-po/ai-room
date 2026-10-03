@@ -79,7 +79,8 @@ with tempfile.TemporaryDirectory() as tmp:
         learner.get_by_role('button',name='Проверить ответы').click()
         learner.get_by_role('heading',name='Проверка пройдена · без нового зачёта',exact=True).wait_for()
         learner.get_by_role('link',name='Открыть актуальную проверку →').click()
-        learner.get_by_role('button',name='Начать проверку').wait_for()
+        learner.get_by_role('button',name='Начать тренировку').wait_for()
+        learner.get_by_text('Знакомые задания доступны как тренировка.',exact=False).wait_for()
         assert 'assessment=replacement' in learner.url
         learner.goto(pending_url)
         learner.get_by_role('link',name='Открыть актуальную проверку →').wait_for()

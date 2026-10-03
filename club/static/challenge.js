@@ -85,9 +85,12 @@
       if(form.pending_attempt){showAttempt(await api(form.pending_attempt.resume_url));return;}
       document.querySelector('#challenge-title').textContent=detail.node.title;
       status.textContent=`${form.item_count} задания · ${form.access==='free'?'Бесплатно':'Для участников'}`;
-      body.replaceChildren(el('p','Можно подтвердить понимание темы, не отмечая урок просмотренным. После отправки вы увидите разбор и ссылки на источники. Повтор знакомых заданий доступен как тренировка.'));
+      const practice=form.start_mode==='practice';
+      body.replaceChildren(el('p',practice?'Знакомые задания доступны как тренировка. Эта попытка не даёт нового зачёта. После отправки вы увидите разбор и ссылки на источники.':'Можно подтвердить понимание темы, не отмечая урок просмотренным. После отправки вы увидите разбор и ссылки на источники.'));
+      if(detail.latest_completed_attempt){const saved=el('a','Открыть сохранённый разбор →','resource-link');saved.href='/challenges?'+new URLSearchParams({node:detail.latest_completed_attempt.node_id,attempt:detail.latest_completed_attempt.id});body.append(saved);}
+      if(!form.can_start){const signIn=form.start_blocker==='sign_in';body.append(el('p',signIn?'Войдите, чтобы начать проверку и сохранить результат.':'Для этой проверки нужен действующий доступ участника.'));const recover=el('a',signIn?'Войти →':'Проверить доступ →','resource-link');recover.href=signIn?'/login':'/profile';body.append(recover);return;}
       if(detail.content.length){body.append(el('p','Задания ссылаются на учебный случай. Его можно открыть перед проверкой:'));for(const lesson of detail.content){const link=el('a',lesson.title);link.href='/lessons/'+encodeURIComponent(lesson.id);link.target='_blank';link.rel='noopener';link.append(el('span',' ↗ (новая вкладка)'));body.append(link);}}
-      const button=el('button','Начать проверку');button.onclick=()=>start(button);body.append(button);
+      const actions=el('div',null,'development-actions challenge-start');const button=el('button',practice?'Начать тренировку':'Начать проверку');button.onclick=()=>start(button);actions.append(button);body.append(actions);
     }catch(e){status.textContent=e.message;body.replaceChildren();const retry=el('button','Повторить загрузку');retry.onclick=load;body.append(retry);}
   }
   load();
