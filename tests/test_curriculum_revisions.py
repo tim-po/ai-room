@@ -25,7 +25,7 @@ def test_reviewed_revision_retains_sources_and_learner_state(skills):
         protected = ['progress', 'practice', 'skill_forms', 'skill_evidence', 'skill_application_evidence']
         before = {table: [tuple(r) for r in db.execute('SELECT * FROM '+table)] for table in protected}
         proposal = prepare(db)
-        assert len(proposal['manifest']['revisions']) == 2
+        assert len(proposal['manifest']['revisions']) == 10
         for r in proposal['manifest']['revisions']:
             assert len(r['after']['body']) > 1600
             assert r['after']['id'] == r['before']['id']
@@ -112,3 +112,53 @@ def test_cli_backs_up_before_applying_reviewed_hash(skills):
         assert len(rows) == 2
         assert all(m['objective_id'] == 'basic-ai.context' and m['role'] == 'teaches' for m in rows)
         assert all(m['source']['revision_id'] == proposal['sha256'] for m in rows)
+
+
+def test_all_revised_member_sources_retain_access_without_certification(skills):
+    from club.curriculum_revisions import CASES
+    with connect(skills) as db:
+        before_count = db.execute('SELECT count(*) FROM lessons').fetchone()[0]
+        proposal = prepare(db)
+        install(db, reviewer='user-editor', reviewed_sha256=proposal['sha256'], confirm_reviewed=True)
+        assert db.execute('SELECT count(*) FROM lessons').fetchone()[0] == before_count
+        for table in ['skill_evidence', 'skill_application_evidence', 'progress', 'skill_forms']:
+            assert db.execute('SELECT count(*) FROM '+table).fetchone()[0] == 0
+    member = skills.test_client(); login(member, 'member')
+    free = skills.test_client(); login(free)
+    revoked = skills.test_client(); login(revoked, 'revoked')
+    for case in CASES:
+        url = '/api/lessons/' + case['lesson_id']
+        assert member.get(url).status_code == 200
+        for client in [skills.test_client(), free, revoked]:
+            assert client.get(url).status_code == 403
+
+
+def test_full_teaching_inventory_and_original_assessments_survive_revision(skills):
+    from club.curriculum_audit import inventory
+    from club.skill_content import install_examples, review_examples
+    from club.foundation_content import install_foundations
+    from club.specialist_content import install_specialists
+    with connect(skills) as db:
+        install_examples(db)
+        review_examples(db, 'user-admin')
+        parent = db.execute('SELECT release_id FROM skill_active').fetchone()[0]
+        install_foundations(db, from_release=parent, reviewer='user-admin')
+        parent = db.execute('SELECT release_id FROM skill_active').fetchone()[0]
+        install_specialists(db, from_release=parent, reviewer='user-admin')
+        before = inventory(db)['coverage']
+        ids = db.execute('SELECT id FROM lessons ORDER BY id').fetchall()
+        forms = db.execute('SELECT * FROM skill_forms ORDER BY id').fetchall()
+        proposal = prepare(db)
+        install(db, reviewer='user-editor', reviewed_sha256=proposal['sha256'], confirm_reviewed=True)
+        after = inventory(db)['coverage']
+        assert before['published'] == after['published'] == 70
+        assert before['mapped'] == 29 and after['mapped'] == 39
+        assert ids == db.execute('SELECT id FROM lessons ORDER BY id').fetchall()
+        assert forms == db.execute('SELECT * FROM skill_forms ORDER BY id').fetchall()
+        assert len(forms) == 7
+    client = skills.test_client(); csrf = login(client)
+    for form in forms:
+        response = post(client, '/api/skills/challenges',
+                        dict(assessment_id=form['id'], request_id='after-revision-' + form['id']), csrf)
+        assert response.status_code == 201, response.json
+        assert 'answer' not in json.dumps(response.json)
