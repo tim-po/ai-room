@@ -176,6 +176,34 @@ def register_skills(app, db, query, require_user):
             raise click.ClickException(str(exc)) from exc
         click.echo(('Examples installed; assessments await review.' if changed else 'Examples already installed; no changes.') + ' Backup: ' + str(backup))
 
+    @app.cli.command('install-skill-foundations')
+    @click.option('--from-release', required=True, help='Exact current release inspected for additive rebase.')
+    @click.option('--reviewer', required=True, help='Existing editor/admin ID recording content installation.')
+    def install_skill_foundations(from_release, reviewer):
+        """Add six original teaching cases; do not publish assessment candidates."""
+        from .foundation_content import install_foundations
+        database = Path(app.config['DATABASE'])
+        backup = database.with_name(database.name + '.before-foundations-' + datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f') + '.sqlite')
+        with sqlite3.connect(backup) as dest:
+            db().backup(dest)
+        backup.chmod(0o600)
+        try:
+            with db():
+                db().execute('BEGIN IMMEDIATE')
+                changed = install_foundations(db(), from_release=from_release, reviewer=reviewer)
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+        click.echo(('Foundation sources installed; assessments remain private.' if changed else 'Already installed; no changes.') + ' Backup: ' + str(backup))
+
+    @app.cli.command('inspect-skill-foundations')
+    def inspect_skill_foundations():
+        """Private operator preview: includes keys, never serve publicly."""
+        from .foundation_content import installed_candidates
+        try:
+            click.echo(json.dumps(installed_candidates(db()), ensure_ascii=False, indent=2))
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+
     @app.cli.command('inspect-skill-examples')
     def inspect_skill_examples():
         """Private operator preview, including answer keys. Never serve publicly."""
