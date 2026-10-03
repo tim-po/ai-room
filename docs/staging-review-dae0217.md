@@ -65,3 +65,13 @@ Independent staged functional, visual, learning and product signoffs, approved
 real-provider processing, novice-teacher acceptance and pending curriculum/
 assessment review remain open. Screenshots and sanitized deployment evidence:
 `/home/claude/bot-swarm/data/_loops/_output/education-platform-for-people-learning/deliverables/worker-staging-dae0217/`.
+
+## Preservation verifier follow-up
+
+The read-only `scripts/verify_retained_state.py` now rejects missing media
+checkpoint directories and uses explicit exceptions for preservation/integrity
+failures, so `python -O` cannot bypass the release gate. SQLite paths are encoded
+as file URIs, including paths with `?` or `#`. Six focused regression checks cover
+additive columns/rows, duplicate retained rows, missing media, and optimized-mode
+row/media/foreign-key failures. This tooling-only follow-up does not change the
+staged application SHA or imply independent release acceptance.
