@@ -25,6 +25,13 @@ def prepare(db):
         if not row:
             raise ValueError('Existing lesson required: ' + case['lesson_id'])
         before = dict(zip([c[0] for c in cursor.description], row))
+        parent = db.execute('''SELECT m.course_id,c.status FROM modules m
+            JOIN courses c ON c.id=m.course_id WHERE m.id=?''', (before['module_id'],)).fetchone()
+        if not parent:
+            raise ValueError('Existing parent course required: ' + case['lesson_id'])
+        # Learner visibility depends on the course as well as the lesson. Moving
+        # a module or archiving its course must invalidate an uninstalled review.
+        context = dict(module_id=before['module_id'], course_id=parent[0], course_status=parent[1])
         if any(m['lesson_id'] == before['id'] for m in graph['mappings']):
             raise ValueError('Existing mapping requires separate source reconciliation')
         if not any(n['id'] == case['objective_id'] for n in graph['nodes']):
@@ -35,8 +42,9 @@ def prepare(db):
         after['video'] = ''
         revisions.append(dict(lesson_id=before['id'], before=before, after=after,
                               before_sha256=digest(before), after_sha256=digest(after),
-                              objective_id=case['objective_id'], mapping_scope=case['mapping_scope']))
-    manifest = dict(version=1, base_release=graph['release'], graph_sha256=digest(graph),
+                              objective_id=case['objective_id'], mapping_scope=case['mapping_scope'],
+                              publication_context=context))
+    manifest = dict(version=2, base_release=graph['release'], graph_sha256=digest(graph),
                     revisions=revisions, scope='Teaching only; no assessments or proficiency credit')
     return dict(manifest=manifest, sha256=digest(manifest))
 

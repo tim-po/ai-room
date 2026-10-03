@@ -20,7 +20,12 @@ python -m club.curriculum_revisions --database /isolated/copy.sqlite > /private/
 Output includes member/draft lesson content. Keep it private and out of static
 assets. Review all teaching, practice and proposed objective scopes, including
 the deliberately incorrect draft and correction in the second lesson. The hash
-covers the exact existing lesson rows, replacements, scopes and graph. Approval
+covers the exact existing lesson rows, replacements, scopes and graph. Version2
+also binds each lesson's module, parent course ID and parent publication state:
+moving a module or unpublishing its course invalidates an uninstalled approval.
+Course access is determined by lesson access, already included in the row hash.
+The version1 proposal hash is superseded and must not be used for a new install;
+already installed history remains immutable and replay remains a no-op. Approval
 on a synthetic baseline cannot authorize a different integrated content hash.
 
 After independent approval of that exact hash and manager-scheduled integration,
