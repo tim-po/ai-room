@@ -114,6 +114,42 @@ def test_cli_backs_up_before_applying_reviewed_hash(skills):
         assert all(m['source']['revision_id'] == proposal['sha256'] for m in rows)
 
 
+@pytest.mark.parametrize('change', ['draft', 'archived', 'move_module'])
+def test_parent_visibility_and_placement_changes_require_fresh_review(skills, change):
+    with connect(skills) as db:
+        proposal = prepare(db)
+        assert proposal['manifest']['version'] == 2
+        context = proposal['manifest']['revisions'][0]['publication_context']
+        assert context['course_status'] == 'published'
+        if change == 'move_module':
+            other = db.execute('SELECT id FROM courses WHERE id<>? LIMIT 1',
+                               (context['course_id'],)).fetchone()[0]
+            db.execute('UPDATE modules SET course_id=? WHERE id=?', (other, context['module_id']))
+        else:
+            db.execute('UPDATE courses SET status=? WHERE id=?', (change, context['course_id']))
+        # Only a parent changed; the exact lesson rows and proposed texts did not.
+        changed = prepare(db)
+        assert changed['manifest']['revisions'][0]['before_sha256'] == proposal['manifest']['revisions'][0]['before_sha256']
+        assert changed['sha256'] != proposal['sha256']
+        before = list(db.iterdump())
+        with pytest.raises(ValueError, match='fresh exact-hash review'):
+            install(db, reviewer='user-editor', reviewed_sha256=proposal['sha256'], confirm_reviewed=True)
+        assert list(db.iterdump()) == before
+
+
+def test_prior_uninstalled_manifest_version_cannot_authorize_revision(skills):
+    from club.curriculum_audit import digest
+    with connect(skills) as db:
+        old = prepare(db)['manifest']
+        old['version'] = 1
+        for revision in old['revisions']:
+            revision.pop('publication_context')
+        before = list(db.iterdump())
+        with pytest.raises(ValueError, match='fresh exact-hash review'):
+            install(db, reviewer='user-admin', reviewed_sha256=digest(old), confirm_reviewed=True)
+        assert list(db.iterdump()) == before
+
+
 def test_all_revised_member_sources_retain_access_without_certification(skills):
     from club.curriculum_revisions import CASES
     with connect(skills) as db:
