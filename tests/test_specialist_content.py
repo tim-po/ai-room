@@ -115,3 +115,36 @@ def test_install_creates_restorable_private_backup(skills):
         assert db.execute('PRAGMA integrity_check').fetchone()[0] == 'ok'
         assert db.execute('SELECT release_id FROM skill_active').fetchone()[0] == RELEASE
         assert db.execute('SELECT COUNT(*) FROM courses WHERE id=?', (COURSE,)).fetchone()[0] == 0
+
+
+def test_debug_source_reproduces_sort_defect_with_valid_json():
+    case = next(case for case in CASES if case['slug'] == 'debug')
+    raw = case['paragraphs'][0].split('Вход JSON: ', 1)[1].split('. Текущий код', 1)[0]
+    rows = json.loads(raw)
+    assert [row['id'] for row in sorted(rows, key=lambda row: str(row['priority']))] == ['B', 'A']
+    assert [row['id'] for row in sorted(rows, key=lambda row: row['priority'])] == ['A', 'B']
+
+
+def test_old_installed_pack_requires_reconciliation_without_repinning(skills, monkeypatch):
+    import copy
+    from club import specialist_content
+    install(skills)
+    old_cases = copy.deepcopy(CASES)
+    debug = next(case for case in old_cases if case['slug'] == 'debug')
+    debug['paragraphs'][0] = debug['paragraphs'][0].replace(
+        '[{"id":"A","priority":2},{"id":"B","priority":10}]',
+        '[{id:A, priority:2}, {id:B, priority:10}]')
+    old_hash = hashlib.sha256(json.dumps(old_cases, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    with monkeypatch.context() as old:
+        old.setattr(specialist_content, 'CASES', old_cases)
+        old.setattr(specialist_content, 'PACK_HASH', old_hash)
+        assert specialists(skills).exit_code == 0
+        old_release = specialist_content.release_id(RELEASE)
+    before = snapshot(skills)
+    outcome = specialists(skills, parent=old_release)
+    assert outcome.exit_code != 0 and 'explicit reconciliation' in outcome.output
+    assert snapshot(skills) == before
+    inspection = skills.test_cli_runner().invoke(args=['inspect-skill-specialists'])
+    assert inspection.exit_code != 0 and 'new edition and review required' in inspection.output
+    with sqlite3.connect(skills.config['DATABASE']) as db:
+        assert db.execute('SELECT release_id FROM skill_active').fetchone()[0] == old_release
