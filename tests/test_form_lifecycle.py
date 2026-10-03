@@ -112,6 +112,7 @@ def test_mapping_only_copies_inherit_withdrawal_even_when_issued_earlier(skills)
     assert c.get('/api/skills/nodes/basic-ai.verification').json['assessments'] == []
 
 
+<<<<<<< HEAD
 def test_editor_inventory_filters_replacements_and_protects_metadata(skills):
     install_form(skills)
     publish_copy(skills, fixture_form(), 'replacement')
@@ -131,3 +132,41 @@ def test_editor_inventory_filters_replacements_and_protects_metadata(skills):
     original = next(f for f in admin.get('/api/skills/forms').json['forms'] if f['id']=='test-form-v1')
     assert original['lifecycle']['replacement_id']=='replacement'
     assert original['eligible_replacements']==[]
+=======
+def test_node_attempt_metadata_is_private_and_matches_start_exposure(skills):
+    install_form(skills)
+    publish_copy(skills, fixture_form(), 'replacement')
+    c = skills.test_client(); token = login(c)
+    admin = skills.test_client(); at = login(admin, 'admin')
+    url = '/api/skills/nodes/basic-ai.verification'
+    initial = c.get(url).json
+    assert initial['latest_completed_attempt'] is None
+    assert all(f['credit_eligible'] and f['start_mode'] == 'certification' for f in initial['assessments'])
+    first = start(c, token).json
+    assert withdraw(admin, at, 'replacement').status_code == 201
+    replacement = c.get(url).json['assessments'][0]
+    assert replacement['id'] == 'replacement'
+    assert not replacement['can_start'] and not replacement['credit_eligible']
+    assert replacement['start_blocker'] == 'pending_attempt'
+    assert replacement['pending_attempt']['id'] == first['id']
+    assert replacement['pending_attempt']['lifecycle']['status'] == 'withdrawn'
+    assert start(c, token, 'replacement', 'replacement-pending').json['pending_attempt'] == replacement['pending_attempt']
+    finish(c, token, first)
+    detail = c.get(url).json
+    assert detail['latest_completed_attempt']['id'] == first['id']
+    assert c.get(detail['latest_completed_attempt']['resume_url']).json['result']
+    replacement = detail['assessments'][0]
+    assert replacement['can_start'] and replacement['exposed']
+    assert not replacement['credit_eligible'] and replacement['start_mode'] == 'practice'
+    assert replacement['pending_attempt'] is None
+    assert start(c, token, 'replacement', 'replacement-finished').json['mode'] == replacement['start_mode']
+    assert 'rationale' not in str(detail) and 'answer' not in str(detail)
+    other = skills.test_client(); login(other, 'member')
+    assert other.get(url).json['latest_completed_attempt'] is None
+    assert other.get(url).json['assessments'][0]['credit_eligible']
+    assert other.get(detail['latest_completed_attempt']['resume_url']).status_code == 404
+    anonymous = skills.test_client().get(url).json
+    assert anonymous['latest_completed_attempt'] is None
+    assert anonymous['assessments'][0]['start_blocker'] == 'sign_in'
+    assert anonymous['assessments'][0]['start_mode'] is None
+>>>>>>> 0748830 (Expose owner-private map eligibility and completed feedback references)
