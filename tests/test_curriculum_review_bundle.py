@@ -26,6 +26,11 @@ def test_cumulative_export_is_read_only_bound_and_role_protected(skills):
         manifest = export['manifest']
         assert len(manifest['curriculum']['manifest']['revisions']) == 10
         assert len(manifest['transfer_publication_candidates']) == 7
+        assert len(manifest['original_form_proposals']) == 7
+        assert manifest['retained_forms'] == []
+        for proposal in manifest['original_form_proposals']:
+            assert proposal['status'] == 'proposal-not-publication'
+            assert proposal['sha256'] == digest(proposal['form'])
         for candidate in manifest['transfer_publication_candidates']:
             assert candidate['sha256'] == form_digest(candidate['form'])
             assert candidate['form']['transfer_publication']['access'] == candidate['access']

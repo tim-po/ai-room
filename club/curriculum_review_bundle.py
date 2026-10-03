@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .curriculum_audit import digest, inventory
 from .curriculum_revisions import prepare
-from .skill_content import CASES, lesson_id
+from .skill_content import CASES, candidate_form, lesson_id
 from .transfer_sources import publication_candidate
 
 
@@ -27,7 +27,11 @@ def bundle(db, reviewer):
     manifest = dict(version=1, status='pending-independent-review',
         scope='Private keyed proposals only; no publication, equivalence approval or proficiency credit.',
         curriculum=curriculum, transfer_publication_candidates=transfers,
-        retained_forms=existing, before_inventory=inventory(db),
+        retained_forms=existing,
+        original_form_proposals=[dict(id='skill-example-form-' + case['slug'] + '-v1',
+            status='proposal-not-publication', lesson_id=lesson_id(case),
+            form=candidate_form(case), sha256=digest(candidate_form(case))) for case in CASES],
+        before_inventory=inventory(db),
         hash_definitions=dict(package_curriculum_inventory='SHA256 UTF-8 JSON: ensure_ascii=False, sort_keys=True, separators=(comma,colon)',
             transfer_forms='SHA256 UTF-8 JSON: ensure_ascii=False, sort_keys=True, default separators including spaces',
             retained_form_export='Compact JSON digest of the retained body; not a replacement for its publication hash'),
