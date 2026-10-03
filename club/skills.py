@@ -195,6 +195,34 @@ def register_skills(app, db, query, require_user):
             raise click.ClickException(str(exc)) from exc
         click.echo(('Foundation sources installed; assessments remain private.' if changed else 'Already installed; no changes.') + ' Backup: ' + str(backup))
 
+    @app.cli.command('install-skill-specialists')
+    @click.option('--from-release', required=True, help='Exact inspected current release for additive rebase.')
+    @click.option('--reviewer', required=True, help='Existing editor/admin ID.')
+    def install_skill_specialists(from_release, reviewer):
+        """Add worked teaching sources; preserve forms and learner history."""
+        from .specialist_content import install_specialists
+        database = Path(app.config['DATABASE'])
+        backup = database.with_name(database.name + '.before-specialists-' + datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f') + '.sqlite')
+        with sqlite3.connect(backup) as dest:
+            db().backup(dest)
+        backup.chmod(0o600)
+        try:
+            with db():
+                db().execute('BEGIN IMMEDIATE')
+                changed = install_specialists(db(), from_release=from_release, reviewer=reviewer)
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+        click.echo(('Specialist teaching installed; no assessments published.' if changed else 'Already installed; no changes.') + ' Backup: ' + str(backup))
+
+    @app.cli.command('inspect-skill-specialists')
+    def inspect_skill_specialists():
+        """Export persisted source/mapping inventory for independent review."""
+        from .specialist_content import inventory
+        try:
+            click.echo(json.dumps(inventory(db()), ensure_ascii=False, indent=2))
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+
     @app.cli.command('inspect-skill-foundations')
     def inspect_skill_foundations():
         """Private operator preview: includes keys, never serve publicly."""
