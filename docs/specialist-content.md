@@ -30,6 +30,13 @@ explicit reconciliation.
 The inspector verifies persisted body, practice and mapping before exporting
 edition-1 paragraph hashes and the exact lesson inventory. Changed sources must
 receive a fresh edition and independent review; do not silently regenerate pins.
+The pre-integration debug correction replaces invalid pseudo-JSON with quoted
+JSON in the uninstalled candidate. Its pack, first-paragraph and body hashes
+change. If the earlier pack was installed in a review database, the installer
+refuses to replace it and the inspector refuses to export current pins for its
+old text. Use a fresh disposable database for this candidate, or design an
+explicit new source edition with independent review for retained installations.
+Do not delete the old pack or update its mappings in place to bypass this guard.
 The pack is separate from baseline generic fixtures deliberately: the learning
 audit rejected title-only mappings, and replacing baseline text could invalidate
 existing completion context and source provenance. Those fixtures stay unmapped.
