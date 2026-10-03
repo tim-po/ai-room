@@ -1,9 +1,11 @@
 # Reviewed revisions of existing lessons
 
-This pack revises `foundations-context-01` and `foundations-context-02` in place,
+This pack revises ten existing foundation lessons in place,
 with topic-specific fictional inputs, instructions, worked artifacts, error
-analysis and observable practice checklists. Both propose only `basic-ai.context`
-teaching mappings. They create no assessment, completion or proficiency evidence.
+analysis and observable practice checklists. The first two cover context. Eight further revisions cover data minimisation,
+model limitations, fact checking, document versions, writing, workflow definition,
+retrieved evidence and common rubric scoring. Each proposes one narrow existing
+objective teaching mapping. They create no assessment, completion or proficiency evidence.
 The existing IDs, access, ordering, titles, progress, resume and saved practice
 remain intact. The replacement text edition has no video; the complete preceding
 row, including any media reference, is retained in an immutable revision manifest.
@@ -46,6 +48,33 @@ the paired pre-install DB/media backup only on an isolated/quiescent target;
 never restore it over later learner writes. A forward editorial revision should
 be used when later learner activity exists.
 
-This two-row pack does not close the most-content coverage gate. No independent
+This ten-row pack supersedes the uninstalled two-row preview: its hash must be
+reviewed afresh. On a copy with all prior teaching packs, mapped coverage changes
+from 29/70 to 39/70 without removing lessons. This arithmetic does not close the
+most-content semantic acceptance gate. An already-installed two-row pack will
+fail the existing-mapping guard; do not bypass it or replay this pack over it. No independent
 acceptance, live installation, provider success or broader skill mastery is
 implied by the tests.
+
+
+## Cumulative private review bundle
+
+After private transfer sources and existing example lessons are present on an
+isolated copy, export all seven final learner-bound transfer candidates, existing
+immutable forms, the ten full before/after revisions and the unchanged inventory:
+
+```sh
+umask 077
+python -m club.curriculum_review_bundle --database /isolated/copy.sqlite \
+  --reviewer EXISTING_EDITOR_ID > /private/cumulative-review.json
+```
+
+The export uses a read-only transaction and requires a named editor/admin. It
+contains answer keys and paid content, so never serve it as a public asset.
+Export identity is not signoff. Transfer form IDs and source URLs are fixed in
+this proposal; access or ID changes need new hashes. Individual final form
+hashes remain distinct from the curriculum hash and cumulative package hash.
+No transfer is installed, published or deemed equivalent by this command.
+Role, entitlement, withdrawal and retained-history HTTP regressions are in
+`tests/test_transfer_sources.py`; export immutability and access-change hash
+checks are in `tests/test_curriculum_review_bundle.py`.
