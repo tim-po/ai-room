@@ -1,1 +1,27 @@
-{% extends 'base.html' %}{% block title %}Каталог{% endblock %}{% block content %}<div class="page-intro"><span class="eyebrow">От интереса к результату</span><h1>Что попробуем сегодня?</h1><p>Выберите задачу, которая пригодится в работе или личном проекте.</p></div><form method="get" class="panel filters"><label>Поиск<input type="search" name="q" value="{{ request.args.get('q','') }}" placeholder="Название, задача или инструмент" maxlength="150"></label><label>Цель<select name="goal"><option value="">Все цели</option>{% for value,label in goals.items() %}<option value="{{ value }}" {% if request.args.get('goal')==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><label>Уровень<select name="level"><option value="">Любой</option>{% for level in ['Начальный','Продвинутый'] %}<option {% if request.args.get('level')==level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></label><label>Формат<select name="format"><option value="">Все форматы</option>{% for v,label in [('course','Курс')] + material_formats.items()|list %}<option value="{{ v }}" {% if request.args.get('format')==v %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><label>Инструмент<input type="search" name="tool" value="{{ request.args.get('tool','') }}" maxlength="150" placeholder="Например, текстовый AI"></label><button class="button">Найти</button><a href="/catalogue">Сбросить</a></form><p class="metadata">Найдено: {{ courses|length + materials|length }} · курсов: {{ courses|length }} · материалов: {{ materials|length }}</p>{% if courses %}<h2>Курсы</h2>{% include '_cards.html' %}{% endif %}{% if materials %}<h2>Гайды, кейсы и воркшопы</h2>{% include 'materials/cards.html' %}{% endif %}{% if not courses and not materials %}<section class="panel"><h2>Ничего не найдено</h2><p>Попробуйте другой запрос или уберите фильтры.</p><a href="/catalogue">Сбросить фильтры</a></section>{% endif %}{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Библиотека{% endblock %}
+{% block content %}
+<section class="library">
+  <header class="page-intro"><span class="eyebrow">Библиотека AI Room</span><h1>От идеи к практике</h1><p>Уроки и материалы для вашей следующей задачи.</p></header>
+  {% set active = namespace(count=0) %}
+  {% for key in ['goal','level','format','tool'] %}{% if request.args.get(key) %}{% set active.count = active.count + 1 %}{% endif %}{% endfor %}
+  <form method="get" class="library-search" role="search" aria-label="Поиск по библиотеке">
+    <div class="library-query"><label>Поиск<input type="search" name="q" value="{{ request.args.get('q','') }}" placeholder="Название, задача или инструмент" maxlength="150"></label><button class="button">Найти</button></div>
+    <details class="library-filters">
+      <summary>Фильтры{% if active.count %} · выбрано {{ active.count }}{% endif %}</summary>
+      <div class="library-filter-fields">
+        <label>Цель<select name="goal" aria-label="Цель"><option value="">Все цели</option>{% for value,label in goals.items() %}<option value="{{ value }}" {% if request.args.get('goal')==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+        <label>Уровень<select name="level" aria-label="Уровень"><option value="">Любой</option>{% for level in ['Начальный','Продвинутый'] %}<option {% if request.args.get('level')==level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></label>
+        <label>Формат<select name="format" aria-label="Формат"><option value="">Все форматы</option>{% for v,label in [('course','Курс')] + material_formats.items()|list %}<option value="{{ v }}" {% if request.args.get('format')==v %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+        <label>Инструмент<input type="search" name="tool" value="{{ request.args.get('tool','') }}" maxlength="150" placeholder="Например, текстовый AI"></label>
+      </div>
+      <button class="button secondary">Применить фильтры</button>
+    </details>
+    {% if active.count or request.args.get('q') %}<a class="library-reset" href="/catalogue">Сбросить всё</a>{% endif %}
+  </form>
+  <p class="metadata library-count" role="status">Найдено: {{ courses|length + materials|length }} · курсов: {{ courses|length }} · материалов: {{ materials|length }}</p>
+  {% if courses %}<h2>Курсы</h2>{% include '_cards.html' %}{% endif %}
+  {% if materials %}<h2>Гайды, кейсы и воркшопы</h2>{% include 'materials/cards.html' %}{% endif %}
+  {% if not courses and not materials %}<section class="panel"><h2>Ничего не найдено</h2><p>Попробуйте другой запрос или уберите фильтры.</p><a href="/catalogue">Сбросить фильтры</a></section>{% endif %}
+</section>
+{% endblock %}
