@@ -69,3 +69,30 @@ reviewed publication must still bind each source to the resulting lesson/form
 and enforce its entitlement/lifecycle. Do not publish these forms while their
 snapshot URLs are editor-only. Equivalence and mobile/tools practical decisions
 remain pending independent review. No actual AI-provider processing is implied.
+
+## Explicit learner binding (direction031 increment)
+
+`publication_candidate(db, candidate_id, form_id, lesson_id)` now prepares a
+PRIVATE keyed review bundle for one existing lesson. Its final form hash includes
+lesson ID, original access, publication ID, original candidate hash and canonical
+learner URLs. This is preview only. Preserve that exact hash in the independent
+editorial decision. Source/item correctness, narrow construct and suitability of
+the chosen lesson must be reviewed; this operation asserts no retake equivalence.
+
+After that decision, an authorized operator may call `publish_transfer` inside a
+locked database transaction, supplying the same IDs, graph, existing reviewer ID,
+`reviewed_sha256` and `confirm_reviewed=True`. It rejects missing confirmation,
+stale hashes and unpublished lessons/courses. The generic immutable form engine
+retains the binding with the keyed form. No schema migration is added. Back up
+before running this operation against retained state. This increment executes it
+only in disposable tests; all seven real candidates remain private and unapproved.
+
+Feedback uses `/api/skills/forms/<form_id>/sources/<source_id>/<edition>`.
+Only a source actually referenced by that published form can be read. Original
+form membership access and current lesson membership/status/course status apply;
+withdrawal denies learner source access. Staff retain editorial inspection. The
+source response is private/no-store, contains source text without answer keys,
+and stays byte-equivalent after current lesson edits. Draft and archived lessons
+also block attempt resume/submission and remove source text from evidence DTOs.
+The original editorial-source endpoint remains staff-only. Binding does not
+publish practical rubrics, establish equivalence, or call an AI provider.

@@ -80,7 +80,7 @@ def publish_reviewed_form(db, *, id, graph, node_id, form, access, reviewer):
 
 
 def register_skills(app, db, query, require_user):
-    from .transfer_sources import register_transfer_sources
+    from .transfer_sources import register_transfer_sources, transfer_access
     register_transfer_sources(app, db)
     def graph():
         try:
@@ -104,6 +104,8 @@ def register_skills(app, db, query, require_user):
         return node
 
     def form_access(form):
+        if not transfer_access(db(), form, g.user):
+            abort(403)
         if form['access'] != 'free' and g.user['entitlement'] != 'member' and g.user['role'] not in ('editor', 'admin'):
             abort(403)
 
@@ -126,7 +128,7 @@ def register_skills(app, db, query, require_user):
                 any(row['finished'] for row in overlaps))
 
     def pending_metadata(row):
-        accessible = row['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')
+        accessible = transfer_access(db(), row, g.user) and (row['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin'))
         return dict(id=row['id'], assessment_id=row['form_id'], node_id=row['node_id'],
                     mode=row['mode'], release=row['release_id'], created_at=row['created_at'],
                     resume_url='/api/skills/challenges/' + row['id'], access_required=not accessible,
@@ -293,7 +295,7 @@ def register_skills(app, db, query, require_user):
                            FROM skill_attempts a JOIN skill_forms f ON f.id=a.form_id
                            JOIN skill_results r ON r.attempt_id=a.id WHERE a.id=?''', (entry['attempt_id'],), True)
             body = json.loads(row['body'])
-            accessible = row['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')
+            accessible = transfer_access(db(), row, g.user) and (row['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin'))
             entry.update(assessment_id=row['id'], score_rule=body['score_rule'], assessed_at=row['assessed_at'],
                          review=dict(status='editor_reviewed', reviewed_at=row['reviewed_at']),
                          source_access_required=not accessible,
@@ -376,7 +378,7 @@ def register_skills(app, db, query, require_user):
                 continue
             body = json.loads(row['body'])
             overlaps, exposed = exposure(body, attempts)
-            accessible = bool(g.user and (row['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')))
+            accessible = transfer_access(db(), row, g.user) and bool(g.user and (row['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')))
             relevant.update({r['id']: r for r in overlaps})
             forms.append(dict(id=row['id'], access=row['access'], item_count=len(body['items']),
                               objective_ids=sorted(body['thresholds']['objectives']),
