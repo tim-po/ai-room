@@ -1,0 +1,110 @@
+{
+  "purpose": "Independent reviewer record template; not an approval or runtime publication payload.",
+  "instructions": [
+    "Copy per exact private package. Replace null identities using worker final actual-state export, never a synthetic rehearsal hash.",
+    "Create one record per reviewed unit. Leave unreviewed decisions pending; allowed final verdicts: accept, revise, reject.",
+    "Keep public findings free of answer keys and protected source text.",
+    "Correctness and equivalence require separate decisions. Changed source, rubric or binding needs review of its new hash."
+  ],
+  "target": {
+    "candidate_sha": null,
+    "content_ledger_sha256": null,
+    "package_sha256": null,
+    "private_package_reference": null
+  },
+  "teaching_mapping": [
+    {
+      "verdict": "pending",
+      "reviewer": null,
+      "reviewed_at": null,
+      "accepted_claim": null,
+      "findings": [],
+      "required_changes": [],
+      "curriculum_sha256": null,
+      "graph_sha256": null,
+      "parent_context_sha256": null,
+      "lesson_id": null,
+      "before_source_sha256": null,
+      "after_source_sha256": null,
+      "objective_scopes": []
+    }
+  ],
+  "original_full_forms": [
+    {
+      "verdict": "pending",
+      "reviewer": null,
+      "reviewed_at": null,
+      "accepted_claim": null,
+      "findings": [],
+      "required_changes": [],
+      "form_id": null,
+      "export_sha256": null,
+      "original_publication_identity": null,
+      "source_support": null,
+      "coverage_limits": null
+    }
+  ],
+  "transfer_forms": [
+    {
+      "form_id": null,
+      "final_candidate_sha256": null,
+      "source_edition": null,
+      "source_sha256": null,
+      "lesson_id": null,
+      "access": null,
+      "correctness": {
+        "verdict": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "accepted_claim": null,
+        "findings": [],
+        "required_changes": [],
+        "source_support": null,
+        "coverage_limits": null
+      },
+      "equivalence": {
+        "verdict": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "accepted_claim": null,
+        "findings": [],
+        "required_changes": [],
+        "original_form_id": null,
+        "original_form_sha256": null,
+        "construct_comparison": null,
+        "difficulty_comparison": null,
+        "exposure_and_retake_limits": null
+      }
+    }
+  ],
+  "applied_rubrics": [
+    {
+      "verdict": "pending",
+      "reviewer": null,
+      "reviewed_at": null,
+      "accepted_claim": null,
+      "findings": [],
+      "required_changes": [],
+      "proposal_id": null,
+      "practical_sha256": null,
+      "assessment_id": null,
+      "objective_ids": [],
+      "final_binding_reviewed": false,
+      "observable_criteria": [
+        {
+          "criterion_id": null,
+          "required_artifact": null,
+          "reproduction_method": null,
+          "sufficiency_verdict": "pending"
+        }
+      ],
+      "scope_limits": null
+    }
+  ],
+  "boundaries": {
+    "publication_authorized": false,
+    "learner_credit_awarded": false,
+    "independent_staged_acceptance": false,
+    "real_provider_acceptance": false
+  }
+}
