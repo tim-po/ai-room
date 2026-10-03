@@ -25,7 +25,7 @@
       if(!recovery.isConnected||!replacement)return;
       if(!attempt.result && replacement.pending_attempt?.id===attempt.id){
         recovery.textContent='Сначала завершите начатую проверку ниже для обратной связи. Затем можно открыть замену; знакомые задания не дают нового зачёта.';
-        const finish=el('button','Перейти к ответам');finish.type='button';finish.onclick=()=>body.querySelector('input')?.focus();recovery.append(finish);return;
+        const finish=el('button','Перейти к ответам');finish.type='button';finish.onclick=()=>body.querySelector('input')?.focus();const actions=el('div',null,'development-actions');actions.append(finish);recovery.append(actions);return;
       }
       const a=el('a','Открыть актуальную проверку →');a.href='/challenges?'+new URLSearchParams({node,assessment:replacement.id});
       a.onclick=async event=>{event.preventDefault();try{if(await currentReplacement())location.assign(a.href);else recovery.textContent='Замена больше недоступна. Вернитесь к навыку, чтобы выбрать следующий шаг.';}catch(e){recovery.textContent=e.message;}};
@@ -50,7 +50,7 @@
   function showAttempt(data){
     attempt=data;
     if(data.result){showResult(data.result);return;}
-    status.textContent=data.mode==='practice'?'Тренировка · без нового зачёта':'Проверка понимания · практическое выполнение оценивается отдельно';
+    status.textContent=data.lifecycle?.status==='withdrawn'?'Обратная связь · без нового зачёта':data.mode==='practice'?'Тренировка · без нового зачёта':'Проверка понимания · практическое выполнение оценивается отдельно';
     body.replaceChildren();showLifecycle(data.lifecycle);
     body.append(el('p',data.mode==='practice'||data.lifecycle?.status==='withdrawn' ? 'Ответьте на задания для обратной связи. Эта попытка не даёт нового зачёта. Ответы отправятся только после нажатия «Проверить ответы».' : `Для зачёта: минимум ${data.thresholds.overall} из ${data.items.length}, порог по каждой теме и все обязательные вопросы. Ответы отправятся только после нажатия «Проверить ответы».`));
     if(detail?.content.length){const sources=el('details');sources.append(el('summary','Учебный случай · открыть материалы'));for(const lesson of detail.content){const a=el('a',lesson.title+' ↗ (новая вкладка)');a.href='/lessons/'+encodeURIComponent(lesson.id);a.target='_blank';a.rel='noopener';sources.append(a);}body.append(sources);}
