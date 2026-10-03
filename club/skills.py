@@ -105,20 +105,30 @@ def register_skills(app, db, query, require_user):
         if form['access'] != 'free' and g.user['entitlement'] != 'member' and g.user['role'] not in ('editor', 'admin'):
             abort(403)
 
-    def pending_attempts():
+    def learner_attempts():
         if not g.user:
             return []
-        return query('''SELECT a.id,a.form_id,a.mode,a.created_at,f.node_id,f.release_id,f.access,f.body
+        return query('''SELECT a.id,a.form_id,a.mode,a.created_at,f.node_id,f.release_id,f.access,f.body,
+                        r.attempt_id AS finished,r.created_at AS completed_at
                         FROM skill_attempts a JOIN skill_forms f ON f.id=a.form_id
                         LEFT JOIN skill_results r ON r.attempt_id=a.id
-                        WHERE a.user_id=? AND r.attempt_id IS NULL
-                        ORDER BY a.created_at,a.id''', (g.user['id'],))
+                        WHERE a.user_id=? ORDER BY a.created_at,a.id''', (g.user['id'],))
+
+    def pending_attempts():
+        return [row for row in learner_attempts() if not row['finished']]
+
+    def exposure(body, attempts):
+        keys = form_exposure_keys(body)
+        overlaps = [row for row in attempts if keys & form_exposure_keys(json.loads(row['body']))]
+        return ([row for row in overlaps if not row['finished']],
+                any(row['finished'] for row in overlaps))
 
     def pending_metadata(row):
         accessible = row['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')
         return dict(id=row['id'], assessment_id=row['form_id'], node_id=row['node_id'],
                     mode=row['mode'], release=row['release_id'], created_at=row['created_at'],
-                    resume_url='/api/skills/challenges/' + row['id'], access_required=not accessible)
+                    resume_url='/api/skills/challenges/' + row['id'], access_required=not accessible,
+                    lifecycle=lifecycle(query, row['form_id']))
 
     register_form_lifecycle(app, db, query, require_user, graph, data)
 
@@ -294,7 +304,12 @@ def register_skills(app, db, query, require_user):
             if lesson:
                 content.append(dict(lesson, source=mapping['source'], role=mapping['role']))
         forms = []
-        pending = pending_attempts()
+        attempts = learner_attempts()
+        pending = [row for row in attempts if not row['finished']]
+        completed = [row for row in attempts if row['finished'] and
+                     (row['node_id'] == node_id or node_id in json.loads(row['body'])['thresholds']['objectives'])]
+        latest = max(completed, key=lambda row: (row['completed_at'], row['created_at'], row['id'])) if completed else None
+        latest_metadata = dict(pending_metadata(latest), completed_at=latest['completed_at']) if latest else None
         relevant = {r['id']: r for r in pending if r['node_id'] == node_id}
         for row in available_forms(query, tree['release']):
             if row['node_id'] != node_id:
@@ -302,13 +317,19 @@ def register_skills(app, db, query, require_user):
             if lifecycle(query, row['id'])['status'] != 'active':
                 continue
             body = json.loads(row['body'])
-            overlaps = [r for r in pending if form_exposure_keys(body) & form_exposure_keys(json.loads(r['body']))]
+            overlaps, exposed = exposure(body, attempts)
+            accessible = bool(g.user and (row['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')))
             relevant.update({r['id']: r for r in overlaps})
             forms.append(dict(id=row['id'], access=row['access'], item_count=len(body['items']),
                               objective_ids=sorted(body['thresholds']['objectives']),
                               availability='active', credit_kind='understanding',
+                              start_mode=('practice' if exposed else 'certification') if g.user else None,
+                              exposed=exposed if g.user else None,
+                              can_start=accessible and not overlaps,
+                              credit_eligible=accessible and not overlaps and not exposed,
+                              start_blocker='sign_in' if not g.user else 'access_required' if not accessible else 'pending_attempt' if overlaps else None,
                               pending_attempt=pending_metadata(overlaps[0]) if overlaps else None))
-        return jsonify(node=node, content=content, assessments=forms,
+        return jsonify(node=node, content=content, assessments=forms, latest_completed_attempt=latest_metadata,
                        pending_attempts=[pending_metadata(r) for r in relevant.values()],
                        readiness=[e for e in tree['edges'] if e['type'] == 'prerequisite' and e['target'] == node_id])
 
@@ -344,16 +365,10 @@ def register_skills(app, db, query, require_user):
             # New attempts require an active release binding; pinned attempts can finish.
             if not form_available(query, form, tree['release']):
                 abort(409, 'Эта версия проверки снята. Откройте актуальную проверку темы.')
-            keys = form_exposure_keys(json.loads(form['body']))
-            exposed = False
-            for prior in query('''SELECT a.id,a.form_id,a.mode,a.created_at,f.node_id,f.release_id,f.access,f.body, r.attempt_id AS finished FROM skill_attempts a
-                                  JOIN skill_forms f ON f.id=a.form_id
-                                  LEFT JOIN skill_results r ON r.attempt_id=a.id WHERE a.user_id=?''', (g.user['id'],)):
-                if keys & form_exposure_keys(json.loads(prior['body'])):
-                    if not prior['finished']:
-                        return jsonify(error='Сначала завершите начатую попытку с этими вопросами.',
-                                       code='pending_attempt', pending_attempt=pending_metadata(prior)), 409
-                    exposed = True
+            overlaps, exposed = exposure(json.loads(form['body']), learner_attempts())
+            if overlaps:
+                return jsonify(error='Сначала завершите начатую попытку с этими вопросами.',
+                               code='pending_attempt', pending_attempt=pending_metadata(overlaps[0])), 409
             # Any overlap conservatively makes the whole form practice-only.
             id, mode = str(uuid.uuid4()), 'practice' if exposed else 'certification'
             db().execute('INSERT INTO skill_attempts(id,user_id,form_id,request_id,mode) VALUES(?,?,?,?,?)', (id,g.user['id'],form['id'],key,mode))
