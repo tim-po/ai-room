@@ -59,7 +59,7 @@
     for(const item of me.evidence){const p=el('p');p.append(link(nodes.get(item.objective_id)?.title||item.objective_id,item.objective_id));p.append(el('small',` · ${new Date((item.assessed_at||item.reviewed_at).replace(' ','T')+'Z').toLocaleDateString('ru-RU')} · Редакция навыка ${item.objective_revision}`));const result=el('a',' Посмотреть результат →');result.href='/challenges?'+new URLSearchParams({node:item.objective_id,attempt:item.attempt_id});p.append(result);evidence.append(p);}
     const applied=document.querySelector('#character-application');applied.replaceChildren(el('h2','Подтверждённое применение'));
     if(!me.application_evidence?.length)applied.append(el('p','Проверенных практических результатов пока нет.'));
-    for(const item of me.application_evidence||[]){const p=el('p');p.append(link(nodes.get(item.objective_id)?.title||item.objective_id,item.objective_id));const a=el('a',' · Работа и решение преподавателя →');a.href='/practice?submission='+encodeURIComponent(item.submission_id);p.append(el('small',' · Проверено '+dateOf(item).toLocaleDateString('ru-RU')),a);applied.append(p);}
+    for(const item of me.application_evidence||[]){const p=el('p');p.append(link(nodes.get(item.objective_id)?.title||item.objective_id,item.objective_id));const a=el('a',' · Работа и решение преподавателя →');a.href='/practice?submission='+encodeURIComponent(item.submission_id);p.append(el('small',' · Проверено '+dateOf(item).toLocaleDateString('ru-RU')+(item.reviewer?.attribution==='recorded_reviewer_alias'?' · '+item.reviewer.display_name+' (псевдоним)':'')),a);applied.append(p);}
     status.textContent='Данные сохранены в вашем аккаунте.';
   }
   function interests(graph,me) {

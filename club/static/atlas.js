@@ -20,6 +20,12 @@
     return r.json();
   }
   function family(id) { return id.split('.')[0]; }
+  function evidenceLabel(coverage, fallback) {
+    if(coverage?.verified)return `✓ Понимание подтверждено: ${coverage.verified} из ${coverage.eligible}`;
+    if(coverage?.application_verified)return '✓ Применение подтверждено · понимание '+(coverage.assessed?'пока не подтверждено':'ещё не проверено');
+    if(coverage?.assessed)return '↗ Проверено · пока не подтверждено';
+    return fallback;
+  }
   function button(node) {
     const b = el('button', null, `skill-node family-${family(node.id)}`); b.dataset.node = node.id;
     b.setAttribute('aria-pressed', String(selected === node.id));
@@ -28,7 +34,7 @@
     const coverage=me.coverage.find(c=>c.node_id===node.id);
     b.classList.toggle('is-verified',Boolean(coverage?.verified));
     b.classList.toggle('is-applied',Boolean(coverage?.application_verified));
-    b.append(el('small',coverage?.verified ? `✓ Подтверждено: ${coverage.verified} из ${coverage.eligible}` : node.kind==='ability' ? '◯ Нет проверки' : node.kind==='root' ? 'Общая основа' : 'Раздел →'));
+    b.append(el('small',evidenceLabel(coverage,node.kind==='ability' ? '◯ Ещё не проверено' : node.kind==='root' ? 'Общая основа' : 'Раздел →')));
     b.onclick=()=>choose(node.id); return b;
   }
   function render() {
@@ -82,15 +88,19 @@
       const data=await api('/api/skills/nodes/'+encodeURIComponent(id)); if(seq!==detailSequence)return;
       body.replaceChildren(el('p',data.node.kind==='ability' ? 'Подтвердите этот навык заданием или начните с учебных материалов.' : 'Исследуйте навыки этого направления. Другие ветки всегда остаются открыты.'));
       const coverage=me.coverage.find(c=>c.node_id===id);
-      body.append(el('p',coverage?.verified ? `Подтверждено заданием: ${coverage.verified} из ${coverage.eligible}` : 'Пока не проверено','evidence-label'));
+      body.append(el('p',evidenceLabel(coverage,'Понимание ещё не проверено'),'evidence-label'));
       if(data.readiness.length){const ready=el('details');ready.append(el('summary','Что поможет начать'));for(const edge of data.readiness)ready.append(el('p',`Будет полезно: ${names.get(edge.source)?.title}. Это рекомендация, не ограничение.`));body.append(ready);}
       if((children.get(id)||[]).length){const more=el('details');more.append(el('summary','Навыки этого раздела'));for(const child of children.get(id))more.append(button(names.get(child)));body.append(more);}
       if(data.content.length) for(const lesson of data.content){const a=el('a',`${lesson.title} · ${lesson.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/lessons/'+encodeURIComponent(lesson.id)+'?'+new URLSearchParams({node:id});body.append(a);}
-      else if(!(children.get(id)||[]).length) body.append(el('p','Материалы для этого навыка ещё готовятся.','detail-muted'));
+
       for(const pending of data.pending_attempts||[]){const a=el('a','Продолжить начатую проверку →','resource-link');a.href='/challenges?'+new URLSearchParams({node:pending.node_id,attempt:pending.id});body.append(a);}
       for(const assessment of data.assessments.filter(a=>!a.pending_attempt)){const a=el('a',`Уже знаю тему → ${assessment.item_count} задания · ${assessment.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/challenges?'+new URLSearchParams({node:id,assessment:assessment.id});body.append(a);}
-      if(atlas.dataset.authenticated==='yes'&&data.node.kind==='ability'){const practical=await api('/api/skills/practical-tasks?node_id='+encodeURIComponent(id));if(seq!==detailSequence)return;if(practical.tasks.length){const a=el('a','Показать навык на практике →','resource-link');a.href='/practice?node='+encodeURIComponent(id);body.append(a);}}
-      if(!data.assessments.length && !(children.get(id)||[]).length) body.append(el('p','Проверка знаний появится после редакторской проверки заданий.','detail-muted'));
+      let hasPractical=false;
+      if(atlas.dataset.authenticated==='yes'&&data.node.kind==='ability'){const practical=await api('/api/skills/practical-tasks?node_id='+encodeURIComponent(id));if(seq!==detailSequence)return;if(practical.tasks.length){hasPractical=true;const a=el('a','Показать навык на практике →','resource-link');a.href='/practice?node='+encodeURIComponent(id);body.append(a);}}
+      if(!data.content.length&&!data.assessments.length&&!data.pending_attempts?.length&&!hasPractical&&!(children.get(id)||[]).length){
+        body.firstChild.textContent='Материалы и задания для этого навыка ещё готовятся.';
+        const parent=parents.get(id)||graph.root,back=el('button','← '+names.get(parent).title);back.onclick=()=>choose(parent);body.append(back);
+      }
       if((children.get(id)||[]).length){
         const descendants=[];function collect(parent){for(const child of children.get(parent)||[]){if(names.get(child).kind==='ability')descendants.push(child);collect(child);}}collect(id);
         const related=await Promise.all(descendants.slice(0,12).map(child=>api('/api/skills/nodes/'+encodeURIComponent(child))));if(seq!==detailSequence)return;

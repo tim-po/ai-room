@@ -63,13 +63,12 @@ with tempfile.TemporaryDirectory() as tmp:
         learner.locator('.challenge-question').first.wait_for(); pending_url = learner.url
         assert withdraw(admin,token,'replacement').status_code == 201
         learner.reload()
-        recovery = learner.get_by_role('link',name='Открыть актуальную проверку →')
-        recovery.click(); learner.wait_for_url('**/challenges?**')
-        # The fixture replacement reuses observations: pending exposure resumes
-        # the original attempt instead of issuing another concurrent attempt.
-        learner.locator('.challenge-question').first.wait_for()
-        assert 'assessment=replacement' in learner.url
-        learner.goto(pending_url)
+        learner.get_by_text('Сначала завершите начатую проверку ниже',exact=False).wait_for()
+        assert learner.get_by_role('link',name='Открыть актуальную проверку →').count() == 0
+        assert learner.get_by_text('Для зачёта:',exact=False).count() == 0
+        learner.get_by_role('button',name='Перейти к ответам').click()
+        assert learner.locator('#challenge-body input').first.evaluate('e=>e===document.activeElement')
+        learner.screenshot(path=str(out/'withdrawn-pending-390.png'),full_page=True)
         for item in fixture_form()['items']:
             learner.locator(f'input[name="{item["id"]}"][value="check"]').check()
         learner.get_by_role('button',name='Проверить ответы').click()
@@ -85,6 +84,13 @@ with tempfile.TemporaryDirectory() as tmp:
         learner.reload(); learner.get_by_role('heading',name='Проверка отозвана',exact=True).wait_for()
         assert learner.get_by_role('link',name='Открыть актуальную проверку →').count() == 0
         learner.screenshot(path=str(out/'withdrawn-result-390.png'),full_page=True)
+        learner.goto(origin+'/?node=basic-ai.verification')
+        learner.get_by_text('↗ Проверено · пока не подтверждено',exact=True).first.wait_for()
+        learner.goto(origin+'/?node=coding.mobile.demonstrate')
+        learner.get_by_text('Материалы и задания для этого навыка ещё готовятся.',exact=True).wait_for()
+        learner.locator('#node-detail').get_by_role('button',name='← Мобильные приложения',exact=True).click()
+        learner.get_by_role('heading',name='Мобильные приложения',exact=True).wait_for()
+        assert 'node=coding.mobile' in learner.url
         editor.goto(origin+'/admin/measurement')
         editor.get_by_text('Навыки, диагностика и работа преподавателей',exact=True).click()
         editor.get_by_role('link',name='Открыть агрегаты за последние 30 календарных дат (JSON) →').click()
@@ -93,6 +99,6 @@ with tempfile.TemporaryDirectory() as tmp:
         assert not errors, errors
         browser.close()
     server.shutdown()
-    evidence = dict(source=str(Path.cwd()),commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),origin=origin,private_backups=len(backups),pending_and_completed_replacement_links_followed=True,withdrawn_replacement_rechecked_on_click=True,graph_inventory_preview=True,measurement_link=True,errors=errors,scope='Synthetic local fixture, not provider or editorial acceptance')
+    evidence = dict(source=str(Path.cwd()),commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),origin=origin,private_backups=len(backups),pending_overlap_explained_without_loop=True,completed_replacement_link_followed=True,withdrawn_replacement_rechecked_on_click=True,graph_inventory_preview=True,measurement_link=True,assessed_unverified_label=True,empty_node_parent_recovery=True,errors=errors,scope='Synthetic local fixture, not provider or editorial acceptance')
     (out/'browser.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2))
     print(json.dumps(evidence))

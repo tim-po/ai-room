@@ -78,6 +78,9 @@ with tempfile.TemporaryDirectory() as tmp:
             learner.goto('/'.join([origin,'profile']));learner.get_by_role('link',name='· Работа и решение преподавателя →',exact=True).click();assert learner.url==accepted
         learner.goto(accepted)
         learner.get_by_role('heading',name='Критерии выполнены · без нового зачёта' if withdrawn else 'Применение подтверждено',exact=True).wait_for();learner.screenshot(path=str(out/'practical-accepted.png'),full_page=True)
+        learner.get_by_text('Рубрика утверждена · Редактор',exact=False).wait_for()
+        learner.get_by_text('Работа проверена · Редактор',exact=False).wait_for()
+        assert '(псевдоним)' in learner.locator('#practical-body').inner_text()
         with sqlite3.connect(database) as db:
             assert db.execute('SELECT COUNT(*) FROM skill_application_evidence').fetchone()[0]==(0 if withdrawn else 1)
             assert db.execute('SELECT COUNT(*) FROM skill_evidence').fetchone()[0]==0
@@ -87,4 +90,4 @@ with tempfile.TemporaryDirectory() as tmp:
         learner.goto(origin+'/?node=coding');disclosure=learner.get_by_text('Навыки этого раздела',exact=True);disclosure.hover()
         assert disclosure.evaluate('el=>getComputedStyle(el).color')=='rgb(16, 24, 33)'
         assert not errors,errors;browser.close()
-    server.shutdown();(out/'browser.json').write_text(json.dumps({'source':str(Path.cwd()),'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'origin':origin,'provider':'explicit mock only','rubric_approval':True,'save_refresh_resume':True,'network_failure_retains_text':True,'uncertain_then_revise_then_accept':True,'history_links':True,'withdrawal_without_credit':withdrawn,'application_only_evidence':not withdrawn,'keyboard_save':True,'second_browser_resume':True,'cream_disclosure_ink':'#101821','widths':[360,390,768,1440],'errors':errors},ensure_ascii=False,indent=2))
+    server.shutdown();(out/'browser.json').write_text(json.dumps({'source':str(Path.cwd()),'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'origin':origin,'provider':'explicit mock only','recorded_rubric_and_work_reviewer_aliases':True,'rubric_approval':True,'save_refresh_resume':True,'network_failure_retains_text':True,'uncertain_then_revise_then_accept':True,'history_links':True,'withdrawal_without_credit':withdrawn,'application_only_evidence':not withdrawn,'keyboard_save':True,'second_browser_resume':True,'cream_disclosure_ink':'#101821','widths':[360,390,768,1440],'errors':errors},ensure_ascii=False,indent=2))
