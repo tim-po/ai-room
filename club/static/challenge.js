@@ -42,7 +42,7 @@
       const item=attempt.items.find(i=>i.id===feedback.item_id), section=el('section',null,'challenge-feedback');
       section.append(el('h3',(feedback.correct?'✓ ':'↗ ')+(item?.prompt || 'Разбор ответа')),el('p',feedback.rationale));
       const source=feedback.source;
-      if(source?.lesson_id){const a=el('a',`Открыть источник${source.paragraph?' · абзац '+source.paragraph:''}${source.edition?' · редакция '+source.edition:''}`);a.href='/lessons/'+encodeURIComponent(source.lesson_id);section.append(a);}
+      window.appendAssessmentSource(section, source);
       body.append(section);
     }
     const actions=el('div',null,'development-actions'), profile=el('a','Моё развитие →');profile.href='/profile';actions.append(profile);if(diagnostic){const next=el('a','Продолжить поиск точки старта →');next.href='/diagnostic?'+new URLSearchParams({id:diagnostic,attempt:attempt.id});actions.prepend(next);}body.append(actions);focusTitle();
