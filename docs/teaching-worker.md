@@ -33,4 +33,6 @@ Do not install/start this template on shared staging until manager schedules dep
 
 `tests/test_teaching_worker.py` exercises fresh CLI processes with provider variables removed, idle SIGTERM, an abruptly killed persisted claim, explicit acknowledged retry, in-flight graceful-stop behavior, private-source failure isolation, closed DB connections and one draft per job. Ready-state tests deliberately use a mock provider and are not AI acceptance. Existing pipeline tests cover cancelled stale workers, cached transcription reuse, owner isolation, immutable draft editions and idempotent publication.
 
+The separate [isolated service recovery drill](service-recovery.md) runs real web/queue processes, a natural 900-second interrupted lease, paired DB/media restoration and compatible code rollback with later learner writes. Run it for operational evidence; it deliberately makes no provider calls and installs no shared service units.
+
 Still required: approved synthetic spoken video plus notes processed by the real provider; retain model/source/transcript provenance, editorial corrections and learner publication evidence for independent semantic review. This increment does not establish provider-backed, supervisor-installed or staged acceptance.

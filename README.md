@@ -292,16 +292,22 @@ The old live website and its data are not accessed. The prototype service on 809
 continues running. Infrastructure access is operator-specific; this script is not
 needed for a fresh local setup.
 
-For application rollback, stop writers, restore the matching code and SQLite backup,
-retain the signing key/media, restore the build identifier, and restart. For routing
+For compatible application rollback, stop both web and queue writers, restore the
+reviewed compatible code and build identifier, and retain the current database,
+media and signing key so later learner writes survive. If data restoration is
+necessary, restore a coordinated database/media snapshot only after reconciling
+all later writes; never restore the database alone. For routing
 rollback, restore only the staging hostname's previous service (8097) using the private
 snapshot, preserving any unrelated intervening tunnel edits. Never blindly replace the
-whole tunnel configuration or reset installed learner data. The current application build has been independently accepted as recorded above.
-Future application changes require review of their own exact candidate build.
+whole tunnel configuration or reset installed learner data. The earlier baseline acceptance is recorded above. The skill-tree candidate
+requires independent review of its own exact staged build; baseline acceptance
+does not establish acceptance of the revised candidate.
 
 `CLUB_MEDIA_OUTPUT` optionally directs fixture generation to an isolated output path.
 `scripts/check_operations.py` verifies actual process stop/start and SQLite backup/restore
-using disposable accounts/data. `scripts/check_route_resume_browser.py` verifies short-screen
+using disposable accounts/data. The fuller [service recovery drill](docs/service-recovery.md)
+adds queue interruption, natural lease expiry, paired media restoration and
+compatible code rollback. `scripts/check_route_resume_browser.py` verifies short-screen
 sign-out with pointer/keyboard for learner/editor/admin and late-route resume.
 
 ### Repeatable public candidate smoke
