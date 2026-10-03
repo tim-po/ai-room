@@ -270,3 +270,5 @@ def register_teaching(app, db, query):
 
     from .teaching_drafts import register_drafts
     register_drafts(app, db, query, editor, owned_job, dto)
+    from .teaching_worker import register_worker
+    register_worker(app, db)

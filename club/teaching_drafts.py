@@ -211,6 +211,7 @@ def source_snapshots(db, job_id, provider, root, alive):
                     if not all(type(s[k]) in (int,float) and math.isfinite(s[k]) for k in ('start','end')) or not 0 <= s['start'] < s['end'] <= duration:
                         raise ValueError('Invalid transcript segment')
                 with db:
+                    db.execute('BEGIN IMMEDIATE')
                     if not alive():
                         raise ProviderError('lease_lost')
                     db.execute('INSERT OR IGNORE INTO teaching_transcripts(upload_id,body,provider,model) VALUES(?,?,?,?)',
@@ -252,6 +253,11 @@ def process_claim(app, db, claim):
     except sqlite3.OperationalError:
         finish_job(db, claim, state='blocked', error_code='database_migration_required')
         return 'database_migration_required'
+    except OSError:
+        # Missing/unreadable private source bytes must not crash a queue daemon
+        # or disclose the filesystem path in its operator log.
+        finish_job(db, claim, state='blocked', error_code='source_storage_unavailable')
+        return 'source_storage_unavailable'
     except ProviderError as exc:
         code = str(exc)
         finish_job(db, claim, state='blocked' if code == 'provider_approved_configuration_required' else 'failed', error_code=code)
