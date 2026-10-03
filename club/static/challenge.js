@@ -18,8 +18,15 @@
   function showLifecycle(lifecycle){
     if(lifecycle?.status!=='withdrawn')return;
     body.append(el('h2','Проверка отозвана'),el('p',lifecycle.reason),el('p','Ответы и разбор сохраняются. Новая отправка по этой проверке не даёт зачёт навыка; ранее полученный зачёт сохраняется.'));
-    const replacement=detail?.assessments.find(a=>a.id===lifecycle.replacement_id);
-    if(replacement&&node){const a=el('a','Открыть актуальную проверку →');a.href='/challenge?'+new URLSearchParams({node,assessment:replacement.id});body.append(a);}
+    if(!lifecycle.replacement_id||!node)return;
+    const recovery=el('p');body.append(recovery);
+    async function currentReplacement(){const current=await api('/api/skills/nodes/'+encodeURIComponent(node));return current.assessments.find(a=>a.id===lifecycle.replacement_id);}
+    currentReplacement().then(replacement=>{
+      if(!recovery.isConnected||!replacement)return;
+      const a=el('a','Открыть актуальную проверку →');a.href='/challenges?'+new URLSearchParams({node,assessment:replacement.id});
+      a.onclick=async event=>{event.preventDefault();try{if(await currentReplacement())location.assign(a.href);else recovery.textContent='Замена больше недоступна. Вернитесь к навыку, чтобы выбрать следующий шаг.';}catch(e){recovery.textContent=e.message;}};
+      recovery.append(a);
+    }).catch(()=>{if(recovery.isConnected)recovery.textContent='Не удалось проверить доступность замены. Обновите страницу, чтобы повторить.';});
   }
   function showResult(result){
     body.replaceChildren();status.textContent='Результат сохранён';showLifecycle(result.lifecycle||attempt.lifecycle);

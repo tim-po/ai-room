@@ -9,6 +9,20 @@
   function field(parent,title,value='',tag='input'){const l=el('label',title),n=el(tag);n.setAttribute('aria-label',title);n.value=value;n.oninput=()=>dirty=true;l.append(n);parent.append(l);return n;}
   function select(parent,title,options,value){const s=field(parent,title,'','select');for(const [id,text] of options){const o=el('option',text);o.value=id;s.append(o);}if(value)s.value=value;return s;}
   function disclosure(title,parent=body){const d=el('details');d.append(el('summary',title));parent.append(d);return d;}
+  function availability(value,title){
+    const section=el('section');section.className='practical-rubric';section.append(el('h3',title));
+    if(!value){section.append(el('p','Не удалось получить влияние на проверки. Обновите страницу перед решением.'));return section;}
+    for(const [key,label] of [['assessments','Проверки понимания'],['practical_tasks','Практические задания']]){
+      const inventory=value[key],details=disclosure(label,section);
+      details.querySelector('summary').textContent=`${label}: сохраняются ${inventory.unchanged.length}, добавляются ${inventory.added.length}, недоступны ${inventory.removed.length}`;
+      for(const [state,name] of [['unchanged','Сохраняются'],['added','Добавляются'],['removed','Станут недоступны для новых попыток']]){
+        details.append(el('p',name+': '+inventory[state].length));
+        const list=el('ul');for(const id of inventory[state])list.append(el('li',id));details.append(list);
+      }
+    }
+    section.append(el('p','Начатые работы и история сохраняются. Отозванные проверки не возвращаются: '+value.withdrawn_assessments.length+'.'));
+    return section;
+  }
   async function open(id){const p=await api('graph-proposals/'+encodeURIComponent(id)),history=await api('graph-history');body.replaceChildren();dirty=false;status.textContent=states[p.state]+(p.state==='draft'&&p.stale?' · основано на прежней версии дерева':'');
     const graph=structuredClone(p.graph),names=new Map(graph.nodes.map(n=>[n.id,n.title]));const title=id=>names.get(id)||id;
     body.append(link('← Все предложения','/admin/tree'),el('h2','Проверка изменений'),el('p',p.note),el('p','История попыток и подтверждений сохраняется. Новые способности начнут без подтверждённого уровня.'));
@@ -20,6 +34,7 @@
     for(const [key,label] of [['removed_edges','Убрано'],['added_edges','Добавлено']])for(const e of p.diff[key])diff.append(el('p',label+': '+types[e.type]+' · '+title(e.source)+' → '+title(e.target)));
     if(!p.diff.added_nodes.length&&!p.diff.changed_nodes.length&&!p.diff.added_edges.length&&!p.diff.removed_edges.length)diff.append(el('p','Сохранённых изменений пока нет.'));
     body.append(diff);const impact=disclosure('Затронутые навыки и материалы');for(const id of p.diff.affected_nodes)impact.append(el('p',title(id)));for(const id of p.diff.affected_lessons)impact.append(link('Урок · '+id,'/lessons/'+encodeURIComponent(id)));if(!p.diff.affected_lessons.length)impact.append(el('p','Существующие уроки не затронуты.'));
+    body.append(availability(p.diff.availability,'Доступность после утверждения'));
     const note=field(body,'Пояснение редактора',p.note,'textarea');note.maxLength=2000;
     async function save(){await api('graph-proposals/'+p.id,'PUT',{revision:p.revision,graph,note:note.value});dirty=false;await open(p.id);status.textContent='Правки сохранены. Проверьте обновлённое сравнение перед утверждением.';}
     if(p.state==='draft'){
@@ -41,7 +56,7 @@
       if(p.stale)body.append(el('p','Это предложение нельзя утвердить: дерево уже изменилось. Сохраните нужное пояснение и создайте предложение от текущего дерева.'));
     }
     async function decide(action){await api('graph-proposals/'+p.id+'/'+action,'POST',{revision:p.revision,note:note.value,confirm_reviewed:action==='activate'});dirty=false;await open(p.id);}
-    if(p.state==='active'&&history.active_release===p.id){body.append(el('p','Отмена вернёт прежнее дерево. Выполненные работы и подтверждения останутся в истории.'),action('Вернуть прежнее дерево',()=>decide('rollback')));}
+    if(p.state==='active'&&history.active_release===p.id){body.append(availability(p.rollback_availability,'Доступность после возврата'),el('p','Отмена вернёт прежнее дерево. Выполненные работы и подтверждения останутся в истории.'),action('Вернуть прежнее дерево',()=>decide('rollback')));}
     const editions=disclosure('История решений');for(const edition of p.editions)editions.append(el('p','Редакция '+edition.revision+' · '+edition.note));for(const event of history.events.filter(e=>e.proposal_id===p.id))editions.append(el('p',({activate:'Утверждено',reject:'Отклонено',rollback:'Возвращена прежняя версия'})[event.action]+' · '+event.note));
   }
   async function load(){if(params.has('proposal'))return open(params.get('proposal'));const [items,graph]=await Promise.all([api('graph-proposals'),api('graph')]);body.replaceChildren();const note=field(body,'Зачем изменить дерево','','textarea');body.append(action(params.has('job')?'Создать предложение из материала':'Создать предложение',async()=>{const p=await api('graph-proposals','POST',{base_release:graph.release,note:note.value,...(params.has('job')?{job_id:params.get('job'),draft_revision:Number(params.get('revision'))}:{})});dirty=false;location.href='/admin/tree?proposal='+encodeURIComponent(p.id);}));body.append(el('h2','Предложения и решения'));for(const p of items.proposals){const row=el('p');row.append(link(states[p.state]+' · '+p.note,'/admin/tree?proposal='+encodeURIComponent(p.id)));body.append(row);}if(!items.proposals.length)body.append(el('p','Предложений пока нет. Обычная публикация урока не требует изменения дерева.'));status.textContent='Изменения дерева проверяются отдельно от публикации уроков.';}
