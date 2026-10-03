@@ -7,7 +7,7 @@ import sqlite3
 import subprocess
 import threading
 from club import create_app
-from club.curriculum_audit import digest, inventory
+from club.curriculum_audit import inventory
 from club.curriculum_review_bundle import bundle
 from club.curriculum_revisions import install
 from playwright.sync_api import sync_playwright
@@ -87,20 +87,37 @@ server = make_server('127.0.0.1', 0, app)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 origin = f'http://127.0.0.1:{server.server_port}'
 errors = []
+browser_sources = []
 try:
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
-        for width in [390, 1440]:
+        for width in [360, 390, 768, 1440]:
             context = browser.new_context(viewport={'width':width,'height':1000})
-            attempt_id, user_id, body, form_id = attempts[0]
-            token = app.session_interface.get_signing_serializer(app).dumps({'user_id':user_id,'csrf':'private-rehearsal-token'})
-            context.add_cookies([dict(name='session',value=token,url=origin)])
             page = context.new_page()
             page.on('pageerror', lambda e: errors.append(str(e)))
-            page.goto(origin+'/challenges?attempt='+attempt_id)
-            page.get_by_text('Результат сохранён', exact=True).wait_for()
-            assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
-            page.screenshot(path=str(args.evidence/f'copied-feedback-{width}.png'),full_page=True)
+            for attempt_id, user_id, body, form_id in attempts:
+                token = app.session_interface.get_signing_serializer(app).dumps({'user_id':user_id,'csrf':'private-rehearsal-token'})
+                context.add_cookies([dict(name='session',value=token,url=origin)])
+                page.goto(origin+'/challenges?attempt='+attempt_id)
+                page.get_by_text('Результат сохранён', exact=True).wait_for()
+                assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+                # Follow the actual feedback link with a keyboard, not just an API GET.
+                source_id = json.loads(body)['feedback'][0]['source']['lesson_id']
+                with sqlite3.connect(copy) as db:
+                    title = db.execute('SELECT title FROM lessons WHERE id=?', (source_id,)).fetchone()[0]
+                link = page.locator('a[href="/lessons/'+source_id+'"]').first
+                link.focus()
+                page.keyboard.press('Enter')
+                page.wait_for_url(origin+'/lessons/'+source_id)
+                page.get_by_role('heading', name=title, exact=True).wait_for()
+                assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+                browser_sources.append(dict(width=width, form_id=form_id, lesson_id=source_id, keyboard_open=True))
+                if attempt_id == attempts[0][0]:
+                    page.screenshot(path=str(args.evidence/f'copied-source-{width}.png'),full_page=True)
+                page.go_back()
+                page.get_by_text('Результат сохранён', exact=True).wait_for()
+                if attempt_id == attempts[0][0]:
+                    page.screenshot(path=str(args.evidence/f'copied-feedback-{width}.png'),full_page=True)
             context.close()
         browser.close()
 finally:
@@ -118,7 +135,7 @@ report = dict(commit=subprocess.check_output(['git','rev-parse','HEAD'],text=Tru
     coverage_before=pre_coverage, coverage_after=post_coverage, revisions=len(curriculum['manifest']['revisions']),
     retained_form_ids=[f['id'] for f in manifest['retained_forms']], original_proposals=len(manifest['original_form_proposals']),
     transfer_proposals=[dict(id=c['id'],sha256=c['sha256'],source_sha256=c['source_snapshot']['sha256'],practical_sha256=c['practical_sha256']) for c in manifest['transfer_publication_candidates']],
-    preserved_tables=sorted(set(before)-allowed), historical_checks=checks, browser_widths=[390,1440], browser_errors=errors,
+    preserved_tables=sorted(set(before)-allowed), historical_checks=checks, browser_widths=[360,390,768,1440], browser_source_checks=browser_sources, browser_errors=errors,
     semantic_approval=False, staged_mutation=False, provider_called=False)
 (args.evidence/'result.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
 print(json.dumps(report,ensure_ascii=False))
