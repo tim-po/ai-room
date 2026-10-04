@@ -36,3 +36,34 @@ body.learner-surface footer{color:var(--muted);border-color:var(--line)}
 @media(max-width:700px){.learner-surface .onboarding{display:block;margin:28px 0 48px}.learner-surface .onboarding-art{display:none}.learner-surface .onboarding fieldset{grid-template-columns:1fr}.learner-surface #onboarding-actions button{width:100%}.learner-surface .course-intro .inline{display:block;margin:16px 0}.learner-surface .onboarding-copy>div>p{font-size:16px}}
 .learner-surface .skip{color:#fffdf7}
 .learner-surface #onboarding-status .button{display:block;margin:12px 0}
+
+/* Focused onboarding task: global tabs must never cover its actions. */
+body.learner-surface:has(.onboarding) .club-header nav{display:none}
+body.learner-surface:has(.onboarding) .shell main{container-type:normal;padding-top:20px}
+.learner-surface .onboarding{margin:12px auto 32px;gap:48px}
+.learner-surface .onboarding h1{font-size:clamp(2rem,3.4vw,3rem);margin:12px 0 20px}
+.learner-surface .onboarding fieldset{margin:16px 0;gap:8px}
+.learner-surface .onboarding-choice{min-height:48px;padding:10px 12px;border-radius:8px}
+.learner-surface .onboarding input{margin:0}
+.learner-surface .onboarding-footer{position:sticky;bottom:0;background:var(--bg);padding:12px 0 16px;border-top:1px solid var(--line);z-index:5}
+.learner-surface #onboarding-status{font-size:14px;line-height:1.45;margin:0 0 10px;min-height:0}
+.learner-surface #onboarding-status:empty{display:none}
+.learner-surface #onboarding-actions{gap:8px}
+.learner-surface .onboarding-copy{min-width:0}
+.learner-surface #onboarding-body{padding-bottom:20px}
+.learner-surface .warm,.learner-surface .warm :is(h1,h2,h3,label,legend){color:var(--text)}
+@media(max-width:800px){
+ body.learner-surface:has(.onboarding) .shell main{padding:16px 20px 24px}
+ .learner-surface .onboarding{display:block;margin:0}
+ .learner-surface .onboarding-art{display:none}
+ .learner-surface .onboarding h1{font-size:32px;letter-spacing:-1px}
+ .learner-surface .onboarding-copy>.eyebrow{margin-top:0}
+ .learner-surface .onboarding fieldset{grid-template-columns:1fr}
+ .learner-surface .onboarding-footer{padding-bottom:max(12px,env(safe-area-inset-bottom));}
+ .learner-surface #onboarding-actions{display:grid;grid-template-columns:auto 1fr}
+ .learner-surface #onboarding-actions button{width:100%;padding:12px}
+ .learner-surface #onboarding-actions>button:first-child{grid-column:1/-1}
+ .learner-surface #onboarding-actions>button:last-child:nth-child(2){grid-column:1/-1}
+ .learner-surface #onboarding-body{padding-bottom:28px}
+ .learner-surface .onboarding-choice{scroll-margin-block:20px 200px}
+}

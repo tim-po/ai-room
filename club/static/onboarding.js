@@ -14,7 +14,7 @@
     if(state.step==='pace')return {experience:body.querySelector('[name=experience]:checked')?.value || null,available_minutes:Number(body.querySelector('[name=minutes]:checked')?.value)||null};
     return {};
   }
-  async function send(action, extra={}, destination=null) {
+  async function send(action, extra={}, destination=null, recordHistory=true) {
     if(busy)return;busy=true;let conflicted=false, sessionExpired=false;
     const payload={action,expected_revision:state.revision,draft:['edit','cancel','skip'].includes(action)?{}:{...draft(),...extra}};
     const signature=JSON.stringify(payload);
@@ -31,10 +31,13 @@
       if(!response.ok)throw new Error(response.status===401?'Сессия завершена. Войдите снова: сохранённые шаги останутся в аккаунте.':'Не удалось сохранить. Ваш выбор остаётся на экране. Повторите действие.');
       state=data;pending=null;
       if(['complete','skip','cancel'].includes(action)){location.assign(destination || state.next_url || '/');return;}
-      render();status.textContent='Сохранено в аккаунте.';title.focus();
+      render();status.textContent='Сохранено в аккаунте.';if(recordHistory)history.pushState({onboarding:true,step:state.step},'',location.pathname);title.focus();return true;
     } catch(e) {status.textContent=e.name==='AbortError'?'Сервер пока не подтвердил сохранение. Ваш выбор остаётся на экране. Повторите действие.':e instanceof TypeError?'Нет связи с сервером. Ваш выбор остаётся на экране. Повторите действие.':e.message;if(sessionExpired)status.append(' ',link('Войти снова','/login'));status.focus();}
     finally {clearTimeout(timeout);busy=false;document.querySelectorAll('.onboarding button,.onboarding input').forEach(e=>e.disabled=conflicted&&!status.contains(e));}
   }
+  const footer=document.querySelector('.onboarding-footer');
+  new ResizeObserver(()=>{document.documentElement.style.scrollPaddingBottom=`${footer.offsetHeight+24}px`;}).observe(footer);
+  body.addEventListener('change',()=>{status.textContent='Есть несохранённые изменения. Сохраните выбор, чтобы продолжить.';});
   function choices(legend,name,options,selected) {
     const field=el('fieldset');field.append(el('legend',legend));
     for(const [value,label] of options){const l=el('label');l.className='onboarding-choice';const input=el('input');input.type=name==='interests'?'checkbox':'radio';input.name=name;input.value=value;input.checked=Array.isArray(selected)?selected.includes(value):String(selected??'')===value;l.append(input,el('span',label));field.append(l);}
@@ -61,5 +64,24 @@
     if(state.step!=='welcome')actions.append(button('Назад',()=>send('back'),true));
     actions.append(button(state.editing?'Отменить изменения':'Пропустить настройку',()=>send(state.editing?'cancel':'skip'),true));
   }
+  // Store orientation only. Historical entries never contain old revisions or request bodies.
+  history.replaceState({onboarding:true,step:state.step},'',location.pathname);
+  addEventListener('popstate',async event=>{
+    if(!event.state?.onboarding)return;
+    const target=event.state.step;
+    if(busy || pending || !steps.includes(target)) {
+      history.pushState({onboarding:true,step:state.step},'',location.pathname);
+      if(!busy)status.textContent='Сначала повторите сохранение текущего шага: сервер ещё не подтвердил его.';
+      return;
+    }
+    // Each transition is a new navigation intent, with current choices and revision.
+    while(state.step!==target) {
+      const action=steps.indexOf(target)<steps.indexOf(state.step)?'back':'next';
+      if(!await send(action,{},null,false)) {
+        history.replaceState({onboarding:true,step:state.step},'',location.pathname);
+        break;
+      }
+    }
+  });
   render();
 })();
