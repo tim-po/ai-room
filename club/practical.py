@@ -4,6 +4,7 @@ import re
 import uuid
 from .reviewer_identity import reviewer_identity
 from .form_lifecycle import lifecycle
+from .transfer_sources import form_content_access
 from .release_bindings import available_forms, form_available
 
 from flask import abort, g, jsonify, request
@@ -17,12 +18,15 @@ def register_practical(app, db, query, require_user, graph, data):
     def text(value, minimum, maximum):
         return isinstance(value, str) and minimum <= len(value.strip()) <= maximum
 
+    def accessible(row):
+        return form_content_access(db(), dict(access=row['access'], body=row['form_body']), g.user)
+
     def task(id):
-        row = query('''SELECT t.*,f.release_id,f.access FROM skill_practical_tasks t
+        row = query('''SELECT t.*,f.release_id,f.access,f.body AS form_body FROM skill_practical_tasks t
                        JOIN skill_forms f ON f.id=t.form_id WHERE t.id=?''', (id,), True)
         if not row:
             abort(404)
-        if row['access'] != 'free' and g.user['entitlement'] != 'member' and g.user['role'] not in ('editor', 'admin'):
+        if not accessible(row):
             abort(403)
         return row
 
@@ -82,12 +86,12 @@ def register_practical(app, db, query, require_user, graph, data):
     @app.get('/api/skills/practical-tasks')
     @require_user
     def list_tasks():
-        rows = query('''SELECT t.*,f.release_id,f.access FROM skill_practical_tasks t JOIN skill_forms f ON f.id=t.form_id
+        rows = query('''SELECT t.*,f.release_id,f.access,f.body AS form_body FROM skill_practical_tasks t JOIN skill_forms f ON f.id=t.form_id
                         ORDER BY t.created_at,t.id''')
         available = {f['id'] for f in available_forms(query, graph()['release'])}
         return jsonify(tasks=[task_dto(r) for r in rows if r['form_id'] in available and (not request.args.get('node_id') or r['objective_id'] == request.args['node_id'])
                               and lifecycle(query, r['form_id'])['status'] == 'active'
-                              and (r['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin'))])
+                              and accessible(r)])
 
     @app.get('/api/skills/practical-tasks/<id>')
     @require_user
@@ -122,10 +126,10 @@ def register_practical(app, db, query, require_user, graph, data):
     @app.get('/api/skills/practical-submissions')
     @require_user
     def list_submissions():
-        rows = query('''SELECT s.*,f.access FROM skill_practical_submissions s JOIN skill_practical_tasks t ON t.id=s.task_id
+        rows = query('''SELECT s.*,f.access,f.body AS form_body FROM skill_practical_submissions s JOIN skill_practical_tasks t ON t.id=s.task_id
                         JOIN skill_forms f ON f.id=t.form_id WHERE s.user_id=? ORDER BY s.created_at DESC,s.id LIMIT 100''', (g.user['id'],))
         # A revoked entitlement exposes only recovery metadata, never protected source/work.
-        return jsonify(submissions=[submission_dto(r) if r['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')
+        return jsonify(submissions=[submission_dto(r) if accessible(r)
                                     else dict(id=r['id'], task_id=r['task_id'], access_required=True) for r in rows])
 
     @app.get('/api/skills/practical-submissions/<id>')

@@ -2,6 +2,7 @@
 import json
 import uuid
 from .form_lifecycle import lifecycle
+from .transfer_sources import form_content_access
 from .release_bindings import available_forms, form_available
 
 from flask import abort, g, jsonify
@@ -15,7 +16,7 @@ def register_diagnostics(app, db, query, require_user, graph, data):
         return row
 
     def accessible(form):
-        return form['access'] == 'free' or g.user['entitlement'] == 'member' or g.user['role'] in ('editor', 'admin')
+        return form_content_access(db(), form, g.user)
 
     def dto(row):
         plan = json.loads(row['body'])
@@ -24,9 +25,9 @@ def register_diagnostics(app, db, query, require_user, graph, data):
         verified = {r['objective_id'] for r in query('SELECT objective_id,objective_revision FROM skill_evidence WHERE user_id=?', (g.user['id'],)) if revisions.get(r['objective_id']) == r['objective_revision']}
         observations, tested, recommendations = [], set(), []
         for attempt_id in plan['attempts']:
-            attempt = query('''SELECT f.access,r.body FROM skill_attempts a JOIN skill_forms f ON f.id=a.form_id
+            attempt = query('''SELECT f.access,f.body,r.body AS result_body FROM skill_attempts a JOIN skill_forms f ON f.id=a.form_id
                                JOIN skill_results r ON r.attempt_id=a.id WHERE a.id=?''', (attempt_id,), True)
-            result = json.loads(attempt['body'])
+            result = json.loads(attempt['result_body'])
             tested.update(result['objective_scores'])
             observations.append(dict(attempt_id=attempt_id, passed=result['passed'], credited=result['credited'], access_required=not accessible(attempt)))
             if accessible(attempt):
@@ -124,7 +125,7 @@ def register_diagnostics(app, db, query, require_user, graph, data):
             if value.get('skip') is True:
                 state = 'skipped'
             else:
-                attempt = query('''SELECT a.form_id,f.access FROM skill_attempts a JOIN skill_results r ON r.attempt_id=a.id
+                attempt = query('''SELECT a.form_id,f.access,f.body FROM skill_attempts a JOIN skill_results r ON r.attempt_id=a.id
                                    JOIN skill_forms f ON f.id=a.form_id WHERE a.id=? AND a.user_id=?''', (value.get('attempt_id'), g.user['id']), True)
                 # Current evidence may already have removed a just-passed form from next.
                 if not attempt or attempt['form_id'] not in plan['forms'] or not accessible(attempt):
