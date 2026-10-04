@@ -3,7 +3,9 @@ import copy
 import hashlib
 import json
 import math
+import os
 import sqlite3
+import stat
 import time
 from pathlib import Path
 
@@ -183,9 +185,39 @@ def review_action(draft, action, graph):
     return dict(removed_assessments=removed, **coverage(draft))
 
 
+def verify_source_file(path, expected_size, expected_hash):
+    """Detect damaged/mismatched restores before spending or citing old hashes."""
+    from .teaching import LIMIT
+    if not 0 < expected_size <= LIMIT:
+        raise ProviderError('source_integrity_mismatch')
+    # Do not follow substituted links or block while opening a special file.
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, 'rb') as stream:
+        metadata = os.fstat(stream.fileno())
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size != expected_size:
+            raise ProviderError('source_integrity_mismatch')
+        digest = hashlib.sha256()
+        remaining = expected_size
+        while remaining:
+            chunk = stream.read(min(65536, remaining))
+            if not chunk:
+                raise ProviderError('source_integrity_mismatch')
+            digest.update(chunk)
+            remaining -= len(chunk)
+        if stream.read(1) or digest.hexdigest() != expected_hash:
+            raise ProviderError('source_integrity_mismatch')
+
+
 def source_snapshots(db, job_id, provider, root, alive):
     row = db.execute('SELECT upload_id FROM teaching_jobs WHERE id=?', (job_id,)).fetchone()
     ids = [r[0] for r in db.execute('SELECT upload_id FROM teaching_package_sources WHERE job_id=? ORDER BY position', (job_id,))] or [row[0]]
+    # Verify every retained file, including documents and cached transcripts, so
+    # a later corrupt package member cannot cause an earlier paid request.
+    for identity in ids:
+        if not alive():
+            raise ProviderError('lease_lost')
+        upload = db.execute('SELECT size,sha256 FROM teaching_uploads WHERE id=?', (identity,)).fetchone()
+        verify_source_file(root / identity, upload[0], upload[1])
     # Reject the whole package before paying for its first transcription. Test
     # adapters use labelled synthetic media and do not constitute media acceptance.
     if isinstance(provider, OpenAIProvider):
@@ -270,7 +302,7 @@ def process_claim(app, db, claim):
         return 'source_storage_unavailable'
     except ProviderError as exc:
         code = str(exc)
-        finish_job(db, claim, state='blocked' if code == 'provider_approved_configuration_required' else 'failed', error_code=code)
+        finish_job(db, claim, state='blocked' if code in ('provider_approved_configuration_required', 'source_integrity_mismatch') else 'failed', error_code=code)
         return code
     except (ValueError, KeyError, TypeError, IndexError, AttributeError):
         finish_job(db, claim, state='failed', error_code='invalid_generated_draft_or_source')

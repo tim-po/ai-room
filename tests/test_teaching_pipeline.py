@@ -438,3 +438,65 @@ def test_entire_package_preflight_precedes_first_charge(pipeline, monkeypatch):
     pipeline.config['TEACHING_PROVIDER_FACTORY'] = GuardedProvider
     assert 'source_media_invalid_or_over_30_minutes' in process(pipeline)
     assert c.get('/api/teaching/jobs/'+first['id']).json['state'] == 'failed'
+
+
+@pytest.mark.parametrize('damage', ['same_size', 'truncated', 'missing', 'symlink', 'fifo'])
+def test_package_storage_integrity_precedes_all_provider_work(pipeline, tmp_path, damage):
+    c = pipeline.test_client(); csrf = login(c, 'editor')
+    first = upload(c, csrf, b'RIFF'+b'\0'*4+b'WAVE'+b'\0'*20, 'voice.wav').json
+    original = b'Check the original source.'
+    second = upload(c, csrf, original, 'notes.txt', key='integrity-notes').json
+    path = '/api/teaching/jobs/' + first['id']
+    assert post(c, path+'/package', dict(revision=1, upload_ids=[first['id'], second['id']]), csrf).status_code == 200
+    stored = Path(pipeline.config['TEACHING_UPLOAD_DIR']) / second['upload_id']
+    if damage == 'same_size':
+        stored.write_bytes(b'x' * len(original))
+    elif damage == 'truncated':
+        stored.write_bytes(b'x')
+    else:
+        stored.unlink()
+        if damage == 'symlink':
+            replacement = tmp_path / 'outside-private-storage'
+            replacement.write_bytes(original)
+            stored.symlink_to(replacement)
+        elif damage == 'fifo':
+            import os
+            os.mkfifo(stored)
+    expected = 'source_storage_unavailable' if damage in ('missing', 'symlink') else 'source_integrity_mismatch'
+    assert expected in process(pipeline)
+    failed = c.get(path).json
+    assert failed['state'] == 'blocked' and failed['error_code'] == expected
+    assert MockProvider.calls == []
+    with sqlite3.connect(pipeline.config['DATABASE']) as db:
+        assert db.execute('SELECT COUNT(*) FROM teaching_transcripts').fetchone()[0] == 0
+        assert db.execute('SELECT COUNT(*) FROM teaching_drafts').fetchone()[0] == 0
+    # Restoring the exact retained bytes permits an explicit retry; IDs stay stable.
+    if stored.exists() or stored.is_symlink():
+        stored.unlink()
+    stored.write_bytes(original)
+    assert post(c, path+'/retry', dict(revision=failed['revision']), csrf).status_code == 200
+    assert 'ready' in process(pipeline)
+    assert MockProvider.calls == ['transcribe', 'generate']
+    assert c.get(path+'/draft').json['sources'][1]['sha256'] == second['sha256']
+
+
+def test_cached_transcript_does_not_hide_mismatched_media_restore(pipeline):
+    class FailGeneration(MockProvider):
+        def generate(self, sources, graph):
+            raise ProviderError('provider_http_429')
+    pipeline.config['TEACHING_PROVIDER_FACTORY'] = FailGeneration
+    c = pipeline.test_client(); csrf = login(c, 'editor')
+    original = b'RIFF'+b'\0'*4+b'WAVE'+b'\0'*20
+    job = upload(c, csrf, original, 'voice.wav').json
+    path = '/api/teaching/jobs/' + job['id']
+    assert 'provider_http_429' in process(pipeline)
+    failed = c.get(path).json
+    stored = Path(pipeline.config['TEACHING_UPLOAD_DIR']) / job['upload_id']
+    stored.write_bytes(b'x' * len(original))
+    pipeline.config['TEACHING_PROVIDER_FACTORY'] = MockProvider
+    assert post(c, path+'/retry', dict(revision=failed['revision']), csrf).status_code == 200
+    assert 'source_integrity_mismatch' in process(pipeline)
+    assert MockProvider.calls == ['transcribe']
+    with sqlite3.connect(pipeline.config['DATABASE']) as db:
+        assert db.execute('SELECT COUNT(*) FROM teaching_transcripts').fetchone()[0] == 1
+        assert db.execute('SELECT COUNT(*) FROM teaching_drafts').fetchone()[0] == 0
