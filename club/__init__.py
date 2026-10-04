@@ -527,4 +527,7 @@ def create_app(config=None):
     from .onboarding import register_onboarding
     onboarding_destination = register_onboarding(app, db, query, require_user)
 
+    from .support_admin import register_support
+    register_support(app, db, query, require_user)
+
     return app
