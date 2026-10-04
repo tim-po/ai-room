@@ -6,7 +6,7 @@
   let abilities=[],names=new Map(),current,dirty=false,uploads=new Map(),retained=new Map(),selectedSources=new Set();
   async function api(path,method='GET',body,headers={}){
     let r;try{r=await fetch('/api/teaching/'+path,{method,headers:{'X-CSRF-Token':csrf,...(body instanceof FormData?{}:{'Content-Type':'application/json'}),...headers},...(body?{body:body instanceof FormData?body:JSON.stringify(body)}:{})});}catch{throw new Error('Нет связи с сервером. Ваши изменения остаются на странице.');}
-    const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(r.status===409?'Данные изменились. Откройте сохранённый черновик заново перед повторной правкой.':r.status===403?'Недостаточно прав. Войдите как преподаватель.':data.message||'Не удалось выполнить действие. Повторите попытку.');return data;
+    const data=await r.json().catch(()=>({}));if(!r.ok&&data.error==='provider_approved_configuration_required')throw new Error('Источники сохранены. AI пока недоступен: попросите администратора подключить провайдера и обновите состояние.');if(!r.ok)throw new Error(r.status===409?'Данные изменились. Откройте сохранённый черновик заново перед повторной правкой.':r.status===403?'Недостаточно прав. Войдите как преподаватель.':data.message||'Не удалось выполнить действие. Повторите попытку.');return data;
   }
   function action(label,fn){const b=el('button',label);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){status.textContent=e.message;}finally{b.disabled=false;}};return b;}
   function editable(parent,title,build){const section=el('details');section.className='teacher-edit';section.append(el('summary','Изменить · '+title));build(section);parent.append(section);}
@@ -53,11 +53,35 @@
     const saved=document.querySelector('#teacher-saved-sources');saved.replaceChildren();saved.hidden=!retained.size;
     if(retained.size){saved.append(el('legend','Продолжить незавершённую загрузку'),el('p','Эти файлы уже сохранены. Выберите нужные и при необходимости добавьте недостающие файлы выше.'));
       for(const job of retained.values()){const label=el('label'),check=el('input');check.type='checkbox';check.value=job.id;check.checked=selectedSources.has(job.id);check.onchange=()=>{if(check.checked)selectedSources.add(job.id);else selectedSources.delete(job.id);};label.append(check,el('span',job.filename));saved.append(label);}}
-    jobs.replaceChildren();for(const job of data.jobs.filter(j=>!['included_in_package','awaiting_package'].includes(j.error_code))){const row=el('article');row.className='teacher-job';row.append(el('h3',job.filename),el('p',states[job.state]||job.state));if(job.error_code)row.append(el('p',job.error_code==='awaiting_package'?'Источник сохранён. Можно обработать отдельно.':job.state==='blocked'?'Для AI нужен настроенный провайдер. Источник сохранён.':'Источники сохранены; проверьте настройки обработки перед повтором.'));
-    if(job.state==='ready')row.append(action('Открыть проверку',()=>open(job.id)));
-    if(['queued','running'].includes(job.state))row.append(action('Остановить обработку',async()=>{await api(`jobs/${job.id}/cancel`,'POST',{revision:job.revision});await list();}));
-    if(['failed','blocked','cancelled'].includes(job.state)){const label=el('label'),check=el('input');check.type='checkbox';label.append(check,el('span','При повторе возможна повторная оплата запроса к AI'));row.append(label,action('Повторить обработку',async()=>{await api(`jobs/${job.id}/retry`,'POST',{revision:job.revision,acknowledge_possible_charge:check.checked});await list();}));}
-    jobs.append(row);}if(!jobs.children.length)jobs.append(el('p','Здесь появятся ваши загруженные материалы и черновики.'));}
+    jobs.replaceChildren();for(const job of data.jobs.filter(j=>!['included_in_package','awaiting_package'].includes(j.error_code))){
+      const row=el('article');row.className='teacher-job';
+      const waiting=job.processing_available===false&&['queued','blocked','failed','cancelled'].includes(job.state);
+      row.append(el('h3',job.filename),el('p',waiting?'Сохранено · ждём подключения AI':states[job.state]||job.state));
+      if(waiting){
+        row.append(el('p','Файлы сохранены. Попросите администратора подключить AI, затем обновите состояние. Повторная загрузка не нужна.'),action('Проверить подключение AI',refresh));
+      }else if(job.error_code&&job.state!=='ready')row.append(el('p','Источники сохранены. Проверьте причину перед повторной обработкой.'));
+      if(job.error_code){const detail=el('details');detail.append(el('summary','Сведения для администратора'),el('p','Причина: '+job.error_code),el('p','Попыток обработки: '+job.attempt));row.append(detail);}
+      if(job.state==='ready')row.append(action('Открыть проверку',()=>open(job.id)));
+      if(['queued','running'].includes(job.state))row.append(action('Остановить обработку',async()=>{await api(`jobs/${job.id}/cancel`,'POST',{revision:job.revision});await list();}));
+      if(job.requires_charge_acknowledgement)row.append(el('p','Результат предыдущего запроса неизвестен. Провайдер мог списать оплату.'));
+      if(job.retry_available===true){
+        let check;
+        if(job.requires_charge_acknowledgement){const label=el('label');label.className='admin-charge-confirm';check=el('input');check.type='checkbox';label.append(check,el('span','Понимаю, что повторный запрос может оплачиваться повторно'));row.append(label);}
+        row.append(action('Повторить обработку',async()=>{
+          if(check&&!check.checked)throw new Error('Подтвердите возможную повторную оплату перед повтором.');
+          try{await api(`jobs/${job.id}/retry`,'POST',{revision:job.revision,acknowledge_possible_charge:check?.checked||false});status.textContent='Обработка запрошена. Источники сохранены в прежнем задании.';}
+          finally{await list();}
+        }));
+      }else if(!waiting&&['failed','blocked','cancelled'].includes(job.state))row.append(el('p','Повтор сейчас недоступен. Обратитесь к администратору с причиной и числом попыток.'));
+      jobs.append(row);
+    }if(!jobs.children.length)jobs.append(el('p','Здесь появятся ваши загруженные материалы и черновики.'));
+  }
+  async function refresh(){
+    const cap=await api('capabilities');
+    document.querySelector('#teacher-capability').textContent=cap.processing_available?'AI подключён. Сохранённые задания запускаются кнопкой «Повторить обработку».':'AI пока не подключён. Можно сохранить файлы и вернуться после подключения провайдера администратором.';
+    await list();
+  }
+
   async function open(id){if(dirty){status.textContent='Сначала сохраните открытый черновик или отмените правки.';return;}current=await api(`jobs/${id}/draft`);render();review.querySelector('h2').focus();}
   async function practicalApproval(parent,d,publication){
     const section=el('section');section.className='teacher-preview';parent.append(section);
@@ -102,8 +126,9 @@
     const preview=el('section');preview.hidden=true;preview.className='teacher-preview';review.append(preview);
     const publish=el('form'),access=el('select');access.name='access';for(const [v,t] of [['free','Бесплатно'],['member','Для участников']]){const o=el('option',t);o.value=v;access.append(o);}const al=el('label','Доступ к уроку');al.append(access);publish.append(al);const note=field(publish,'Краткий итог редакторской проверки','',()=>{},true,false);note.required=true;const check=el('input');check.type='checkbox';check.required=true;const label=el('label');label.append(check,el('span','Я проверил источники, учебные результаты и правильность заданий.'));publish.append(label,el('p','Публикация создаст урок с указанным выше покрытием проверок. Новые ветки требуют отдельного рассмотрения.'));const button=el('button','Опубликовать урок');button.type='submit';publish.append(button);publish.onsubmit=async e=>{e.preventDefault();button.disabled=true;try{if(dirty)throw new Error('Сохраните правки перед публикацией.');await api(`jobs/${current.job_id}/publish`,'POST',{revision:current.revision,confirm_reviewed:check.checked,access:access.value,review_note:note.value});status.textContent='Урок опубликован.';await open(current.job_id);await list();}catch(e){status.textContent=e.message;}finally{button.disabled=false;}};const publication=el('details');publication.className='teacher-publication';publication.append(el('summary','Доступ и публикация'),publish);review.append(publication);
   }
-  document.querySelector('#teacher-upload').onsubmit=async e=>{e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;try{const files=[...document.querySelector('#teacher-files').files];if(files.length+selectedSources.size>5)throw new Error('Выберите не более пяти файлов, включая сохранённые.');const sources=[...selectedSources].map(id=>retained.get(id));if(!files.length&&!sources.length)throw new Error('Выберите файл или сохранённый источник.');for(const file of files){status.textContent='Сохраняем '+file.name+'…';const key=[file.name,file.size,file.lastModified].join(':');if(!uploads.has(key))uploads.set(key,{key:crypto.randomUUID()});const cached=uploads.get(key);if(!cached.job){const form=new FormData();form.append('file',file);form.append('defer_processing','1');cached.job=await api('uploads','POST',form,{'Idempotency-Key':cached.key});}if(!sources.some(s=>s.upload_id===cached.job.upload_id))sources.push(cached.job);}const first=sources[0];await api(`jobs/${first.id}/package`,'POST',{revision:first.revision,upload_ids:sources.map(s=>s.upload_id)});uploads.clear();selectedSources.clear();e.target.reset();status.textContent='Источники сохранены и переданы на обработку. Можно вернуться к ним позже.';await list();}catch(e){status.textContent=e.message;await list().catch(()=>{});}finally{button.disabled=false;}};
-  document.querySelector('#teacher-refresh').onclick=()=>list().catch(e=>status.textContent=e.message);
+  document.querySelector('#teacher-upload').onsubmit=async e=>{e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;try{const files=[...document.querySelector('#teacher-files').files];if(files.length+selectedSources.size>5)throw new Error('Выберите не более пяти файлов, включая сохранённые.');const sources=[...selectedSources].map(id=>retained.get(id));if(!files.length&&!sources.length)throw new Error('Выберите файл или сохранённый источник.');for(const file of files){status.textContent='Сохраняем '+file.name+'…';const key=[file.name,file.size,file.lastModified].join(':');if(!uploads.has(key))uploads.set(key,{key:crypto.randomUUID()});const cached=uploads.get(key);if(!cached.job){const form=new FormData();form.append('file',file);form.append('defer_processing','1');cached.job=await api('uploads','POST',form,{'Idempotency-Key':cached.key});}if(!sources.some(s=>s.upload_id===cached.job.upload_id))sources.push(cached.job);}const first=sources[0];await api(`jobs/${first.id}/package`,'POST',{revision:first.revision,upload_ids:sources.map(s=>s.upload_id)});uploads.clear();selectedSources.clear();e.target.reset();status.textContent='Источники сохранены. Состояние обработки показано ниже; можно вернуться позже.';await list();}catch(e){status.textContent=e.message;await list().catch(()=>{});}finally{button.disabled=false;}};
+  document.querySelector('#teacher-refresh').onclick=()=>refresh().catch(e=>status.textContent=e.message);
   window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
-  Promise.all([api('capabilities'),fetch('/api/skills/graph').then(r=>r.json())]).then(async([cap,g])=>{abilities=g.nodes.filter(n=>n.kind==='ability');names=new Map(g.nodes.map(n=>[n.id,n.title]));document.querySelector('#teacher-capability').textContent=cap.processing_available?'AI настроен. Обработка выполняется серверной очередью.':'AI пока не настроен. Файлы можно сохранить; создание черновика станет доступно после подключения провайдера.';await list();}).catch(e=>status.textContent=e.message);
+  fetch('/api/skills/graph').then(r=>{if(!r.ok)throw Error('Не удалось загрузить карту навыков. Обновите страницу.');return r.json();}).then(g=>{abilities=g.nodes.filter(n=>n.kind==='ability');names=new Map(g.nodes.map(n=>[n.id,n.title]));}).catch(e=>status.textContent=e.message);
+  refresh().catch(e=>status.textContent=e.message);
 })();

@@ -8,10 +8,18 @@
     return response.json();
   }
   function button(text,fn){const b=el('button',text);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){status.textContent=e.message;status.focus();}finally{b.disabled=false;}};return b;}
-  const label=f=>`${f.title} · ${f.item_count} задания · ${f.id}`;
+  const label=f=>`${f.title} · заданий: ${f.item_count}`;
+  function impact(parent,f){
+    const section=el('section');section.className='admin-impact';section.append(el('h3','Кого затронет изменение'));
+    const labels={learners:'Учеников с попытками или работами',attempts:'Сохранённых попыток',pending_attempts:'Из них незавершённых',practical_tasks:'Связанных практических заданий',submissions:'Сохранённых практических работ',pending_submissions:'Из них без решения преподавателя',understanding_evidence:'Записей подтверждения понимания',application_evidence:'Записей подтверждения применения',forms:'Редакций проверки, включая наследуемые'};
+    const counts=el('dl');
+    for(const [key,title] of Object.entries(labels)){const value=f.impact?.status==='available'?f.impact.counts?.[key]:null;counts.append(el('dt',title),el('dd',Number.isInteger(value)&&value>=0?String(value):'Недоступно'));}
+    section.append(counts,el('p','Текущие данные включают наследуемые редакции. Результаты и ранее полученный зачёт сохранятся. Эти числа не означают потерю зачёта и могут измениться при новой работе учеников.'));parent.append(section);
+  }
   function open(f){
     body.replaceChildren();dirty=false;status.textContent='Проверьте последствия перед решением.';const heading=el('h2',f.title);heading.tabIndex=-1;
     body.append(button('← К списку проверок',load),heading,el('p',`${f.id} · ${f.access==='free'?'Бесплатно':'По подписке'}`));
+    impact(body,f);
     if(f.lifecycle.status==='withdrawn'){
       body.append(el('p','Отозвана · '+f.lifecycle.created_at),el('p',f.lifecycle.reason));
       const replacement=forms.find(r=>r.id===f.lifecycle.replacement_id);
@@ -37,7 +45,7 @@
     if(dirty&&!window.confirm('Вернуться к списку без сохранения причины отзыва?'))return;
     const data=await api('');forms=data.forms;dirty=false;body.replaceChildren();
     const active=el('section'),history=el('details');active.append(el('h2','Доступны ученикам'));history.append(el('summary','Отозванные и прежние редакции'));
-    for(const f of forms){const row=el('p');row.append(button(label(f)+(f.lifecycle.status==='withdrawn'?' · отозвана':''),()=>open(f)));(f.available&&f.lifecycle.status==='active'?active:history).append(row);}
+    for(const f of forms){const row=el('div');row.className='admin-assessment-row';row.append(button(label(f)+(f.lifecycle.status==='withdrawn'?' · отозвана':''),()=>open(f)));const meta=el('details');meta.append(el('summary','Идентификатор редакции'),el('p',f.id));row.append(meta);(f.available&&f.lifecycle.status==='active'?active:history).append(row);}
     if(!active.querySelector('button'))active.append(el('p','Доступных проверок пока нет.'));
     body.append(active,history);status.textContent='Выберите проверку, чтобы увидеть последствия отзыва.';
   }
