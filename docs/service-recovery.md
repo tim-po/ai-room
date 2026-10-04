@@ -43,3 +43,28 @@ assertions pass. An events file alone is not a successful result. The script is
 an operations verification tool, not a deployment command or an AI acceptance
 run. Select and independently review the rollback pair for the intended release; a default parent passing these fixture checks is not deployment authorization. Shared systemd configuration, restart
 policy and deployed service identity still require manager-scheduled checks.
+
+For a bounded module-state check while awaiting the final integrated candidate:
+
+```sh
+CLUB_EVIDENCE_DIR=/absolute/new/evidence/directory CLUB_ROLLBACK_COMMIT=<compatible-sha> .venv/bin/python scripts/check_service_recovery.py --state-only
+```
+
+This mode starts and stops real web/queue children, but does not inject a claim,
+kill a worker or wait for lease expiry. Its result explicitly records
+`state_only=true` and `natural_lease_verified=false`; it cannot replace the full
+lease drill. Use a fresh evidence directory for each run.
+
+Both modes now initialize and repeat all five current migration commands:
+`init-db`, `init-skills`, `init-teaching`, `init-onboarding`, `init-support`.
+Evidence lists every installed table and its initial row count, including empty
+tables; that inventory is not a claim that every table has populated coverage.
+Exact private row comparisons cover assessment history, onboarding state,
+requests, events, committed preference revisions/interests, original support
+questions and the append-only support response history. Synthetic fixtures
+include completed onboarding with an unfinished edit, a second learner's
+unfinished flow, and two support response revisions. Later onboarding and support
+writes must remain usable through the same session cookies on the compatible
+rollback build, including idempotent onboarding replay. Paired restore must
+recover the earlier API responses and all original audit/request rows exactly.
+No fixture text, cookie or signing key appears in the public evidence.

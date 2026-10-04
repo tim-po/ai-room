@@ -4,6 +4,7 @@ A test-only hook pauses processing AFTER the real worker persists its claim.
 SIGKILL then exercises the real 900-second lease without editing lease timestamps.
 Only child processes and temporary DB/media/code exports are modified.
 """
+import argparse
 import hashlib
 import http.cookiejar
 import json
@@ -23,6 +24,12 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--state-only', action='store_true',
+                    help='Verify populated module recovery without claiming or waiting for a lease.')
+STATE_ONLY = parser.parse_args().state_only
+MIGRATIONS = ('init-db', 'init-skills', 'init-teaching', 'init-onboarding', 'init-support')
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 SOURCE = REPOSITORY
@@ -105,21 +112,67 @@ assert r.json['decision']['credited'], r.json
     populated = subprocess.run([sys.executable, '-c', fixture], cwd=SOURCE, env=env,
                                capture_output=True, text=True, timeout=30)
     assert populated.returncode == 0, populated.stderr
+    for command in ('init-onboarding', 'init-support'):
+        cli(command)
+    module_fixture = r'''import os, sys
+sys.path.insert(0, 'tests')
+from club import create_app
+import test_learning
+from test_learning import login, post
+test_learning.PASSWORD = os.environ['CLUB_SEED_PASSWORD']
+app = create_app({'TESTING': True})
+c = app.test_client(); csrf = login(c, 'member')
+def mutate(action, **extra):
+    state = c.get('/api/onboarding').json
+    payload = dict(action=action, expected_revision=state['revision'],
+                   idempotency_key='recovery-'+str(state['revision']), **extra)
+    r = c.put('/api/onboarding', json=payload, headers={'X-CSRF-Token':csrf})
+    assert r.status_code == 200, r.json
+    return r.json
+mutate('next', draft={'interests':['coding','content'], 'experience':'beginner'})
+mutate('next', draft={'available_minutes':10})
+mutate('next')
+mutate('complete')
+mutate('edit')
+mutate('save', draft={'available_minutes':20})
+assert c.post('/help', data={'csrf':csrf, 'body':'Synthetic recovery support question',
+                           'lesson_id':'foundations-start-01'}).status_code == 302
+id = c.get('/api/support/tickets').json['tickets'][0]['id']
+admin = app.test_client(); token = login(admin, 'admin')
+for revision in range(2):
+    r = post(admin, '/api/support/tickets/'+str(id)+'/handle',
+             {'revision':revision, 'response':'Synthetic answer revision '+str(revision+1)}, token)
+    assert r.status_code == 200, r.json
+# A second learner retains an unfinished flow as well as the member's edit draft.
+c = app.test_client(); csrf = login(c)
+mutate('next', draft={'interests':['coding']})
+'''
+    populated = subprocess.run([sys.executable, '-c', module_fixture], cwd=SOURCE, env=env,
+                               capture_output=True, text=True, timeout=30)
+    assert populated.returncode == 0, populated.stderr
     tables = ('skill_attempts', 'skill_evidence', 'skill_practical_submissions',
-              'skill_practical_decisions', 'skill_application_evidence')
+              'skill_practical_decisions', 'skill_application_evidence',
+              'onboarding_state', 'onboarding_requests', 'onboarding_events_v1',
+              'committed_preference_revisions', 'skill_interests',
+              'help_requests', 'support_responses')
     def learning_state():
         with sqlite3.connect(database) as db:
             return {table: db.execute('SELECT * FROM '+table+' ORDER BY 1,2').fetchall() for table in tables}
     retained = learning_state()
     assert all(retained.values())
-    record('synthetic_learning_populated', counts={k:len(v) for k,v in retained.items()})
+    with sqlite3.connect(database) as db:
+        inventory = {name: db.execute('SELECT COUNT(*) FROM "'+name+'"').fetchone()[0]
+                     for (name,) in db.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")}
+    record('synthetic_modules_populated', counts={k:len(v) for k,v in retained.items()},
+           installed_table_counts=inventory, migrations=list(MIGRATIONS), state_only=STATE_ONLY)
+
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0))
         port = sock.getsockname()[1]
     origin = f'http://127.0.0.1:{port}'
     learner = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
     teacher = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-    def request(client, path, data=None, csrf=None, headers=None):
+    def request(client, path, data=None, csrf=None, headers=None, method=None):
         headers = dict(headers or {})
         if isinstance(data, dict):
             if csrf:
@@ -129,7 +182,7 @@ assert r.json['decision']['credited'], r.json
                 data = urllib.parse.urlencode(data).encode()
         if csrf:
             headers['X-CSRF-Token'] = csrf
-        with client.open(urllib.request.Request(origin+path, data=data, headers=headers), timeout=10) as response:
+        with client.open(urllib.request.Request(origin+path, data=data, headers=headers, method=method), timeout=10) as response:
             return response.read()
     def start_web(cwd=SOURCE, build=COMMIT):
         env['CLUB_BUILD_ID'] = build
@@ -169,6 +222,15 @@ assert r.json['decision']['credited'], r.json
         web = start_web()
         lc = login(learner, 'member')
         tc = login(teacher, 'editor')
+        onboarding_before = json.loads(request(learner, '/api/onboarding'))
+        tickets = json.loads(request(learner, '/api/support/tickets'))['tickets']
+        support_path = '/api/support/tickets/'+str(tickets[0]['id'])
+        support_before = json.loads(request(learner, support_path))
+        assert onboarding_before['editing'] and onboarding_before['draft']['available_minutes'] == 20
+        assert support_before['ticket']['revision'] == 2
+        def assert_module_reads(onboarding, support):
+            assert json.loads(request(learner, '/api/onboarding')) == onboarding
+            assert json.loads(request(learner, support_path)) == support
         lesson = '/api/lessons/foundations-start-01'
         request(learner, lesson+'/practice', dict(body='Before snapshot', status='draft'), lc)
         request(learner, lesson+'/completion', dict(completed=True), lc)
@@ -197,13 +259,14 @@ provider.processing_available = lambda: True
 worker.process_claim = lambda *args: time.sleep(1800)
 cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'])
 """
-        interrupted = spawn(['-c', hook])
-        running = wait_state(job['id'], 'running')
-        interrupted.kill()
-        assert interrupted.wait(timeout=5) < 0
-        lease_until = running[3]
-        record('worker_killed_after_persisted_claim', pid=interrupted.pid, lease_until=lease_until,
-               hook='test-child readiness injection and network deny; pause before provider; real claim/SIGKILL', natural_expiry=True)
+        if not STATE_ONLY:
+            interrupted = spawn(['-c', hook])
+            running = wait_state(job['id'], 'running')
+            interrupted.kill()
+            assert interrupted.wait(timeout=5) < 0
+            lease_until = running[3]
+            record('worker_killed_after_persisted_claim', pid=interrupted.pid, lease_until=lease_until,
+                   hook='test-child readiness injection and network deny; pause before provider; real claim/SIGKILL', natural_expiry=True)
         queue = worker()
         stop(web)
         stop(queue)
@@ -217,8 +280,8 @@ cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'
         shutil.copytree(media, snapshot/'media')
         file_hash = hashlib.sha256((uploads/job['upload_id']).read_bytes()).hexdigest()
         assert hashlib.sha256((snapshot/'uploads'/job['upload_id']).read_bytes()).hexdigest() == file_hash
-        record('paired_snapshot', protected_media_sha256=file_hash, learner_media_sha256=hashlib.sha256(media_bytes).hexdigest(), running_claim_preserved=True)
-        for command in ('init-db', 'init-skills', 'init-teaching'):
+        record('paired_snapshot', protected_media_sha256=file_hash, learner_media_sha256=hashlib.sha256(media_bytes).hexdigest(), running_claim_preserved=not STATE_ONLY)
+        for command in MIGRATIONS:
             cli(command)
         assert dbrow('PRAGMA integrity_check')[0] == 'ok'
         assert learning_state() == retained
@@ -227,9 +290,17 @@ cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'
         queue = worker()
         assert request(teacher, path+'/file') == source_bytes
         assert 'Before snapshot' in request(learner, '/profile').decode()
+        assert_module_reads(onboarding_before, support_before)
         # A later learner write MUST survive compatible code rollback.
         request(learner, lesson+'/practice', dict(body='After snapshot retained across code rollback', status='draft'), lc)
         request(learner, lesson+'/completion', dict(completed=False), lc)
+        later_payload = dict(action='save', expected_revision=onboarding_before['revision'],
+                             idempotency_key='recovery-later-write', draft={'available_minutes':5})
+        onboarding_later = json.loads(request(learner, '/api/onboarding', later_payload, lc, method='PUT'))
+        support_later = json.loads(request(teacher, support_path+'/handle',
+                                         dict(revision=2, response='Synthetic later answer'), tc))
+        later_retained = learning_state()
+        assert later_retained != retained
         stop(queue)
         stop(web)
         rollback_source = root/'rollback-source'
@@ -246,8 +317,12 @@ cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'
         assert dbrow('SELECT completed FROM progress WHERE lesson_id=?', ('foundations-start-01',))[0] == 0
         assert request(teacher, path+'/file') == source_bytes
         assert request(learner, media_path) == media_bytes
-        assert learning_state() == retained
-        record('compatible_code_rollback_passed', rollback_commit=ROLLBACK, later_learner_writes_preserved=True)
+        assert learning_state() == later_retained
+        assert_module_reads(onboarding_later, support_later)
+        # Existing request replay must stay idempotent under compatible older code.
+        assert json.loads(request(learner, '/api/onboarding', later_payload, lc, method='PUT')) == onboarding_later
+        assert learning_state() == later_retained
+        record('compatible_code_rollback_passed', rollback_commit=ROLLBACK, later_learner_writes_preserved=True, later_onboarding_and_support_writes_preserved=True)
         stop(queue)
         stop(web)
         # Restore BOTH halves while quiescent. This explicitly discards disposable post-snapshot writes.
@@ -265,36 +340,38 @@ cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'
         assert dbrow('SELECT completed FROM progress WHERE lesson_id=?', ('foundations-start-01',))[0] == 1
         assert request(learner, media_path) == media_bytes
         assert learning_state() == retained
+        assert_module_reads(onboarding_before, support_before)
         record('paired_restore_passed', session_signing_key_continuity=True, both_media_roots=True, populated_learning_rows_preserved=True, disposable_later_writes_intentionally_discarded=True,
                production_policy='prefer compatible code rollback; data restore requires write reconciliation')
-        while time.time() <= lease_until+3:
-            assert queue.poll() is None and web.poll() is None
-            remaining = max(0, int(lease_until-time.time()))
-            record('waiting_for_unmodified_lease', remaining_seconds=remaining)
-            time.sleep(min(30, max(1, remaining)))
-        failed = wait_state(job['id'], 'failed')
-        assert failed[1] == 'interrupted_outcome_unknown' and failed[2] == 1
-        current = json.loads(request(teacher, path))
-        try:
-            request(teacher, path+'/retry', {'revision':current['revision']}, tc)
-            raise AssertionError('Unacknowledged retry allowed')
-        except urllib.error.HTTPError as error:
-            assert error.code == 409
-        try:
-            request(teacher, path+'/retry', dict(revision=current['revision'], acknowledge_possible_charge=True), tc)
-            raise AssertionError('Retry without provider readiness allowed')
-        except urllib.error.HTTPError as error:
-            assert error.code == 409
-        assert json.loads(request(teacher, path)) == current
-        record('natural_lease_recovery_passed', lease_seconds=900, unacknowledged_retry_status=409,
-               acknowledged_retry_status=409, missing_provider_retry_preserves_job=True,
-               duplicate_drafts=dbrow('SELECT COUNT(*) FROM teaching_drafts')[0])
-        assert dbrow('SELECT COUNT(*) FROM teaching_drafts')[0] == 0
+        if not STATE_ONLY:
+            while time.time() <= lease_until+3:
+                assert queue.poll() is None and web.poll() is None
+                remaining = max(0, int(lease_until-time.time()))
+                record('waiting_for_unmodified_lease', remaining_seconds=remaining)
+                time.sleep(min(30, max(1, remaining)))
+            failed = wait_state(job['id'], 'failed')
+            assert failed[1] == 'interrupted_outcome_unknown' and failed[2] == 1
+            current = json.loads(request(teacher, path))
+            try:
+                request(teacher, path+'/retry', {'revision':current['revision']}, tc)
+                raise AssertionError('Unacknowledged retry allowed')
+            except urllib.error.HTTPError as error:
+                assert error.code == 409
+            try:
+                request(teacher, path+'/retry', dict(revision=current['revision'], acknowledge_possible_charge=True), tc)
+                raise AssertionError('Retry without provider readiness allowed')
+            except urllib.error.HTTPError as error:
+                assert error.code == 409
+            assert json.loads(request(teacher, path)) == current
+            record('natural_lease_recovery_passed', lease_seconds=900, unacknowledged_retry_status=409,
+                   acknowledged_retry_status=409, missing_provider_retry_preserves_job=True,
+                   duplicate_drafts=dbrow('SELECT COUNT(*) FROM teaching_drafts')[0])
+            assert dbrow('SELECT COUNT(*) FROM teaching_drafts')[0] == 0
         stop(queue)
         stop(web)
         record('clean_shutdown')
         (OUT/'result.json').write_text(json.dumps(dict(commit=COMMIT, source=str(SOURCE), rollback_commit=ROLLBACK,
-            origin=origin, passed=True, events=events, provider_acceptance=False, shared_staging_modified=False,
+            origin=origin, passed=True, events=events, state_only=STATE_ONLY, natural_lease_verified=not STATE_ONLY, provider_acceptance=False, shared_staging_modified=False,
             limitation='Child-process supervision only; no shared systemd units installed. Fault hook pauses before provider; no live in-flight charge.'), indent=2))
     finally:
         for proc in children:
