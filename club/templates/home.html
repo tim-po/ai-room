@@ -4,10 +4,10 @@
 <section class="welcome-principles" aria-label="Как устроено обучение"><div><span class="eyebrow">01 / Поймите</span><h2>Одна идея за раз</h2><p>Объяснение, пример и задание рядом.</p></div><div><span class="eyebrow">02 / Попробуйте</span><h2>Сделайте что-то своё</h2><p>Сохраните работу и вернитесь к ней позже.</p></div><div><span class="eyebrow">03 / Выбирайте</span><h2>Интересов может быть много</h2><p><a href="/?view=map">Открыть все направления на карте →</a></p></div></section>
 {% else %}
 <section class="atlas" data-authenticated="{{ 'yes' if user else 'no' }}">
-<div class="atlas-heading"><div><p class="eyebrow">Ваш атлас возможностей</p><h1>Куда поведёт интерес?</h1></div><a href="/preferences">Изменить интересы →</a></div>
+<div class="atlas-heading"><div><p class="eyebrow">Ваш атлас возможностей</p><h1>Куда поведёт интерес?</h1></div><a href="/onboarding">Изменить интересы →</a></div>
 {% if user and next_lesson %}<section class="resume-strip" aria-label="Следующий шаг"><span class="resume-symbol" aria-hidden="true">↗</span><div><p>{{ 'Продолжить работу' if started else 'Первый небольшой шаг' }}</p><h2>{{ next_lesson.title }}</h2></div><a class="button" href="/lessons/{{ next_lesson.id }}">{{ 'Продолжить' if started else 'Открыть урок' }} →</a></section>{% endif %}
 {% if user and saved %}<p class="saved-shortcut"><a href="/profile#practice">Мои сохранённые работы · {{ saved }} →</a></p>{% endif %}
-{% if user and not user.onboarding_done %}<p class="atlas-welcome"><a href="/preferences">Подобрать начало: выбрать несколько интересов →</a></p>{% endif %}
+{% if user and not user.onboarding_done %}<p class="atlas-welcome"><a href="/onboarding">Подобрать начало: выбрать несколько интересов →</a></p>{% endif %}
 <div class="atlas-toolbar"><label><span class="visually-hidden">Найти навык</span><input id="skill-search" type="search" placeholder="Найти навык…"></label><div class="atlas-controls"><button id="map-view" aria-pressed="true">Карта</button><button id="list-view" aria-pressed="false">Список</button><button id="map-reset" aria-label="Вернуться к общей карте">Вся карта ↺</button></div></div>
 <noscript><p>Для интерактивной карты нужен JavaScript. <a href="/catalogue">Открыть библиотеку уроков</a>.</p></noscript><p id="atlas-status" role="status">Загружаем дерево навыков…</p>
 <div class="atlas-workspace"><div id="skill-map" class="skill-map" aria-label="Дерево навыков"></div><section id="node-detail" class="node-detail" aria-labelledby="detail-title" hidden></section></div>

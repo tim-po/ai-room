@@ -1,0 +1,4 @@
+{% extends 'base.html' %}{% block title %}Ваше начало{% endblock %}{% block content %}
+<section class="onboarding"><div class="onboarding-copy"><p class="eyebrow">AI Room · Ваше начало</p><p id="onboarding-progress"></p><h1 id="onboarding-title" tabindex="-1">Небольшой шаг. Полезный результат.</h1><div id="onboarding-body"></div><p id="onboarding-status" role="status" tabindex="-1"></p><div id="onboarding-actions" class="development-actions"></div><noscript>Для сохранения шагов включите JavaScript. <a href="/help">Помощь со входом и обучением</a></noscript></div><aside class="onboarding-art" aria-hidden="true">{% include '_atelier_art.html' %}<p>Пробуйте. Сохраняйте.<br>Возвращайтесь к своему.</p></aside></section>
+<script id="onboarding-state" type="application/json">{{ onboarding|tojson }}</script><script defer src="/static/onboarding.js"></script>
+{% endblock %}

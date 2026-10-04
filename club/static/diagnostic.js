@@ -16,11 +16,11 @@
   function render(){
     body.replaceChildren();const d=current;
     document.querySelector('#diagnostic-intro').textContent='Вся карта открыта. Можно учиться в нескольких направлениях и вернуться к проверке позже.';
-    status.textContent=d.state==='active'?'Проверка сохранена. Можно вернуться позже.':d.state==='skipped'?'Проверка остановлена. Полученные подтверждения сохранены.':'Доступные проверки завершены.';
+    status.textContent=d.state==='active'?'Проверка сохранена. Можно вернуться позже.':d.state==='skipped'?'Проверка остановлена. Полученные подтверждения сохранены.':d.observations.length?'Доступные проверки завершены.':'Проверка сейчас недоступна. Результатов пока нет.';
     if(d.next){body.append(el('h2',names.get(d.next.node_id)||d.next.node_id),el('p',d.next.reason==='foundation'?'Начнём с общей основы: она пригодится в любом направлении.':'Следующий шаг связан с выбранными вами интересами.'));
       const query=new URLSearchParams({node:d.next.node_id,assessment:d.next.assessment_id,diagnostic:d.id});if(d.next.pending_attempt_id)query.set('attempt',d.next.pending_attempt_id);
       body.append(link(d.next.pending_attempt_id?'Продолжить задания →':'Открыть задания →','/challenges?'+query));
-    }else body.append(el('h2','Ваша точка старта'),el('p','Подтверждены только проверенные знания. Остальные темы можно изучать или проверить позже, когда появятся подходящие задания. Это не общий уровень владения AI.'));
+    }else body.append(link('Выбрать доступный урок →','/catalogue'),el('h2','Ваша точка старта'),el('p','Подтверждены только проверенные знания. Остальные темы можно изучать или проверить позже, когда появятся подходящие задания. Это не общий уровень владения AI.'));
     abilityList('Подтверждённые знания',d.verified_objectives);
     if(!d.verified_objectives.length)body.append(el('p','Подтверждений пока нет. Самооценка и выбранные интересы не дают зачёт.'));
     if(d.recommendations.length){const section=el('section');section.append(el('h2','Что полезно повторить'));const seen=new Set();for(const recommendation of d.recommendations){const key=JSON.stringify([recommendation.objective_id,recommendation.source]);if(seen.has(key))continue;seen.add(key);const p=el('p');p.append(link(names.get(recommendation.objective_id)||recommendation.objective_id,'/?'+new URLSearchParams({node:recommendation.objective_id})));section.append(p);window.appendAssessmentSource(section,recommendation.source);}body.append(section);}

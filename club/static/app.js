@@ -19,6 +19,10 @@ let dirty = false;
 for (const form of document.querySelectorAll('[data-dirty-form]')) {
   form.addEventListener('input', () => {
     dirty = true;
+    if (form.hasAttribute('data-practice-form')) {
+      form.parentElement.querySelector('[data-practice-confirmation]').hidden = true;
+      form.parentElement.querySelector('.chip').textContent = 'Изменения не сохранены';
+    }
     form.querySelector('[data-save-status]').textContent = 'Есть несохранённые изменения. Нажмите кнопку сохранения.';
   });
   form.addEventListener('submit', async (event) => {
@@ -31,6 +35,10 @@ for (const form of document.querySelectorAll('[data-dirty-form]')) {
     const buttons = [...form.querySelectorAll('button')];
     buttons.forEach(b => b.disabled = true);
     status.textContent = 'Сохраняем…';
+    if (form.hasAttribute('data-practice-form')) {
+      form.parentElement.querySelector('[data-practice-confirmation]').hidden = true;
+      form.parentElement.querySelector('.chip').textContent = 'Сохранение не подтверждено';
+    }
     try {
       const options = editor
         ? {method:'POST', headers:{'X-Editor-Save':'1'}, body:new FormData(form)}
@@ -57,6 +65,11 @@ for (const form of document.querySelectorAll('[data-dirty-form]')) {
         const stored = await saved.json();
         const practice = stored.practice || stored;
         if (practice.body !== data.body || practice.status !== data.status) throw new Error('Не удалось подтвердить сохранённую версию. Текст остаётся в форме.');
+        if (new FormData(form).get('body') !== data.body) {
+          status.textContent = 'Предыдущая версия сохранена. Новые изменения ещё не сохранены.';
+          buttons.forEach(b => b.disabled = false);
+          return;
+        }
         dirty = false;
         status.textContent = data.status === 'draft' ? 'Черновик сохранён' : 'Работа сохранена';
         const confirmation = form.parentElement.querySelector('[data-practice-confirmation]');
