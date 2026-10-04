@@ -95,6 +95,16 @@ def transfer_access(db, form, user):
                 (row[1] == 'free' or (user and user['entitlement'] == 'member')))
 
 
+def form_content_access(db, form, user):
+    """Authorize the original form tier AND its current bound content.
+
+    Callers must supply the parent form body, not a result or rubric body.
+    """
+    return bool((form['access'] == 'free' or
+                 (user and (user['entitlement'] == 'member' or user['role'] in ('editor', 'admin'))))
+                and transfer_access(db, form, user))
+
+
 def register_transfer_sources(app, db):
     @app.cli.command('install-transfer-sources')
     @click.option('--reviewer', required=True)
