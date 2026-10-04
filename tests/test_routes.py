@@ -19,6 +19,9 @@ def test_beginner_bridge_experienced_entry_and_explicit_switch(app):
     c=app.test_client();csrf=login(c)
     c.get('/lessons/foundations-start-04')
     c.post('/preferences',data=dict(csrf=csrf,goal='agents',experience='beginner',weekly_goal='0'))
+    # Route preferences cannot discard unfinished work in another branch.
+    assert '/lessons/foundations-start-04' in hero(c)
+    post(c,'/api/lessons/foundations-start-04/completion',{'completed':True},csrf)
     assert '/lessons/'+FREE in hero(c)
     assert 'сначала основы' in c.get('/routes/path-agents').text
     assert 'agent-api-basics' in c.get('/routes/path-agents').text
@@ -29,11 +32,11 @@ def test_beginner_bridge_experienced_entry_and_explicit_switch(app):
     assert '/lessons/agent-lab-intro-01' in hero(c)
     c.get('/lessons/agent-lab-intro-01')
     c.post('/routes/path-work/select',data={'csrf':csrf})
-    assert '/lessons/everyday-ai-intro-01' in hero(c)
+    assert '/lessons/agent-lab-intro-01' in hero(c)
     second=app.test_client();login(second)
-    assert '/lessons/everyday-ai-intro-01' in hero(second)
+    assert '/lessons/agent-lab-intro-01' in hero(second)
     with sqlite3.connect(app.config['DATABASE']) as db:
-        assert db.execute('SELECT COUNT(*) FROM progress WHERE completed=1').fetchone()[0]==2
+        assert db.execute('SELECT COUNT(*) FROM progress WHERE completed=1').fetchone()[0]==3
 
 
 def test_completion_access_exhaustion_and_unpublished_steps(app):
