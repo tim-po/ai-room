@@ -15,21 +15,25 @@
     return {};
   }
   async function send(action, extra={}, destination=null) {
-    if(busy)return;busy=true;let conflicted=false;
+    if(busy)return;busy=true;let conflicted=false, sessionExpired=false;
     const payload={action,expected_revision:state.revision,draft:['edit','cancel','skip'].includes(action)?{}:{...draft(),...extra}};
     const signature=JSON.stringify(payload);
     if(!pending || pending.signature!==signature)pending={signature,payload:{...payload,idempotency_key:crypto.randomUUID()}};
     document.querySelectorAll('.onboarding button,.onboarding input').forEach(e=>e.disabled=true);status.textContent='Сохраняем…';
+    const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),15000);
     try {
-      const response=await fetch('/api/onboarding',{method:'PUT',headers:{'Content-Type':'application/json','X-CSRF-Token':token},body:JSON.stringify(pending.payload)});
-      const data=await response.json();
+      const response=await fetch('/api/onboarding',{method:'PUT',signal:controller.signal,headers:{'Content-Type':'application/json','X-CSRF-Token':token},body:JSON.stringify(pending.payload)});
+      sessionExpired=response.status===401;
+      if(sessionExpired)throw new Error('Сессия завершена. Войдите снова: сохранённые шаги останутся в аккаунте.');
+      let data;
+      try {data=await response.json();} catch(error) {if(error.name==='AbortError')throw error;throw new Error('Сервер не подтвердил сохранение. Ваш выбор остаётся на экране. Повторите действие.');}
       if(response.status===409){conflicted=true;pending=null;status.replaceChildren(el('span','Настройки изменились в другой вкладке. Загрузите сохранённую версию перед продолжением. '),button('Загрузить сохранённую версию',()=>location.reload()));status.focus();return;}
       if(!response.ok)throw new Error(response.status===401?'Сессия завершена. Войдите снова: сохранённые шаги останутся в аккаунте.':'Не удалось сохранить. Ваш выбор остаётся на экране. Повторите действие.');
       state=data;pending=null;
       if(['complete','skip','cancel'].includes(action)){location.assign(destination || state.next_url || '/');return;}
       render();status.textContent='Сохранено в аккаунте.';title.focus();
-    } catch(e) {status.textContent=e instanceof TypeError?'Нет связи с сервером. Ваш выбор остаётся на экране. Повторите действие.':e.message;status.append(' ',link('Войти снова','/login'));status.focus();}
-    finally {busy=false;document.querySelectorAll('.onboarding button,.onboarding input').forEach(e=>e.disabled=conflicted&&!status.contains(e));}
+    } catch(e) {status.textContent=e.name==='AbortError'?'Сервер пока не подтвердил сохранение. Ваш выбор остаётся на экране. Повторите действие.':e instanceof TypeError?'Нет связи с сервером. Ваш выбор остаётся на экране. Повторите действие.':e.message;if(sessionExpired)status.append(' ',link('Войти снова','/login'));status.focus();}
+    finally {clearTimeout(timeout);busy=false;document.querySelectorAll('.onboarding button,.onboarding input').forEach(e=>e.disabled=conflicted&&!status.contains(e));}
   }
   function choices(legend,name,options,selected) {
     const field=el('fieldset');field.append(el('legend',legend));
