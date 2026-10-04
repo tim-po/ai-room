@@ -18,7 +18,11 @@
   }
   function open(f){
     body.replaceChildren();dirty=false;status.textContent='Проверьте последствия перед решением.';const heading=el('h2',f.title);heading.tabIndex=-1;
-    body.append(button('← К списку проверок',load),heading,el('p',`${f.id} · ${f.access==='free'?'Бесплатно':'По подписке'}`));
+    body.append(button('← К списку проверок',load),heading);
+    const access=el('section');access.className='admin-assessment-access';
+    access.append(el('h3','Условия доступа'),el('p',`Указанный тариф проверки: ${f.access==='free'?'бесплатный':f.access==='member'?'по подписке':'неизвестен'}.`),el('p','Доступ ученика также зависит от текущей публикации и тарифа связанного урока и его подписки. Бесплатный тариф проверки не открывает урок по подписке.'));
+    const identity=el('details');identity.append(el('summary','Идентификатор редакции'),el('p',f.id));
+    body.append(access,identity);
     impact(body,f);
     if(f.lifecycle.status==='withdrawn'){
       body.append(el('p','Отозвана · '+f.lifecycle.created_at),el('p',f.lifecycle.reason));
@@ -44,9 +48,9 @@
   async function load(){
     if(dirty&&!window.confirm('Вернуться к списку без сохранения причины отзыва?'))return;
     const data=await api('');forms=data.forms;dirty=false;body.replaceChildren();
-    const active=el('section'),history=el('details');active.append(el('h2','Доступны ученикам'));history.append(el('summary','Отозванные и прежние редакции'));
+    const active=el('section'),history=el('details');active.append(el('h2','Действующие редакции'),el('p','Доступ каждого ученика зависит от тарифа проверки, связанного урока и подписки.'));history.append(el('summary','Отозванные и прежние редакции'));
     for(const f of forms){const row=el('div');row.className='admin-assessment-row';row.append(button(label(f)+(f.lifecycle.status==='withdrawn'?' · отозвана':''),()=>open(f)));const meta=el('details');meta.append(el('summary','Идентификатор редакции'),el('p',f.id));row.append(meta);(f.available&&f.lifecycle.status==='active'?active:history).append(row);}
-    if(!active.querySelector('button'))active.append(el('p','Доступных проверок пока нет.'));
+    if(!active.querySelector('button'))active.append(el('p','Действующих проверок пока нет.'));
     body.append(active,history);status.textContent='Выберите проверку, чтобы увидеть последствия отзыва.';
   }
   window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
