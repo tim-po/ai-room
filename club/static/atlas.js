@@ -3,7 +3,16 @@
   if (!atlas) return;
   const map = document.querySelector('#skill-map'), panel = document.querySelector('#node-detail'), status = document.querySelector('#atlas-status');
   const search = document.querySelector('#skill-search');
-  let graph, me = {coverage: []}, selected, list = false, detailSequence = 0;
+  let graph, me = {coverage: []}, selected, list = new URL(location).searchParams.get('view') === 'list', detailSequence = 0;
+  let originScroll = 0;
+  search.value = new URL(location).searchParams.get('q') || '';
+  function syncUrl(push=false) {
+    const u=new URL(location);
+    if(selected) u.searchParams.set('node',selected); else u.searchParams.delete('node');
+    if(list) u.searchParams.set('view','list'); else u.searchParams.set('view','map');
+    if(search.value) u.searchParams.set('q',search.value); else u.searchParams.delete('q');
+    history[push?'pushState':'replaceState']({},'',u);
+  }
   const names = new Map(), children = new Map(), parents = new Map();
   const art = {
     'basic-ai': '<circle cx="40" cy="34" r="18"/><ellipse cx="40" cy="34" rx="34" ry="10" transform="rotate(-25 40 34)"/><path d="M40 9v8m0 34v8"/>',
@@ -76,11 +85,18 @@
     if(descendants.length){const disclosure=el('details');disclosure.open=id===graph.root || selected===id || selected?.startsWith(id+'.');const summary=el('summary',node.title);disclosure.append(summary,button(node));const ul=el('ul');for(const child of descendants)appendList(ul,child);disclosure.append(ul);li.append(disclosure);}
     else li.append(button(node));container.append(li);
   }
-  function close(updateUrl=true) { if(updateUrl){const u=new URL(location);u.searchParams.delete('node');history.replaceState({},'',u);} detailSequence++; panel.hidden=true; document.querySelector(`#skill-map [data-node="${selected}"]`)?.focus(); }
+  function close(updateUrl=true, restoreFocus=true) {
+    detailSequence++; panel.hidden=true;
+    if(updateUrl) syncUrl();
+    if(restoreFocus) {
+      document.querySelector(`#skill-map [data-node="${selected}"]`)?.focus({preventScroll:true});
+      window.scrollTo({top:originScroll,behavior:'instant'});
+    }
+  }
   async function choose(id, push=true) {
-    selected=id; panel.hidden=false; if(push) { const u=new URL(location);u.searchParams.set('node',id);history.pushState({node:id},'',u); } render();
+    if(push && panel.hidden) originScroll=scrollY; selected=id; panel.hidden=false; if(push) syncUrl(true); render();
     const seq=++detailSequence; panel.hidden=false; panel.replaceChildren();
-    const closeButton=el('button','Закрыть ×','detail-close');closeButton.onclick=close; panel.append(closeButton);
+    const closeButton=el('button','Закрыть ×','detail-close');closeButton.onclick=()=>close(); panel.append(closeButton);
     const heading=el('h2',names.get(id).title);heading.id='detail-title';heading.tabIndex=-1; panel.append(el('p', 'ВАША СЛЕДУЮЩАЯ ВОЗМОЖНОСТЬ','eyebrow'),heading); heading.focus({preventScroll:true});
     if(matchMedia('(max-width:800px)').matches) panel.scrollIntoView({block:'start',behavior:'instant'});
     const body=el('div');panel.append(body);body.append(el('p','Загружаем материалы…'));
@@ -116,10 +132,10 @@
   }
   document.querySelector('#map-view').onclick=()=>view(false);
   document.querySelector('#list-view').onclick=()=>view(true);
-  function view(value){list=value;document.querySelector('#map-view').setAttribute('aria-pressed',String(!value));document.querySelector('#list-view').setAttribute('aria-pressed',String(value));render();}
-  document.querySelector('#map-reset').onclick=()=>{selected=null;search.value='';close();history.pushState({},'',location.pathname);render();};
-  search.oninput=()=>{close();render();};document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
-  window.addEventListener('popstate',()=>{const id=new URL(location).searchParams.get('node');if(names.has(id))choose(id,false);else{selected=null;close(false);render();}});
-  async function load(){try{graph=await api('/api/skills/graph');for(const n of graph.nodes)names.set(n.id,n);for(const e of graph.edges.filter(e=>e.type==='contains')){children.set(e.source,[...(children.get(e.source)||[]),e.target]);parents.set(e.target,e.source);}if(atlas.dataset.authenticated==='yes')me=await api('/api/skills/me');render();const id=new URL(location).searchParams.get('node');if(names.has(id))choose(id,false);}catch(e){status.textContent=e.message;const retry=el('button','Повторить загрузку');retry.onclick=load;map.replaceChildren(retry);}}
+  function view(value){list=value;syncUrl();document.querySelector('#map-view').setAttribute('aria-pressed',String(!value));document.querySelector('#list-view').setAttribute('aria-pressed',String(value));render();}
+  document.querySelector('#map-reset').onclick=()=>{selected=null;search.value='';close();syncUrl(true);render();};
+  search.oninput=()=>{close(false,false);syncUrl();render();};document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+  window.addEventListener('popstate',()=>{list=new URL(location).searchParams.get('view')==='list';search.value=new URL(location).searchParams.get('q')||'';const id=new URL(location).searchParams.get('node');if(names.has(id))choose(id,false);else{selected=null;close(false);render();}});
+  async function load(){try{graph=await api('/api/skills/graph');for(const n of graph.nodes)names.set(n.id,n);for(const e of graph.edges.filter(e=>e.type==='contains')){children.set(e.source,[...(children.get(e.source)||[]),e.target]);parents.set(e.target,e.source);}if(atlas.dataset.authenticated==='yes')me=await api('/api/skills/me');const id=new URL(location).searchParams.get('node');selected=names.has(id)?id:null;view(list);if(selected)choose(selected,false);}catch(e){status.textContent=e.message;const retry=el('button','Повторить загрузку');retry.onclick=load;map.replaceChildren(retry);}}
   load();
 })();

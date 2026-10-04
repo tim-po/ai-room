@@ -44,14 +44,27 @@ for (const form of document.querySelectorAll('[data-dirty-form]')) {
         if (response.status === 409) throw new Error('Материал уже изменён. Скопируйте свой текст и откройте актуальную версию в новой вкладке.');
         throw new Error('Не удалось сохранить. Текст остаётся в форме. Проверьте подключение и повторите попытку.');
       }
-      dirty = false;
+      if (!form.hasAttribute('data-practice-form')) dirty = false;
       if (editor) {
         if (new URL(response.url).pathname === location.pathname) {
           try { sessionStorage.setItem('editor-return', JSON.stringify({path:location.pathname,y:scrollY})); } catch (_) { /* Storage is optional UI state. */ }
         }
         location.assign(response.url);
       }
-      else location.reload();
+      else if (form.hasAttribute('data-practice-form')) {
+        const saved = await fetch(form.action, {headers:{'Accept':'application/json'}});
+        if (!saved.ok) throw new Error('Работа отправлена, но подтвердить сохранение не удалось. Повторите сохранение.');
+        const stored = await saved.json();
+        const practice = stored.practice || stored;
+        if (practice.body !== data.body || practice.status !== data.status) throw new Error('Не удалось подтвердить сохранённую версию. Текст остаётся в форме.');
+        dirty = false;
+        status.textContent = data.status === 'draft' ? 'Черновик сохранён' : 'Работа сохранена';
+        const confirmation = form.parentElement.querySelector('[data-practice-confirmation]');
+        confirmation.hidden = false;
+        confirmation.querySelector('[data-confirmation-title]').textContent = status.textContent;
+        form.parentElement.querySelector('.chip').textContent = status.textContent;
+        buttons.forEach(b => b.disabled = false);
+      } else location.reload();
     } catch (error) {
       status.textContent = error.message === 'Failed to fetch' ? 'Нет связи с сервером. Текст остаётся в форме; повторите сохранение.' : error.message;
       buttons.forEach(b => b.disabled = false);
