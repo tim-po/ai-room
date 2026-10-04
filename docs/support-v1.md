@@ -1,0 +1,11 @@
+# Support responses v1
+
+Ownership: acknowledged support transfer in shared ownership revision 4. Base for implementation: 70e91e87344d2ec15ebcda4b286b6fbad0198b0a. Admin owns support_admin.py, support_admin.js, admin.html, tests and only the init registration hunk. Learner help.html remains UI-owned.
+
+Run `flask --app club init-support` against the intended private database before enabling handling. The additive command first uses SQLite backup to preserve the full database under a timestamped private before-support directory, then creates support_responses. It does not change IDs, original tickets, media, session keys or global schema version. Existing paired database/media backup procedures still apply to deployment. Unmigrated support APIs return 503; existing question capture continues. No staging migration was performed for this change.
+
+Authenticated GET /api/support/tickets returns {version:1,tickets:[...]}; editor/admin sees all, learner only their own. GET /api/support/tickets/<id> returns {version:1,ticket:{id,lesson_id,body,created_at,status,revision,response,handled_at}}. Other learners get 404. Null response/handled_at and revision zero mean no recorded answer. No handler identity or account details leave the API.
+
+Editor/admin POST /api/support/tickets/<id>/handle accepts JSON {revision:0,response:"Plain text, 1–4000 characters"} with X-CSRF-Token. It appends an internal audit row and changes status to handled atomically. A repeated current answer returns the current response without another audit row; a conflicting stale revision returns 409. Invalid input and missing/invalid CSRF return 400, following the existing shared CSRF guard (correction to the proposal's 403). Wrong role returns 403, missing ticket 404. GET output must be rendered as plain text. No notification is sent; handled records an answer, not learner-confirmed resolution.
+
+UI consumer handoff: help.html can load the learner-scoped list, match by stable ticket ID, and render status/response/handled_at with escaped text. Retain existing original questions on request failure and provide retry. This implementation does not change help.html. API and admin browser tests do not close end-to-end learner-page acceptance or independent security/recovery gates.
