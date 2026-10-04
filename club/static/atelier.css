@@ -34,3 +34,4 @@ body.learner-surface footer{color:var(--muted);border-color:var(--line)}
 .learner-surface .course-intro .warm h2{color:#203d32}
 .learner-surface .course-intro .inline{display:inline-block;margin:12px 0 12px 12px}
 @media(max-width:700px){.learner-surface .onboarding{display:block;margin:28px 0 48px}.learner-surface .onboarding-art{display:none}.learner-surface .onboarding fieldset{grid-template-columns:1fr}.learner-surface #onboarding-actions button{width:100%}.learner-surface .course-intro .inline{display:block;margin:16px 0}.learner-surface .onboarding-copy>div>p{font-size:16px}}
+.learner-surface .skip{color:#fffdf7}
