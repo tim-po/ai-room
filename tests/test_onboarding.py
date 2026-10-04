@@ -172,3 +172,63 @@ def test_competing_tabs_only_one_revision_commits(onboard):
     with sqlite3.connect(onboard.config['DATABASE']) as db:
         assert db.execute('SELECT COUNT(*) FROM onboarding_requests').fetchone()[0] == 1
         assert db.execute('SELECT COUNT(*) FROM onboarding_events_v1').fetchone()[0] == 1
+
+
+@pytest.mark.parametrize('writer', ['interests', 'experience', 'same', 'aba'])
+def test_legacy_writers_invalidate_open_draft_and_replay(onboard, writer):
+    c = onboard.test_client(); csrf = login(c)
+    other = onboard.test_client(); other_csrf = login(other)
+    s = put(c, csrf, c.get('/api/onboarding').json, 'skip').json
+    other.put('/api/skills/interests', json={'node_ids':['agents']}, headers={'X-CSRF-Token':other_csrf})
+    s = put(c, csrf, c.get('/api/onboarding').json, 'edit').json
+    s = put(c, csrf, s, 'save', draft={'interests':['coding'], 'experience':'beginner'}).json
+    if writer == 'experience':
+        r = other.post('/preferences', data={'csrf':other_csrf,'goal':'work','experience':'experienced','weekly_goal':'3'})
+        assert r.status_code == 302
+    else:
+        for nodes in ([['automation'], ['agents']] if writer == 'aba' else [['agents']] if writer == 'same' else [['automation']]):
+            assert other.put('/api/skills/interests', json={'node_ids':nodes}, headers={'X-CSRF-Token':other_csrf}).status_code == 200
+    fresh = c.get('/api/onboarding').json
+    assert fresh['revision'] > s['revision']
+    assert fresh['committed_revision'] > s['committed_revision']
+    assert fresh['draft'] == s['draft']
+    assert fresh['committed_preferences']['interests'] == (['automation'] if writer == 'interests' else ['agents'])
+    if writer == 'experience':
+        assert fresh['committed_preferences']['experience'] == 'experienced'
+    rejected = put(c, csrf, s, 'complete')
+    assert rejected.status_code == 409
+    assert rejected.json['state'] == fresh
+    # Replay the acknowledged save from before the legacy write: no mutation,
+    # no resurrection of the obsolete committed preferences or revision.
+    replay = c.put('/api/onboarding', json={'action':'save','expected_revision':s['revision']-1,
+        'idempotency_key':'request-'+str(s['revision']-1),
+        'draft':{'interests':['coding'], 'experience':'beginner'}}, headers={'X-CSRF-Token':csrf})
+    assert replay.status_code == 200 and replay.json == fresh
+    cancelled = put(c, csrf, fresh, 'cancel').json
+    assert cancelled['draft'] == fresh['committed_preferences']
+    assert c.get('/api/skills/me').json['interests'] == fresh['committed_preferences']['interests']
+
+
+def test_revision_upgrade_restart_and_transaction_rollback(onboard):
+    c = onboard.test_client(); csrf = login(c)
+    s = put(c, csrf, c.get('/api/onboarding').json, 'skip').json
+    s = put(c, csrf, s, 'edit').json
+    with sqlite3.connect(onboard.config['DATABASE']) as db:
+        uid = db.execute("SELECT id FROM users WHERE email='learner@example.test'").fetchone()[0]
+        db.execute('BEGIN')
+        db.execute('INSERT INTO skill_interests VALUES(?,?)', (uid, 'coding'))
+        db.rollback()
+    assert c.get('/api/onboarding').json == s
+    assert c.put('/api/skills/interests', json={'node_ids':['agents']}, headers={'X-CSRF-Token':csrf}).status_code == 200
+    current = c.get('/api/onboarding').json
+    with sqlite3.connect(onboard.config['DATABASE']) as db:
+        tables = ['onboarding_state', 'onboarding_requests', 'onboarding_events_v1', 'committed_preference_revisions']
+        before = {t: db.execute('SELECT * FROM '+t).fetchall() for t in tables}
+    result = onboard.test_cli_runner().invoke(args=['init-onboarding'])
+    assert result.exit_code == 0, result.output
+    with sqlite3.connect(onboard.config['DATABASE']) as db:
+        assert before == {t: db.execute('SELECT * FROM '+t).fetchall() for t in tables}
+    restarted = create_app(dict(TESTING=True, DATABASE=onboard.config['DATABASE'], SECRET_KEY='test-only-key'))
+    other = restarted.test_client(); other_csrf = login(other)
+    assert other.get('/api/onboarding').json == current
+    assert put(other, other_csrf, s, 'complete').status_code == 409
