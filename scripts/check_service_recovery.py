@@ -109,7 +109,7 @@ assert r.json['decision']['credited'], r.json
               'skill_practical_decisions', 'skill_application_evidence')
     def learning_state():
         with sqlite3.connect(database) as db:
-            return {table: db.execute('SELECT * FROM '+table+' ORDER BY id').fetchall() for table in tables}
+            return {table: db.execute('SELECT * FROM '+table+' ORDER BY 1,2').fetchall() for table in tables}
     retained = learning_state()
     assert all(retained.values())
     record('synthetic_learning_populated', counts={k:len(v) for k,v in retained.items()})
