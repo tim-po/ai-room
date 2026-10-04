@@ -67,3 +67,5 @@ body.learner-surface:has(.onboarding) .shell main{container-type:normal;padding-
  .learner-surface #onboarding-body{padding-bottom:28px}
  .learner-surface .onboarding-choice{scroll-margin-block:20px 200px}
 }
+@media(max-width:800px){.learner-surface .onboarding fieldset:has(input[name=minutes]){grid-template-columns:1fr 1fr}}
+@media(min-width:600px) and (max-width:800px){.learner-surface .onboarding fieldset{grid-template-columns:1fr 1fr}}
