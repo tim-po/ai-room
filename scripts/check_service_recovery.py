@@ -29,7 +29,7 @@ SOURCE = REPOSITORY
 OUT = Path(os.environ.get('CLUB_EVIDENCE_DIR', 'instance/service-recovery-evidence')).resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 COMMIT = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=SOURCE, text=True).strip()
-ROLLBACK = os.environ.get('CLUB_ROLLBACK_COMMIT', COMMIT + '^')
+ROLLBACK = subprocess.check_output(['git', 'rev-parse', os.environ.get('CLUB_ROLLBACK_COMMIT', COMMIT + '^')], cwd=REPOSITORY, text=True).strip()
 events = []
 children = []
 
@@ -51,7 +51,7 @@ with tempfile.TemporaryDirectory(prefix='club-service-recovery-') as folder:
         bundle.extractall(SOURCE, filter='data')
     media = SOURCE/'instance'/'media'
     media.mkdir(parents=True)
-    shutil.copyfile('/home/claude/ai-room/instance/media/fixture.webm', media/'fixture.webm')
+    shutil.copyfile(os.environ.get('CLUB_RECOVERY_MEDIA', '/home/claude/ai-room/instance/media/fixture.webm'), media/'fixture.webm')
     database = root/'club.sqlite'
     uploads = root/'uploads'
     uploads.mkdir(mode=0o700)
