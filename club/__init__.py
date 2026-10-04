@@ -172,7 +172,7 @@ def create_app(config=None):
             destination = request.args.get('next', '/')
             if not destination.startswith('/') or destination.startswith('//') or '\\' in destination:
                 destination = '/'
-            return redirect(destination)
+            return redirect(onboarding_destination(user, destination))
         return render_template('login.html')
 
     @app.post('/logout')
@@ -530,5 +530,8 @@ def create_app(config=None):
 
     from .teaching import register_teaching
     register_teaching(app, db, query)
+
+    from .onboarding import register_onboarding
+    onboarding_destination = register_onboarding(app, db, query, require_user)
 
     return app
