@@ -167,3 +167,50 @@ def test_node_attempt_metadata_is_private_and_matches_start_exposure(skills):
     assert anonymous['latest_completed_attempt'] is None
     assert anonymous['assessments'][0]['start_blocker'] == 'sign_in'
     assert anonymous['assessments'][0]['start_mode'] is None
+
+
+def test_impact_counts_inherited_work_once_and_preserves_evidence(skills):
+    admin, at, task, _ = setup_task(skills)
+    publish_copy(skills, dict(fixture_form(), inherited_from_form='test-form-v1'), 'copy')
+    publish_copy(skills, dict(fixture_form(), inherited_from_form='copy'), 'nested-copy')
+    publish_copy(skills, fixture_form(), 'independent')
+
+    def impact(form='test-form-v1'):
+        response = admin.get('/api/skills/forms')
+        assert response.status_code == 200
+        return next(f['impact'] for f in response.json['forms'] if f['id'] == form)
+
+    empty = dict(forms=3, learners=0, attempts=0, pending_attempts=0,
+                 practical_tasks=1, submissions=0, pending_submissions=0,
+                 understanding_evidence=0, application_evidence=0)
+    assert impact() == dict(version=1, status='available',
+                            scope='form_and_inherited_descendants', counts=empty)
+    c = skills.test_client(); token = login(c)
+    first = start(c, token).json
+    assert finish(c, token, first).json['credited']
+    start(c, token, 'nested-copy', 'nested-request')
+    submission = draft(c, token, task).json
+    assert save(c, token, submission['id'], 1, body='PRIVATE WORK CANARY').status_code == 200
+    before_review = impact()['counts']
+    assert before_review == dict(empty, learners=1, attempts=2, pending_attempts=1,
+                               submissions=1, pending_submissions=1, understanding_evidence=1)
+    assert post(admin, '/api/skills/practical-submissions/'+submission['id']+'/review',
+                dict(revision=2, ratings={'source':'met','reason':'met'}, feedback='Private review canary'), at).json['decision']['credited']
+    # Another user has independent work, outside the withdrawal ancestry.
+    other = skills.test_client(); ot = login(other, 'member')
+    start(other, ot, 'independent', 'independent-request')
+    assert impact()['counts'] == dict(before_review, pending_submissions=0, application_evidence=1)
+    # Same user's revision is a distinct submission, not another learner.
+    draft(c, token, task, 'second-practical-request')
+    expected = dict(before_review, submissions=2, application_evidence=1)
+    assert impact()['counts'] == expected
+    assert impact('copy')['counts'] == dict(empty, forms=2, learners=1, attempts=1,
+                                          pending_attempts=1, practical_tasks=0)
+    assert impact('independent')['counts'] == dict(empty, forms=1, learners=1,
+                                                  attempts=1, pending_attempts=1, practical_tasks=0)
+    payload = admin.get('/api/skills/forms').get_data(as_text=True)
+    assert 'PRIVATE WORK CANARY' not in payload and 'Private review canary' not in payload
+    assert c.get('/api/skills/forms').status_code == 403
+    assert skills.test_client().get('/api/skills/forms').status_code in (302, 401)
+    assert withdraw(admin, at).status_code == 201
+    assert impact()['counts'] == expected

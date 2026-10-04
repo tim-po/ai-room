@@ -38,6 +38,35 @@ def compatible_replacement(query, form, target):
     return True
 
 
+def withdrawal_impact(query, form_id):
+    """Count retained records across the same ancestry fenced by lifecycle()."""
+    counts = query('''WITH RECURSIVE affected(id) AS (
+        SELECT id FROM skill_forms WHERE id=?
+        UNION
+        SELECT f.id FROM skill_forms f JOIN affected a
+          ON json_extract(f.body, '$.inherited_from_form')=a.id
+    ), attempts AS (
+        SELECT id,user_id FROM skill_attempts WHERE form_id IN (SELECT id FROM affected)
+    ), tasks AS (
+        SELECT id FROM skill_practical_tasks WHERE form_id IN (SELECT id FROM affected)
+    ), submissions AS (
+        SELECT id,user_id FROM skill_practical_submissions WHERE task_id IN (SELECT id FROM tasks)
+    ) SELECT
+        (SELECT COUNT(*) FROM affected) AS forms,
+        (SELECT COUNT(*) FROM (SELECT user_id FROM attempts UNION SELECT user_id FROM submissions)) AS learners,
+        (SELECT COUNT(*) FROM attempts) AS attempts,
+        (SELECT COUNT(*) FROM attempts a WHERE NOT EXISTS
+          (SELECT 1 FROM skill_results r WHERE r.attempt_id=a.id)) AS pending_attempts,
+        (SELECT COUNT(*) FROM tasks) AS practical_tasks,
+        (SELECT COUNT(*) FROM submissions) AS submissions,
+        (SELECT COUNT(*) FROM submissions s WHERE NOT EXISTS
+          (SELECT 1 FROM skill_practical_decisions d WHERE d.submission_id=s.id)) AS pending_submissions,
+        (SELECT COUNT(*) FROM skill_evidence WHERE attempt_id IN (SELECT id FROM attempts)) AS understanding_evidence,
+        (SELECT COUNT(*) FROM skill_application_evidence WHERE submission_id IN (SELECT id FROM submissions)) AS application_evidence
+    ''', (form_id,), True)
+    return dict(version=1, status='available', scope='form_and_inherited_descendants', counts=dict(counts))
+
+
 def register_form_lifecycle(app, db, query, require_user, graph, data):
     @app.get('/api/skills/forms')
     @require_user
@@ -56,6 +85,7 @@ def register_form_lifecycle(app, db, query, require_user, graph, data):
             result.append(dict(id=row['id'], title=names.get(row['node_id'], row['node_id']),
                 node_id=row['node_id'], release_id=row['release_id'], access=row['access'],
                 item_count=len(body['items']), lifecycle=state,
+                impact=withdrawal_impact(query, row['id']),
                 available=form_available(query, row, tree['release']),
                 eligible_replacements=[f['id'] for f in active if compatible_replacement(query, row, f)] if state['status']=='active' else []))
         return jsonify(forms=result)
