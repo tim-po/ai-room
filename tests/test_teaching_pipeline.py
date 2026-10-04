@@ -367,3 +367,74 @@ def test_remove_question_retains_sufficient_reviewed_form_and_enforces_owner(pip
     assert saved.json['review_changes']['removed_assessments'] == []
     assert saved.json['coverage']['challenge_available'] is True
     assert len(saved.json['draft']['assessments'][0]['items']) == 2
+
+
+@pytest.mark.parametrize('metadata', [
+    {'format': {'duration': '1801'}, 'streams': [{'codec_type': 'audio'}]},
+    {'format': {'duration': 'nan'}, 'streams': [{'codec_type': 'audio'}]},
+    {'format': {'duration': '10'}, 'streams': [{'codec_type': 'video'}]},
+    {'format': {'duration': '10'}, 'streams': [{'codec_type': 'audio', 'duration': '1801'}]},
+    {},
+])
+def test_media_preflight_rejects_before_provider_call(tmp_path, monkeypatch, metadata):
+    import subprocess
+    from club.teaching_provider import OpenAIProvider
+    source = tmp_path / 'private-source'
+    source.write_bytes(b'labelled synthetic invalid media')
+    provider = object.__new__(OpenAIProvider)
+    provider.call = lambda *args: pytest.fail('Invalid media must never reach provider')
+    def probe(command, **kwargs):
+        assert command[command.index('-protocol_whitelist') + 1] == 'file'
+        assert kwargs['timeout'] == 15
+        return subprocess.CompletedProcess(command, 0, json.dumps(metadata).encode())
+    monkeypatch.setattr('subprocess.run', probe)
+    with pytest.raises(ProviderError, match='source_media_invalid'):
+        provider.transcribe(source, 'source.mp4')
+
+
+def test_media_probe_failures_are_safe_and_success_is_bounded(tmp_path, monkeypatch):
+    import subprocess
+    from club.teaching_provider import media_preflight
+    source = tmp_path / 'private-source'; source.write_bytes(b'fixture')
+    def missing(*args, **kwargs):
+        raise FileNotFoundError('private filesystem details')
+    monkeypatch.setattr('subprocess.run', missing)
+    with pytest.raises(ProviderError, match='^media_probe_unavailable$'):
+        media_preflight(source)
+    def timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired('private details', 15)
+    monkeypatch.setattr('subprocess.run', timeout)
+    with pytest.raises(ProviderError, match='^media_probe_timeout$'):
+        media_preflight(source)
+    monkeypatch.setattr('subprocess.run', lambda *a, **kw: subprocess.CompletedProcess(
+        a, 0, b'{"format":{"duration":"1800"},"streams":[{"codec_type":"audio"}]}'))
+    assert media_preflight(source) == 1800
+
+
+def test_generation_bound_includes_graph_and_contract(monkeypatch):
+    from club.teaching_provider import OpenAIProvider
+    provider = object.__new__(OpenAIProvider); provider.model = 'explicit-test'
+    provider.call = lambda *args: pytest.fail('Oversized input must not reach provider')
+    with pytest.raises(ProviderError, match='^generation_request_too_large$'):
+        provider.generate([], {'nodes': [{'kind': 'ability', 'description': 'x' * 128000}]})
+
+
+def test_entire_package_preflight_precedes_first_charge(pipeline, monkeypatch):
+    from club.teaching_provider import OpenAIProvider
+    c = pipeline.test_client(); csrf = login(c, 'editor')
+    first = upload(c, csrf, b'\x00\x00\x00\x18ftypmp42'+b'\0'*32, 'lesson.mp4').json
+    second = upload(c, csrf, b'RIFF'+b'\0'*4+b'WAVE'+b'\0'*20, 'voice.wav', key='request-second').json
+    assert post(c, '/api/teaching/jobs/'+first['id']+'/package',
+                dict(revision=1, upload_ids=[first['id'], second['id']]), csrf).status_code == 200
+    class GuardedProvider(OpenAIProvider):
+        def __init__(self):
+            self.probes = 0
+        def preflight(self, path):
+            self.probes += 1
+            if self.probes == 2:
+                raise ProviderError('source_media_invalid_or_over_30_minutes')
+        def transcribe(self, *args):
+            pytest.fail('Second invalid source must block first charge')
+    pipeline.config['TEACHING_PROVIDER_FACTORY'] = GuardedProvider
+    assert 'source_media_invalid_or_over_30_minutes' in process(pipeline)
+    assert c.get('/api/teaching/jobs/'+first['id']).json['state'] == 'failed'

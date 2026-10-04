@@ -1,6 +1,8 @@
 """Explicitly enabled provider boundary. No tools, redirects, or implicit retries."""
 import json
+import math
 import os
+import subprocess
 import uuid
 import urllib.request
 import urllib.error
@@ -13,6 +15,40 @@ class ProviderError(Exception):
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs):
         raise ProviderError('provider_redirect_refused')
+
+
+def media_preflight(path):
+    """Inspect only local supported containers before incurring a provider charge."""
+    if not path.is_file() or not 0 < path.stat().st_size <= 25 * 1024 * 1024:
+        raise ProviderError('source_media_size_invalid')
+    try:
+        result = subprocess.run(
+            ['ffprobe', '-v', 'error', '-protocol_whitelist', 'file',
+             '-format_whitelist', 'mov,matroska,webm,wav',
+             '-show_entries', 'format=duration:stream=codec_type,duration',
+             '-of', 'json', str(path.resolve())],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            timeout=15, check=False)
+    except FileNotFoundError:
+        raise ProviderError('media_probe_unavailable') from None
+    except subprocess.TimeoutExpired:
+        raise ProviderError('media_probe_timeout') from None
+    except OSError:
+        raise ProviderError('media_probe_failed') from None
+    try:
+        if result.returncode or len(result.stdout) > 65536:
+            raise ValueError()
+        metadata = json.loads(result.stdout)
+        streams = metadata['streams']
+        if not any(s.get('codec_type') == 'audio' for s in streams):
+            raise ValueError()
+        duration = float(metadata['format']['duration'])
+        durations = [duration] + [float(s['duration']) for s in streams if s.get('duration') not in (None, 'N/A')]
+        if any(not math.isfinite(d) or not 0 < d <= 1800 for d in durations):
+            raise ValueError()
+        return duration
+    except (ValueError, KeyError, TypeError, AttributeError):
+        raise ProviderError('source_media_invalid_or_over_30_minutes') from None
 
 
 def configured():
@@ -40,6 +76,7 @@ def processing_available():
 class OpenAIProvider:
     name = 'openai'
     transcription_model = 'whisper-1'
+    preflight = staticmethod(media_preflight)
 
     def __init__(self):
         if not configured():
@@ -63,6 +100,7 @@ class OpenAIProvider:
             raise ProviderError('provider_outcome_unknown') from None
 
     def transcribe(self, path, filename):
+        self.preflight(path)
         boundary = uuid.uuid4().hex
         pieces = []
         for key, value in [('model', self.transcription_model), ('response_format', 'verbose_json'),
@@ -85,7 +123,12 @@ class OpenAIProvider:
         payload = dict(model=self.model, response_format={'type': 'json_object'}, max_completion_tokens=6000,
                        messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': json.dumps(
                            {'sources': sources, 'abilities': [n for n in graph['nodes'] if n['kind'] == 'ability']}, ensure_ascii=False)}])
-        result = self.call('chat/completions', json.dumps(payload).encode(), 'application/json')
+        encoded = json.dumps(payload, ensure_ascii=False).encode('utf-8')
+        # Include contract and graph, not only source text, in the request bound.
+        # This byte ceiling is deliberately not advertised as exact token/cost accounting.
+        if len(encoded) > 128000:
+            raise ProviderError('generation_request_too_large')
+        result = self.call('chat/completions', encoded, 'application/json')
         try:
             choice = result['choices'][0]
             if choice['finish_reason'] != 'stop':

@@ -186,6 +186,16 @@ def review_action(draft, action, graph):
 def source_snapshots(db, job_id, provider, root, alive):
     row = db.execute('SELECT upload_id FROM teaching_jobs WHERE id=?', (job_id,)).fetchone()
     ids = [r[0] for r in db.execute('SELECT upload_id FROM teaching_package_sources WHERE job_id=? ORDER BY position', (job_id,))] or [row[0]]
+    # Reject the whole package before paying for its first transcription. Test
+    # adapters use labelled synthetic media and do not constitute media acceptance.
+    if isinstance(provider, OpenAIProvider):
+        for identity in ids:
+            original = json.loads(db.execute('SELECT body FROM teaching_sources WHERE upload_id=?', (identity,)).fetchone()[0])
+            if original['kind'] == 'media' and not db.execute(
+                    'SELECT 1 FROM teaching_transcripts WHERE upload_id=?', (identity,)).fetchone():
+                if not alive():
+                    raise ProviderError('lease_lost')
+                provider.preflight(root / identity)
     sources = []
     for identity in ids:
         upload = db.execute('SELECT filename,sha256 FROM teaching_uploads WHERE id=?', (identity,)).fetchone()
