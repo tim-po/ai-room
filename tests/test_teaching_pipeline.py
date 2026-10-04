@@ -500,3 +500,54 @@ def test_cached_transcript_does_not_hide_mismatched_media_restore(pipeline):
     with sqlite3.connect(pipeline.config['DATABASE']) as db:
         assert db.execute('SELECT COUNT(*) FROM teaching_transcripts').fetchone()[0] == 1
         assert db.execute('SELECT COUNT(*) FROM teaching_drafts').fetchone()[0] == 0
+
+
+@pytest.mark.parametrize('failure', ['incomplete_read', 'bad_status'])
+def test_http_protocol_failure_is_durable_unknown_outcome(pipeline, monkeypatch, failure):
+    from http.client import BadStatusLine, IncompleteRead
+    from club.teaching_provider import OpenAIProvider
+
+    class TestAdapter(OpenAIProvider):
+        def __init__(self):
+            self.model = 'explicit-test-only'
+            self.key = 'not-a-live-key'
+
+    calls = []
+    class BrokenResponse:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def read(self, limit):
+            raise IncompleteRead(b'private-response-content', 100)
+
+    class BrokenTransport:
+        def open(self, request, timeout):
+            calls.append(request.full_url)
+            if failure == 'bad_status':
+                raise BadStatusLine('private-response-content')
+            return BrokenResponse()
+
+    monkeypatch.setattr('urllib.request.build_opener', lambda *args: BrokenTransport())
+    pipeline.config['TEACHING_PROVIDER_FACTORY'] = TestAdapter
+    c = pipeline.test_client(); csrf = login(c, 'editor')
+    job = upload(c, csrf).json
+    path = '/api/teaching/jobs/' + job['id']
+    output = process(pipeline)
+    assert 'provider_outcome_unknown' in output
+    assert 'private-response-content' not in output
+    failed = c.get(path).json
+    assert failed['state'] == 'failed'
+    assert failed['error_code'] == 'provider_outcome_unknown'
+    assert failed['requires_charge_acknowledgement'] is True
+    with sqlite3.connect(pipeline.config['DATABASE']) as db:
+        assert db.execute('SELECT lease_token,lease_until FROM teaching_jobs WHERE id=?',
+                          (job['id'],)).fetchone() == (None, None)
+        assert db.execute('SELECT COUNT(*) FROM teaching_drafts').fetchone()[0] == 0
+    assert 'No queued work' in process(pipeline)
+    assert len(calls) == 1
+    assert post(c, path+'/retry', dict(revision=failed['revision']), csrf).status_code == 409
+    pipeline.config['TEACHING_PROVIDER_FACTORY'] = MockProvider
+    assert post(c, path+'/retry', dict(revision=failed['revision'],
+                                     acknowledge_possible_charge=True), csrf).status_code == 200
+    assert 'ready' in process(pipeline)

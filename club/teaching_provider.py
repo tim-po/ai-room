@@ -1,5 +1,6 @@
 """Explicitly enabled provider boundary. No tools, redirects, or implicit retries."""
 import json
+from http.client import HTTPException
 import math
 import os
 import subprocess
@@ -96,7 +97,9 @@ class OpenAIProvider:
                 return json.loads(raw)
         except urllib.error.HTTPError as exc:
             raise ProviderError('provider_http_' + str(exc.code)) from None
-        except (OSError, ValueError, urllib.error.URLError):
+        except (OSError, ValueError, urllib.error.URLError, HTTPException):
+            # Truncated bodies and malformed HTTP framing can occur after a
+            # charge. Keep response details private and require explicit retry.
             raise ProviderError('provider_outcome_unknown') from None
 
     def transcribe(self, path, filename):
