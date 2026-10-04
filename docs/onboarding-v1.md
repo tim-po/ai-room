@@ -40,3 +40,27 @@ Return paths are captured only from authenticated login/entry, restricted to kno
 `onboarding_events_v1` contains only user_id, revision, action, step, timestamp. It does not contain drafts, answers, email, interest IDs or source text. Passive GET and identical saves produce no events, and replay produces none. It is an action ledger, not a claim that a step was visibly exposed or meaningful learning occurred. Existing event names and meaningful_return semantics remain unchanged. Versioned cohort analytics remain a separate pending implementation.
 
 Rollback to compatible previous application code can retain these additive tables and all later writes; do not overwrite a live database with the pre-migration backup merely to remove this feature. Disaster restore requires quiescence and the matching DB/media/upload set plus unchanged signing key. Independent process restart/restore and integrated browser acceptance remain required.
+
+## Cross-route committed preference revision (O1)
+
+Run `flask --app club init-onboarding` with writers quiesced before running
+this version, including upgrades from the earlier onboarding module. The command
+makes its existing private paired backup and installs the additive
+`committed_preference_revisions` table and four SQLite triggers. Re-running it
+preserves states, request history, learning records and revision counters.
+Include this table and triggers in database recovery inventory.
+
+All SQL interest mutations and updates naming users.experience/onboarding_done
+advance a per-user counter in the writer's transaction, including legacy routes.
+Same-value UPDATEs and delete/reinsert interest saves invalidate open edits;
+an empty-to-empty interests request performs no mutation and leaves the counter
+unchanged. The counter is monotonic but is not a count of user actions.
+`committed_revision` is additive in the DTO. Existing `expected_revision` remains
+the concurrency input; revision values can jump. Clients must use returned values.
+GET and 409 state expose current committed interests/experience while keeping
+saved onboarding draft values separate. PUT checks a fresh user snapshot under
+BEGIN IMMEDIATE. Cancel discards draft in favor of current committed preferences.
+Matching idempotent retries return current state without executing any mutation;
+this intentionally supersedes replay of the historical response snapshot. The
+stored historical request response remains intact for recovery/audit purposes.
+No event or evidence credit is added by the database revision triggers.

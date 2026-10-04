@@ -14,6 +14,31 @@ from jinja2 import TemplateNotFound
 STEPS = ('welcome', 'interests', 'pace', 'start')
 FIELDS = {'interests', 'experience', 'available_minutes', 'diagnostic_choice'}
 SCHEMA = '''
+CREATE TABLE IF NOT EXISTS committed_preference_revisions (
+ user_id TEXT PRIMARY KEY REFERENCES users(id), revision INTEGER NOT NULL DEFAULT 0
+);
+CREATE TRIGGER IF NOT EXISTS onboarding_user_preferences_updated
+AFTER UPDATE OF experience,onboarding_done ON users BEGIN
+ INSERT INTO committed_preference_revisions VALUES(NEW.id,1)
+ ON CONFLICT(user_id) DO UPDATE SET revision=revision+1;
+END;
+CREATE TRIGGER IF NOT EXISTS onboarding_interests_inserted
+AFTER INSERT ON skill_interests BEGIN
+ INSERT INTO committed_preference_revisions VALUES(NEW.user_id,1)
+ ON CONFLICT(user_id) DO UPDATE SET revision=revision+1;
+END;
+CREATE TRIGGER IF NOT EXISTS onboarding_interests_deleted
+AFTER DELETE ON skill_interests BEGIN
+ INSERT INTO committed_preference_revisions VALUES(OLD.user_id,1)
+ ON CONFLICT(user_id) DO UPDATE SET revision=revision+1;
+END;
+CREATE TRIGGER IF NOT EXISTS onboarding_interests_updated
+AFTER UPDATE ON skill_interests BEGIN
+ INSERT INTO committed_preference_revisions VALUES(OLD.user_id,1)
+ ON CONFLICT(user_id) DO UPDATE SET revision=revision+1;
+ INSERT INTO committed_preference_revisions VALUES(NEW.user_id,1)
+ ON CONFLICT(user_id) DO UPDATE SET revision=revision+1;
+END;
 CREATE TABLE IF NOT EXISTS onboarding_state (
  user_id TEXT PRIMARY KEY REFERENCES users(id), body TEXT NOT NULL
 );
@@ -41,16 +66,29 @@ def register_onboarding(app, db, query, require_user):
                     step='welcome', draft=prefs.copy(), committed_preferences=prefs,
                     revision=0, return_to='/', updated_at=None, editing=False)
 
+    def committed_revision(user):
+        row = query('SELECT revision FROM committed_preference_revisions WHERE user_id=?', (user['id'],), True)
+        return row['revision'] if row else 0
+
     def state(user):
+        # Read all canonical fields from the same transaction, not the request's
+        # pre-lock g.user snapshot. Drafts remain independent of legacy writers.
+        user = query('SELECT * FROM users WHERE id=?', (user['id'],), True)
         row = query('SELECT body FROM onboarding_state WHERE user_id=?', (user['id'],), True)
         value = json.loads(row['body']) if row else baseline(user)
-        # Existing preferences/skip POST routes remain compatible during UI rollout.
+        current = baseline(user)['committed_preferences']
+        value['committed_preferences'].update(interests=current['interests'], experience=current['experience'])
+        revision = committed_revision(user)
+        value['revision'] += revision - value.get('committed_revision', 0)
+        value['committed_revision'] = revision
         if user['onboarding_done'] and value['status'] in ('not_started', 'in_progress'):
-            value.update(status='completed', editing=False, revision=value['revision'] + 1,
-                         committed_preferences=baseline(user)['committed_preferences'])
+            value.update(status='completed', editing=False)
         return value
 
     def persist(user, value):
+        revision = committed_revision(user)
+        value['revision'] += revision - value.get('committed_revision', 0)
+        value['committed_revision'] = revision
         db().execute('INSERT INTO onboarding_state VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET body=excluded.body',
                      (user['id'], json.dumps(value, ensure_ascii=False)))
 
@@ -156,7 +194,9 @@ def register_onboarding(app, db, query, require_user):
     def onboarding_api():
         learner()
         if request.method == 'GET':
-            return jsonify(response(state(g.user)))
+            with db():
+                db().execute('BEGIN')
+                return jsonify(response(state(g.user)))
         payload = request.get_json(silent=True)
         if not isinstance(payload, dict) or set(payload) - {'action', 'expected_revision', 'idempotency_key', 'draft', 'step'}:
             abort(400)
@@ -175,7 +215,7 @@ def register_onboarding(app, db, query, require_user):
             if prior:
                 if prior['digest'] != digest:
                     return jsonify(error='idempotency_conflict', state=response(state(g.user))), 409
-                return jsonify(response(json.loads(prior['response'])))
+                return jsonify(response(state(g.user)))
             value = state(g.user)
             if revision != value['revision']:
                 return jsonify(error='revision_conflict', state=response(value)), 409
@@ -214,8 +254,6 @@ def register_onboarding(app, db, query, require_user):
             changed = proposed != value['draft'] or step != value['step'] or action not in ('save',)
             value.update(draft=proposed, step=step)
             if action == 'edit':
-                current = baseline(g.user)['committed_preferences']
-                value['committed_preferences'].update(interests=current['interests'], experience=current['experience'])
                 value.update(editing=True, draft=value['committed_preferences'].copy())
             elif action == 'cancel':
                 value.update(editing=False, draft=value['committed_preferences'].copy())
@@ -229,6 +267,8 @@ def register_onboarding(app, db, query, require_user):
                 db().execute('UPDATE users SET onboarding_done=1 WHERE id=?', (g.user['id'],))
             elif not value['editing']:
                 value['status'] = 'in_progress'
+            current_user = query('SELECT * FROM users WHERE id=?', (g.user['id'],), True)
+            value['committed_preferences']['experience'] = current_user['experience']
             value['revision'] += 1
             value['updated_at'] = datetime.now(timezone.utc).isoformat()
             persist(g.user, value)
