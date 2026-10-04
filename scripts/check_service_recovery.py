@@ -24,11 +24,12 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-SOURCE = Path(__file__).resolve().parents[1]
+REPOSITORY = Path(__file__).resolve().parents[1]
+SOURCE = REPOSITORY
 OUT = Path(os.environ.get('CLUB_EVIDENCE_DIR', 'instance/service-recovery-evidence')).resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 COMMIT = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=SOURCE, text=True).strip()
-ROLLBACK = '1bd6b76cb3e265302f6fb922c5f6c64abd232a7c'
+ROLLBACK = os.environ.get('CLUB_ROLLBACK_COMMIT', COMMIT + '^')
 events = []
 children = []
 
@@ -41,6 +42,16 @@ def record(action, **details):
 with tempfile.TemporaryDirectory(prefix='club-service-recovery-') as folder:
     root = Path(folder)
     root.chmod(0o700)
+    # Export the exact candidate so instance/media never touches a shared checkout.
+    SOURCE = root/'candidate'
+    SOURCE.mkdir()
+    with (root/'candidate.tar').open('wb') as output:
+        subprocess.run(['git', 'archive', COMMIT], cwd=REPOSITORY, stdout=output, check=True)
+    with tarfile.open(root/'candidate.tar') as bundle:
+        bundle.extractall(SOURCE, filter='data')
+    media = SOURCE/'instance'/'media'
+    media.mkdir(parents=True)
+    shutil.copyfile('/home/claude/ai-room/instance/media/fixture.webm', media/'fixture.webm')
     database = root/'club.sqlite'
     uploads = root/'uploads'
     uploads.mkdir(mode=0o700)
@@ -71,6 +82,37 @@ with tempfile.TemporaryDirectory(prefix='club-service-recovery-') as folder:
             return db.execute(sql, params).fetchone()
     for command in ('init-db', 'seed', 'init-skills', 'init-teaching'):
         cli(command)
+    # Populate immutable learning history through existing synthetic test helpers.
+    fixture = r'''import os, sys
+sys.path.insert(0, 'tests')
+from club import create_app
+import test_learning
+from test_practical import setup_task, draft, save
+from test_learning import login, post
+test_learning.PASSWORD = os.environ['CLUB_SEED_PASSWORD']
+app = create_app({'TESTING': True})
+admin, token, task, _ = setup_task(app)
+c = app.test_client(); csrf = login(c, 'member')
+a = post(c, '/api/skills/challenges', {'assessment_id':'test-form-v1','request_id':'recovery-attempt'}, csrf)
+assert a.status_code == 201, a.json
+r = post(c, '/api/skills/challenges/'+a.json['id']+'/submit', {'answers':{'q1':'check','q2':'check'}}, csrf)
+assert r.json['credited'], r.json
+s = draft(c, csrf, task).json
+assert save(c, csrf, s['id'], 1).status_code == 200
+r = post(admin, '/api/skills/practical-submissions/'+s['id']+'/review', {'revision':2,'ratings':{'source':'met','reason':'met'},'feedback':'Synthetic recovery fixture, not editorial acceptance.'}, token)
+assert r.json['decision']['credited'], r.json
+'''
+    populated = subprocess.run([sys.executable, '-c', fixture], cwd=SOURCE, env=env,
+                               capture_output=True, text=True, timeout=30)
+    assert populated.returncode == 0, populated.stderr
+    tables = ('skill_attempts', 'skill_evidence', 'skill_practical_submissions',
+              'skill_practical_decisions', 'skill_application_evidence')
+    def learning_state():
+        with sqlite3.connect(database) as db:
+            return {table: db.execute('SELECT * FROM '+table+' ORDER BY id').fetchall() for table in tables}
+    retained = learning_state()
+    assert all(retained.values())
+    record('synthetic_learning_populated', counts={k:len(v) for k,v in retained.items()})
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0))
         port = sock.getsockname()[1]
@@ -137,10 +179,21 @@ with tempfile.TemporaryDirectory(prefix='club-service-recovery-') as folder:
                                 {'Content-Type':f'multipart/form-data; boundary={boundary}', 'Idempotency-Key':'service-recovery-drill'}))
         path = '/api/teaching/jobs/'+job['id']
         assert request(teacher, path+'/file') == source_bytes
+        media_path = '/lessons/foundations-start-01/media'
+        media_bytes = request(learner, media_path)
+        assert media_bytes == (media/'fixture.webm').read_bytes()
         # Actual registered queue worker, with a deterministic pause at the provider boundary.
         hook = """import time
 from flask.cli import cli
+import socket
+import club.teaching_provider as provider
 import club.teaching_worker as worker
+# Fault injection exists only in this disposable child, never in app configuration.
+def deny_network(*args, **kwargs):
+    raise AssertionError('Network forbidden in fault-injection worker')
+socket.socket.connect = deny_network
+socket.create_connection = deny_network
+provider.processing_available = lambda: True
 worker.process_claim = lambda *args: time.sleep(1800)
 cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'])
 """
@@ -150,7 +203,7 @@ cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'
         assert interrupted.wait(timeout=5) < 0
         lease_until = running[3]
         record('worker_killed_after_persisted_claim', pid=interrupted.pid, lease_until=lease_until,
-               hook='pause before provider, no provider call; real claim/worker/SIGKILL', natural_expiry=True)
+               hook='test-child readiness injection and network deny; pause before provider; real claim/SIGKILL', natural_expiry=True)
         queue = worker()
         stop(web)
         stop(queue)
@@ -161,13 +214,15 @@ cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'
             src.backup(dst)
         (snapshot/'club.sqlite').chmod(0o600)
         shutil.copytree(uploads, snapshot/'uploads')
+        shutil.copytree(media, snapshot/'media')
         file_hash = hashlib.sha256((uploads/job['upload_id']).read_bytes()).hexdigest()
         assert hashlib.sha256((snapshot/'uploads'/job['upload_id']).read_bytes()).hexdigest() == file_hash
-        record('paired_snapshot', protected_media_sha256=file_hash, running_claim_preserved=True)
+        record('paired_snapshot', protected_media_sha256=file_hash, learner_media_sha256=hashlib.sha256(media_bytes).hexdigest(), running_claim_preserved=True)
         for command in ('init-db', 'init-skills', 'init-teaching'):
             cli(command)
         assert dbrow('PRAGMA integrity_check')[0] == 'ok'
-        record('additive_migrations_passed')
+        assert learning_state() == retained
+        record('additive_migrations_passed', populated_learning_rows_preserved=True)
         web = start_web()
         queue = worker()
         assert request(teacher, path+'/file') == source_bytes
@@ -181,14 +236,17 @@ cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'
         rollback_source.mkdir()
         archive = root/'rollback.tar'
         with archive.open('wb') as output:
-            subprocess.run(['git', 'archive', ROLLBACK], cwd=SOURCE, stdout=output, check=True)
+            subprocess.run(['git', 'archive', ROLLBACK], cwd=REPOSITORY, stdout=output, check=True)
         with tarfile.open(archive) as bundle:
             bundle.extractall(rollback_source, filter='data')
+        shutil.copytree(media, rollback_source/'instance'/'media')
         web = start_web(rollback_source, ROLLBACK)
         queue = worker(rollback_source)
         assert 'After snapshot retained across code rollback' in request(learner, '/profile').decode()
         assert dbrow('SELECT completed FROM progress WHERE lesson_id=?', ('foundations-start-01',))[0] == 0
         assert request(teacher, path+'/file') == source_bytes
+        assert request(learner, media_path) == media_bytes
+        assert learning_state() == retained
         record('compatible_code_rollback_passed', rollback_commit=ROLLBACK, later_learner_writes_preserved=True)
         stop(queue)
         stop(web)
@@ -197,13 +255,17 @@ cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'
             src.backup(dst)
         shutil.rmtree(uploads)
         shutil.copytree(snapshot/'uploads', uploads)
+        shutil.rmtree(media)
+        shutil.copytree(snapshot/'media', media)
         web = start_web()
         queue = worker()
         assert request(teacher, path+'/file') == source_bytes
         assert 'Before snapshot' in request(learner, '/profile').decode()
         assert 'After snapshot retained' not in request(learner, '/profile').decode()
         assert dbrow('SELECT completed FROM progress WHERE lesson_id=?', ('foundations-start-01',))[0] == 1
-        record('paired_restore_passed', disposable_later_writes_intentionally_discarded=True,
+        assert request(learner, media_path) == media_bytes
+        assert learning_state() == retained
+        record('paired_restore_passed', session_signing_key_continuity=True, both_media_roots=True, populated_learning_rows_preserved=True, disposable_later_writes_intentionally_discarded=True,
                production_policy='prefer compatible code rollback; data restore requires write reconciliation')
         while time.time() <= lease_until+3:
             assert queue.poll() is None and web.poll() is None
@@ -218,11 +280,15 @@ cli.main(args=['--app', 'club', 'process-teaching-worker', '--poll-seconds', '1'
             raise AssertionError('Unacknowledged retry allowed')
         except urllib.error.HTTPError as error:
             assert error.code == 409
-        request(teacher, path+'/retry', dict(revision=current['revision'], acknowledge_possible_charge=True), tc)
-        blocked = wait_state(job['id'], 'blocked')
-        assert blocked[1] == 'provider_approved_configuration_required' and blocked[2] == 2
+        try:
+            request(teacher, path+'/retry', dict(revision=current['revision'], acknowledge_possible_charge=True), tc)
+            raise AssertionError('Retry without provider readiness allowed')
+        except urllib.error.HTTPError as error:
+            assert error.code == 409
+        assert json.loads(request(teacher, path)) == current
         record('natural_lease_recovery_passed', lease_seconds=900, unacknowledged_retry_status=409,
-               acknowledged_retry='blocked honestly without provider configuration', duplicate_drafts=dbrow('SELECT COUNT(*) FROM teaching_drafts')[0])
+               acknowledged_retry_status=409, missing_provider_retry_preserves_job=True,
+               duplicate_drafts=dbrow('SELECT COUNT(*) FROM teaching_drafts')[0])
         assert dbrow('SELECT COUNT(*) FROM teaching_drafts')[0] == 0
         stop(queue)
         stop(web)
