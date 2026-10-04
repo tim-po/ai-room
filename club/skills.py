@@ -398,7 +398,33 @@ def register_skills(app, db, query, require_user):
         form_access(form)
         body = json.loads(form['body'])
         # Explicit allow-list: answer, rationale and future private fields cannot leak.
-        items = [{k: i[k] for k in ('id', 'prompt', 'choices', 'type', 'objective_id')} for i in body['items']]
+        items = []
+        for item in body['items']:
+            public = {k: item[k] for k in ('id', 'prompt', 'type', 'objective_id')}
+            public['choices'] = [{k: choice[k] for k in ('id', 'text')} for choice in item['choices']]
+            # The versioned random attempt ID persists the presentation seed. Old
+            # UUID attempts retain their original order; no history migration.
+            if attempt['id'].startswith('p1-'):
+                def presentation_key(choice):
+                    seed = json.dumps([attempt['id'], item['id'], choice['id']], separators=(',', ':'))
+                    return hashlib.sha256(seed.encode()).digest()
+                public['choices'].sort(key=presentation_key)
+            if body.get('transfer_publication') and item['source'].get('source_id'):
+                ref = item['source']
+                retained = query('SELECT body FROM skill_transfer_sources WHERE source_id=? AND edition=?',
+                                 (ref['source_id'], ref['edition']), True)
+                if not retained:
+                    abort(409, 'Источник проверки недоступен.')
+                source = json.loads(retained['body'])
+                if (source['sha256'] != ref['sha256'] or
+                        hashlib.sha256(source['text'].encode()).hexdigest() != ref['sha256']):
+                    abort(409, 'Версия источника проверки изменилась.')
+                # Only the reviewed case, never the keyed form or arbitrary
+                # source metadata. Current content access was checked above.
+                public['case'] = dict(source_id=ref['source_id'], edition=ref['edition'],
+                                      paragraph=ref.get('paragraph'), text=source['text'],
+                                      sha256=source['sha256'])
+            items.append(public)
         return dict(id=attempt['id'], mode=attempt['mode'], items=items, thresholds=body['thresholds'], release=form['release_id'], lifecycle=lifecycle(query, form['id']))
 
     @app.post('/api/skills/challenges')
@@ -430,7 +456,7 @@ def register_skills(app, db, query, require_user):
                 return jsonify(error='Сначала завершите начатую попытку с этими вопросами.',
                                code='pending_attempt', pending_attempt=pending_metadata(overlaps[0])), 409
             # Any overlap conservatively makes the whole form practice-only.
-            id, mode = str(uuid.uuid4()), 'practice' if exposed else 'certification'
+            id, mode = 'p1-' + str(uuid.uuid4()), 'practice' if exposed else 'certification'
             db().execute('INSERT INTO skill_attempts(id,user_id,form_id,request_id,mode) VALUES(?,?,?,?,?)', (id,g.user['id'],form['id'],key,mode))
             return jsonify(attempt_dto(dict(id=id, form_id=form['id'], mode=mode))), 201
 
