@@ -41,12 +41,10 @@ def wait_line(process):
 def test_real_process_reopens_queue_and_does_not_retry_blocked(teaching):
     c = teaching.test_client(); csrf = login(c, 'editor')
     job = upload(c, csrf).json; path = '/api/teaching/jobs/' + job['id']
-    process = spawn(teaching, '--max-jobs', '1')
-    out, err = process.communicate(timeout=15)
-    assert process.returncode == 0, err
-    assert 'provider_approved_configuration_required' in out
+    result = teaching.test_cli_runner().invoke(args=['process-teaching-once'])
+    assert result.exit_code == 0
     blocked = c.get(path).json
-    assert blocked['state'] == 'blocked' and blocked['attempt'] == 1
+    assert blocked['state'] == 'blocked' and blocked['attempt'] == 0
     process = spawn(teaching, '--poll-seconds', '60')
     try:
         assert 'worker started' in wait_line(process)
@@ -58,19 +56,19 @@ def test_real_process_reopens_queue_and_does_not_retry_blocked(teaching):
         if process.poll() is None:
             process.kill(); process.communicate()
     assert c.get(path).json == blocked
-    assert post(c, path + '/retry', {'revision': blocked['revision']}, csrf).status_code == 200
-    process = spawn(teaching, '--max-jobs', '1')
-    process.communicate(timeout=15)
-    assert process.returncode == 0
-    assert c.get(path).json['attempt'] == 2
+    assert post(c, path + '/retry', {'revision': blocked['revision']}, csrf).status_code == 409
+    assert c.get(path).json == blocked
 
 
-def test_killed_claim_recovers_only_with_charge_acknowledgement(teaching):
+def test_killed_claim_recovers_only_with_charge_acknowledgement(teaching, monkeypatch):
+    monkeypatch.setattr('club.teaching_provider.configured', lambda: True)
     c = teaching.test_client(); csrf = login(c, 'editor')
     job = upload(c, csrf).json; path = '/api/teaching/jobs/' + job['id']
     # Simulate abrupt death at the persisted claim boundary in a real process.
     code = """import os, sqlite3, time
 from club.teaching import claim_job
+import club.teaching_provider
+club.teaching_provider.configured = lambda: True
 connection = sqlite3.connect(os.environ['CLUB_DATABASE'])
 assert claim_job(connection)
 print('claimed', flush=True)

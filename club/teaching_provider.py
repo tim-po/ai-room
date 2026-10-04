@@ -20,6 +20,23 @@ def configured():
             bool(os.environ.get('CLUB_AI_API_KEY')) and bool(os.environ.get('CLUB_AI_MODEL')))
 
 
+def readiness():
+    """Names and booleans only; never expose provider configuration values."""
+    checks = {'CLUB_AI_APPROVED': os.environ.get('CLUB_AI_APPROVED') == '1',
+              'CLUB_AI_API_KEY': bool(os.environ.get('CLUB_AI_API_KEY')),
+              'CLUB_AI_MODEL': bool(os.environ.get('CLUB_AI_MODEL'))}
+    return {'processing_available': all(checks.values()),
+            'missing_configuration': [name for name, ready in checks.items() if not ready]}
+
+
+def processing_available():
+    # Explicit test adapters cannot enable processing in a deployed application.
+    from flask import current_app, has_app_context
+    if has_app_context() and current_app.testing and current_app.config.get('TEACHING_PROVIDER_FACTORY'):
+        return True
+    return configured()
+
+
 class OpenAIProvider:
     name = 'openai'
     transcription_model = 'whisper-1'

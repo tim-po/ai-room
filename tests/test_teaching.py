@@ -72,26 +72,38 @@ def test_validation_cleanup_quota_and_body_limit(teaching):
     assert list(Path(teaching.config['TEACHING_UPLOAD_DIR']).iterdir()) == []
 
 
-def test_blocked_cancel_retry_and_attempt_ceiling(teaching):
+def test_unavailable_retry_preserves_attempts_and_source(teaching, monkeypatch):
+    monkeypatch.setattr('club.teaching_provider.configured', lambda: False)
     c = teaching.test_client(); csrf = login(c, 'editor')
-    job = upload(c,csrf).json; path = '/api/teaching/jobs/'+job['id']
-    for attempt in range(1,4):
-        result = teaching.test_cli_runner().invoke(args=['process-teaching-once'])
-        assert result.exit_code == 0, result.output
-        job = c.get(path).json
-        assert job['state'] == 'blocked' and job['attempt'] == attempt
-        assert 'provider' in job['error_code']
-        response = post(c,path+'/retry',{'revision':job['revision']},csrf)
-        assert response.status_code == (200 if attempt < 3 else 409)
-    assert post(c,path+'/cancel',{'revision':1},csrf).status_code == 409
-    cancelled = post(c,path+'/cancel',{'revision':job['revision']},csrf).json
-    assert cancelled['state'] == 'cancelled'
-    assert c.get(path+'/file').status_code == 200
+    job = upload(c, csrf).json; path = '/api/teaching/jobs/' + job['id']
+    result = teaching.test_cli_runner().invoke(args=['process-teaching-once'])
+    assert result.exit_code == 0
+    blocked = c.get(path).json
+    assert blocked['state'] == 'blocked' and blocked['attempt'] == 0
+    assert not blocked['retry_available'] and not blocked['requires_charge_acknowledgement']
+    for _ in range(4):
+        response = post(c, path+'/retry', {'revision':blocked['revision']}, csrf)
+        assert response.status_code == 409
+        assert response.json['error'] == 'provider_approved_configuration_required'
+        assert c.get(path).json == blocked
+        assert teaching.test_cli_runner().invoke(args=['process-teaching-once']).exit_code == 0
+    assert c.get(path+'/file').data == b'Original source.\n\nVerify claims.'
     with sqlite3.connect(teaching.config['DATABASE']) as db:
-        assert db.execute('SELECT COUNT(*) FROM teaching_job_events').fetchone()[0] == 10
+        assert db.execute('SELECT COUNT(*) FROM teaching_job_events').fetchone()[0] == 2
+    monkeypatch.setattr('club.teaching_provider.configured', lambda: True)
+    assert c.get(path).json['retry_available']
+    assert post(c, path+'/retry', {'revision':blocked['revision']}, csrf).status_code == 200
+    with sqlite3.connect(teaching.config['DATABASE']) as db:
+        assert claim_job(db)
+        assert db.execute('SELECT attempt FROM teaching_jobs').fetchone()[0] == 1
+        db.execute("UPDATE teaching_jobs SET state='failed',attempt=3")
+    exhausted = c.get(path).json
+    assert not exhausted['retry_available']
+    assert post(c,path+'/retry',{'revision':exhausted['revision']},csrf).status_code == 409
 
 
-def test_atomic_claim_expiry_cancel_and_stale_worker_fencing(teaching):
+def test_atomic_claim_expiry_cancel_and_stale_worker_fencing(teaching, monkeypatch):
+    monkeypatch.setattr('club.teaching_provider.configured', lambda: True)
     c = teaching.test_client(); csrf = login(c, 'editor')
     job = upload(c,csrf).json; path = '/api/teaching/jobs/'+job['id']
     def claim():
@@ -129,3 +141,26 @@ def test_additive_migration_preserves_baseline(teaching):
         assert db.execute('PRAGMA user_version').fetchone()[0] == 6
         assert db.execute('SELECT COUNT(*) FROM lessons').fetchone()[0] == count
     assert len(list(Path(teaching.config['DATABASE']).parent.glob('*.before-teaching-*.sqlite'))) == 2
+
+def test_readiness_and_unknown_outcome_survive_unavailable_retry(teaching, monkeypatch):
+    for name in ('CLUB_AI_APPROVED', 'CLUB_AI_API_KEY', 'CLUB_AI_MODEL'):
+        monkeypatch.delenv(name, raising=False)
+    c = teaching.test_client(); csrf = login(c, 'editor')
+    capabilities = c.get('/api/teaching/capabilities').json
+    assert capabilities['missing_configuration'] == ['CLUB_AI_APPROVED', 'CLUB_AI_API_KEY', 'CLUB_AI_MODEL']
+    job = upload(c, csrf).json; path = '/api/teaching/jobs/' + job['id']
+    with sqlite3.connect(teaching.config['DATABASE']) as db:
+        db.execute("UPDATE teaching_jobs SET state='failed',attempt=1,error_code='provider_outcome_unknown'")
+    failed = c.get(path).json
+    assert failed['requires_charge_acknowledgement'] and not failed['retry_available']
+    assert post(c,path+'/retry',{'revision':failed['revision'],'acknowledge_possible_charge':True},csrf).status_code == 409
+    assert c.get(path).json == failed
+    # Readiness restoration permits an explicit retry, never an automatic charge.
+    monkeypatch.setenv('CLUB_AI_APPROVED', '1')
+    monkeypatch.setenv('CLUB_AI_API_KEY', 'test-only-never-called')
+    monkeypatch.setenv('CLUB_AI_MODEL', 'test-only-never-called')
+    restored = c.get(path).json
+    assert restored['processing_available'] and restored['retry_available']
+    assert restored['missing_configuration'] == []
+    assert post(c,path+'/retry',{'revision':failed['revision']},csrf).status_code == 409
+    assert post(c,path+'/retry',{'revision':failed['revision'],'acknowledge_possible_charge':True},csrf).status_code == 200

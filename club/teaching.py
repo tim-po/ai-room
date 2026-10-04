@@ -23,6 +23,7 @@ FORMATS = {'.txt': 'text/plain', '.md': 'text/plain', '.wav': 'audio/wav',
 LIMIT = 25 * 1024 * 1024
 TEXT_LIMIT = 200 * 1024
 MAX_ATTEMPTS = 3
+UNKNOWN_OUTCOMES = ('interrupted_outcome_unknown', 'cancelled_outcome_unknown', 'provider_outcome_unknown')
 
 
 def source_metadata(path, suffix, digest):
@@ -56,6 +57,7 @@ def record_event(db, job_id):
 
 def claim_job(db, *, now=None):
     """Atomic claim; expired work needs explicit retry because a charge may exist."""
+    from .teaching_provider import processing_available
     now = int(time.time()) if now is None else now
     with db:
         db.execute('BEGIN IMMEDIATE')
@@ -66,6 +68,15 @@ def claim_job(db, *, now=None):
             record_event(db, row[0])
         row = db.execute("SELECT id FROM teaching_jobs WHERE state='queued' AND attempt<? ORDER BY created_at,id LIMIT 1", (MAX_ATTEMPTS,)).fetchone()
         if not row:
+            return None
+        if not processing_available():
+            # No lease or attempt is consumed when no provider request can begin.
+            waiting = db.execute("SELECT id FROM teaching_jobs WHERE state='queued'").fetchall()
+            for pending in waiting:
+                db.execute("""UPDATE teaching_jobs SET state='blocked',
+                    error_code='provider_approved_configuration_required', revision=revision+1,
+                    updated_at=CURRENT_TIMESTAMP WHERE id=?""", (pending[0],))
+                record_event(db, pending[0])
             return None
         token = uuid.uuid4().hex
         db.execute("""UPDATE teaching_jobs SET state='running',attempt=attempt+1,revision=revision+1,
@@ -123,6 +134,11 @@ def register_teaching(app, db, query):
             'SELECT upload_id FROM teaching_package_sources WHERE job_id=? ORDER BY position', (row['id'],))] or [row['upload_id']]
         draft = query('SELECT MAX(revision) revision FROM teaching_drafts WHERE job_id=?', (row['id'],), True)
         value['draft_revision'] = draft['revision']
+        value.update(readiness())
+        value['requires_charge_acknowledgement'] = row['error_code'] in UNKNOWN_OUTCOMES
+        value['retry_available'] = (processing_available() and row['state'] in ('blocked','failed','cancelled')
+                                    and row['attempt'] < MAX_ATTEMPTS
+                                    and row['error_code'] not in ('included_in_package', 'awaiting_package'))
         return value
 
     @app.cli.command('init-teaching')
@@ -136,7 +152,7 @@ def register_teaching(app, db, query):
         storage()
         click.echo('Private uploads and jobs ready; backup: ' + str(backup))
 
-    from .teaching_provider import configured
+    from .teaching_provider import configured, readiness, processing_available
 
     @app.get('/api/teaching/capabilities')
     @editor
@@ -144,7 +160,8 @@ def register_teaching(app, db, query):
         return jsonify(extensions=list(FORMATS), max_file_bytes=app.config['TEACHING_UPLOAD_LIMIT'],
                        max_text_bytes=TEXT_LIMIT, max_attempts=MAX_ATTEMPTS, url_import=False,
                        processing_available=configured(), processing_dependency=None if configured() else 'CLUB_AI_APPROVED,CLUB_AI_API_KEY,CLUB_AI_MODEL',
-                       source_packages=True, max_package_files=5, draft_schema_version=1)
+                       source_packages=True, max_package_files=5, draft_schema_version=1,
+                       missing_configuration=readiness()['missing_configuration'])
 
     @app.post('/api/teaching/uploads')
     @editor
@@ -241,12 +258,14 @@ def register_teaching(app, db, query):
             row = owned_job(id)
             if row['revision'] != body['revision']:
                 abort(409, 'Задание изменилось. Обновите его состояние.')
-            if row['error_code'] == 'included_in_package':
+            if row['error_code'] == 'included_in_package' or (row['error_code'] == 'awaiting_package' and action == 'retry'):
                 abort(409, 'Источник обрабатывается в составе пакета.')
             if action == 'retry':
                 if row['state'] not in ('blocked','failed','cancelled') or row['attempt'] >= MAX_ATTEMPTS:
                     abort(409, 'Повтор сейчас недоступен.')
-                if row['error_code'] in ('interrupted_outcome_unknown', 'cancelled_outcome_unknown', 'provider_outcome_unknown') and body.get('acknowledge_possible_charge') is not True:
+                if not processing_available():
+                    return jsonify(error='provider_approved_configuration_required', job=dto(row)), 409
+                if row['error_code'] in UNKNOWN_OUTCOMES and body.get('acknowledge_possible_charge') is not True:
                     abort(409, 'Исход предыдущей обработки неизвестен; подтвердите возможный повторный расход.')
             elif row['state'] == 'ready':
                 abort(409, 'Обработка уже завершена.')
