@@ -57,6 +57,12 @@
     const form=el('form');
     data.items.forEach((item,index)=>{
       const fieldset=el('fieldset',null,'challenge-question');fieldset.append(el('legend',`${index+1}. ${item.prompt}${data.thresholds.critical_required.includes(item.id)?' · Обязательный вопрос':''}`));
+      if(typeof item.case?.text==='string' && item.case.text.trim()){
+        const context=el('section',null,'challenge-case');
+        const heading=el('h3','Учебный случай');heading.id=`case-${index}`;
+        context.setAttribute('aria-labelledby',heading.id);
+        context.append(heading,el('p',item.case.text));fieldset.append(context);
+      }
       for(const choice of item.choices){const label=el('label',null,'challenge-choice'),input=el('input');input.type='radio';input.name=item.id;input.value=choice.id;input.required=true;label.append(input,el('span',choice.text));fieldset.append(label);}
       form.append(fieldset);
     });

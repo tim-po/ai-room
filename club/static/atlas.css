@@ -96,3 +96,9 @@ body:has(.library){--bg:#101821;--panel:#1b2733;--raised:#283846;--text:#f3f3ed;
 
 .assessment-source { margin-block: 1rem; }
 .assessment-source p { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Retained assessment context is readable before the answer options. */
+.challenge-case{background:#f2eedf;color:#292e28;border-left:4px solid #bdca9a;border-radius:0 16px 16px 0;padding:20px 24px;margin:0 0 20px}
+.challenge-case h3{color:#292e28;font-size:14px;letter-spacing:.04em;margin:0 0 10px}
+.challenge-case p{color:#292e28;white-space:pre-wrap;overflow-wrap:anywhere;font-size:17px;line-height:1.75;margin:0}
+@media(max-width:600px){.challenge-case{padding:16px}.challenge-case p{font-size:16px;line-height:1.65}}
