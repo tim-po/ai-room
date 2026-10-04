@@ -1,1 +1,29 @@
-{% extends 'base.html' %}{% block title %}Помощь{% endblock %}{% block content %}<h1>Разберёмся вместе</h1><div class="grid home-panels"><section class="panel"><h2>Быстрые ответы</h2><details><summary>Не воспроизводится видео</summary><p>Обновите страницу и проверьте подключение. Текст урока и практика доступны ниже видео.</p></details><details><summary>Не вижу сохранённую практику</summary><p>Проверьте, что вошли в тот же аккаунт. После сохранения появляется подтверждение и время сохранения.</p></details><details><summary>Урок клуба закрыт</summary><p>Бесплатные уроки доступны всегда. Тестовый доступ участника выдаёт администратор этой среды.</p></details></section><section class="panel warm"><h2>Задать вопрос</h2>{% if lesson %}<p>К уроку: {{ lesson.title }}</p>{% endif %}{% if user %}<form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><label>Что не получается?<textarea name="body" required maxlength="4000" rows="5"></textarea></label><button class="button">Сохранить вопрос</button></form><p class="small">Вопрос появится в кабинете администратора. Срок ответа пока не установлен.</p>{% else %}<p>Войдите, чтобы сохранить вопрос для администратора.</p><a class="button" href="/login?next=/help">Войти</a>{% endif %}</section></div>{% if tickets %}<h2>Мои вопросы</h2>{% for t in tickets %}<article class="panel"><p class="preserve">{{ t.body }}</p><span class="small">Вопрос №{{ t.id }} · {{ t.created_at }} UTC · {{ 'Открыт' if t.status=='open' else t.status }}</span></article>{% endfor %}{% endif %}{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Помощь{% endblock %}
+{% block content %}
+<div class="help-workspace">
+<header class="help-heading"><span class="eyebrow">Рядом с обучением</span><h1>Разберёмся вместе</h1><p>Найдите быстрый ответ или оставьте вопрос. Вернуться к переписке можно здесь.</p></header>
+<div class="grid home-panels">
+<section class="panel"><h2>Быстрые ответы</h2>
+<details><summary>Не воспроизводится видео</summary><p>Обновите страницу и проверьте подключение. Текст урока и практика доступны ниже видео.</p></details>
+<details><summary>Не вижу сохранённую практику</summary><p>Проверьте, что вошли в тот же аккаунт. После сохранения появляется подтверждение и время сохранения.</p><a href="/profile">Открыть моё обучение →</a></details>
+<details><summary>Урок клуба закрыт</summary><p>Бесплатные уроки доступны всегда. Тестовый доступ участника выдаёт администратор этой среды. Если доступ истёк, сохранённые работы остаются в аккаунте.</p></details>
+</section>
+<section class="panel warm"><h2>Задать вопрос</h2>{% if lesson %}<p>К уроку: {{ lesson.title }}</p>{% endif %}
+{% if user %}<form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><label>Что не получается?<textarea name="body" required maxlength="4000" rows="5" aria-describedby="help-privacy"></textarea></label><p class="small" id="help-privacy">Не добавляйте пароли и другие секретные данные.</p><button class="button">Сохранить вопрос</button></form><p class="small">Вопрос появится у администратора, ответ — на этой странице. Срок ответа пока не установлен.</p>
+{% else %}<p>Войдите, чтобы сохранить вопрос для администратора и прочитать ответ.</p><a class="button" href="/login?next=/help">Войти</a>{% endif %}
+</section></div>
+{% if user %}
+<section class="help-history" aria-labelledby="help-history-title">
+<div class="help-history-heading"><h2 id="help-history-title">Мои вопросы</h2>{% if tickets %}<button type="button" class="button secondary" id="support-refresh" hidden>Обновить ответы</button>{% endif %}</div>
+{% if tickets %}<p id="support-status" role="status" aria-live="polite"></p><noscript><p>Чтобы загрузить ответы администратора, включите JavaScript. Ваши вопросы сохранены.</p></noscript>
+{% for t in tickets %}<article class="help-ticket" data-help-ticket="{{ t.id }}" aria-labelledby="ticket-title-{{ t.id }}">
+<header><h3 id="ticket-title-{{ t.id }}">Вопрос №{{ t.id }}</h3><span class="help-ticket-state">{{ 'Ответ записан' if t.status == 'handled' else 'Ожидает ответа' if t.status == 'open' else 'Статус уточняется' }}</span></header>
+<p class="small">{{ t.created_at }} UTC</p><p class="preserve help-question">{{ t.body }}</p>
+<div class="help-answer" hidden><h4>Ответ администратора</h4><p class="preserve help-answer-body"></p><p class="small help-answer-time"></p><p class="small">Если вопрос остался, отправьте новый и укажите номер этого вопроса.</p></div>
+</article>{% endfor %}
+<script defer src="{{ url_for('static', filename='support.js') }}"></script>
+{% else %}<p>Здесь появятся ваши вопросы и ответы администратора. Если нужна помощь с уроком, откройте помощь из этого урока — его название добавится к вопросу.</p>{% endif %}
+</section>{% endif %}
+</div>
+{% endblock %}
