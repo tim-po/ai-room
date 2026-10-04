@@ -89,7 +89,8 @@
         return true;
       } catch(error) {
         targetStatus.textContent=error.message+' Ваш выбор остаётся на экране. Повторите сохранение.';
-        targetStatus.tabIndex=-1;targetStatus.focus();
+        targetStatus.tabIndex=-1;targetStatus.focus({preventScroll:true});
+        targetStatus.scrollIntoView({block:'center',behavior:'instant'});
         return false;
       } finally {
         saving=false;next.disabled=false;save.disabled=false;
