@@ -69,16 +69,45 @@
       label.append(input,el('span',branch.title));options.append(label);
     }
     const first=document.querySelector('#interest-step'),second=document.querySelector('#pace-step');
-    const next=document.querySelector('#interest-next');next.disabled=false;next.onclick=()=>{first.hidden=true;second.hidden=false;second.querySelector('legend').focus();};
-    document.querySelector('#interest-back').onclick=()=>{second.hidden=true;first.hidden=false;next.focus();};
-    status.textContent='Интересы можно менять: результаты обучения сохранятся.';
+    const next=document.querySelector('#interest-next'),save=document.querySelector('#interest-save');
+    const message=document.querySelector('#interest-save-status');
+    const branchIds=new Set(graph.nodes.filter(n=>n.kind==='branch').map(n=>n.id));
+    let saving=false;
+    async function saveInterests(targetStatus) {
+      if(saving)return false;
+      saving=true;next.disabled=true;save.disabled=true;
+      const inputs=[...options.querySelectorAll('input')];
+      const selected=inputs.filter(n=>n.checked).map(n=>n.value);
+      inputs.forEach(n=>n.disabled=true);
+      targetStatus.textContent='Сохраняем интересы…';
+      try {
+        // Preserve current deeper interests that this branch-only editor does not expose.
+        const current=await api('/api/skills/me');
+        const result=await api('/api/skills/interests',{node_ids:[...current.interests.filter(id=>!branchIds.has(id)),...selected]});
+        me.interests=result.interests;
+        targetStatus.textContent='Интересы сохранены в аккаунте. Результаты обучения не изменились.';
+        return true;
+      } catch(error) {
+        targetStatus.textContent=error.message+' Ваш выбор остаётся на экране. Повторите сохранение.';
+        targetStatus.tabIndex=-1;targetStatus.focus();
+        return false;
+      } finally {
+        saving=false;next.disabled=false;save.disabled=false;
+        inputs.forEach(n=>n.disabled=false);
+      }
+    }
+    next.disabled=false;
+    next.onclick=async()=>{
+      if(!await saveInterests(status))return;
+      first.hidden=true;second.hidden=false;
+      message.textContent='Интересы сохранены. Теперь можно настроить удобный темп.';
+      second.querySelector('legend').focus();
+    };
+    document.querySelector('#interest-back').onclick=()=>{if(saving)return;second.hidden=true;first.hidden=false;first.querySelector('legend').focus();};
+    status.textContent='Интересы сохранятся при нажатии «Сохранить интересы и продолжить».';
     document.querySelector('#interest-form').onsubmit=async event=>{
-      event.preventDefault();const save=document.querySelector('#interest-save'),message=document.querySelector('#interest-save-status');save.disabled=true;message.textContent='Сохраняем интересы…';
-      // Preserve deeper interests that this branch-only editor does not expose.
-      const branchIds=new Set(graph.nodes.filter(n=>n.kind==='branch').map(n=>n.id));
-      const selected=[...options.querySelectorAll('input:checked')].map(n=>n.value);
-      try {await api('/api/skills/interests',{node_ids:[...me.interests.filter(id=>!branchIds.has(id)),...selected]});event.target.submit();}
-      catch(error){message.textContent=error.message;save.disabled=false;}
+      event.preventDefault();
+      if(await saveInterests(message)){save.disabled=true;event.target.submit();}
     };
   }
   async function load(){try{const [graph,me]=await Promise.all([api('/api/skills/graph'),api('/api/skills/me')]);if(root.dataset.development==='character')character(graph,me);else interests(graph,me);}catch(error){status.replaceChildren(el('span',error.message+' '));const retry=el('button','Повторить');retry.onclick=load;status.append(retry);}}

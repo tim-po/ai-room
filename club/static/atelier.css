@@ -12,3 +12,9 @@ body.learner-surface:has(.lesson-layout) .breadcrumb{color:#245646}.learner-surf
 @media(min-width:801px){.learner-surface .atlas-heading{margin-bottom:16px}.learner-surface .atlas h1{font-size:36px}.learner-surface .resume-strip{padding:18px 24px;margin:16px 0 10px}.learner-surface .atlas-workspace{height:460px;min-height:460px}.learner-surface .spatial-stage{min-height:0}.learner-surface .atlas .spatial-node{min-height:106px;padding:8px!important}.learner-surface .atlas-toolbar{margin-top:16px}.learner-surface .atlas .atlas-welcome{margin:10px 0}.learner-surface .atlas .map-breadcrumb:empty{height:16px}.learner-surface .atlas .spatial-stage{height:calc(100% - 24px)}}
 .learner-surface .club-header{flex-wrap:wrap}.learner-surface .club-header nav{flex-wrap:wrap}.learner-surface .shell main{container-type:inline-size}
 @container (max-width:800px){.learner-surface .lesson-layout{grid-template-columns:minmax(0,1fr);gap:20px}.learner-surface .lesson-sidebar{order:-1;border-left:0;border-bottom:1px solid var(--line);padding:0}.learner-surface .lesson-content h1{font-size:32px}.learner-surface .resource{flex-direction:column}.learner-surface .actions{flex-wrap:wrap}.learner-surface .actions .button{max-width:100%}}
+
+/* Preferences: keep optional exits subordinate to the saved next action. */
+.learner-surface .onboarding button.secondary{background:transparent;color:#245646;border-color:#899182}
+.learner-surface .onboarding button.secondary:hover{background:#e8ecdf}
+.learner-surface .onboarding [role=status]{scroll-margin-block:28px}
+.learner-surface .shell>footer{color:var(--muted)}
