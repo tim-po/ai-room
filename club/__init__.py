@@ -180,39 +180,32 @@ def create_app(config=None):
         session.clear()
         return redirect(url_for('home'))
 
+    def continuation_context():
+        from .continuation import learning_continuation
+        return learning_continuation(query, g.user)
+
     @app.get('/')
     def home():
         courses = cards()
         goal = g.user['goal'] if g.user else 'essentials'
         course = next((c for c in courses if c['goal'] == goal), courses[0] if courses else None)
-        next_lesson = None
-        if g.user:
-            recent = query('''SELECT v.lesson_id FROM lesson_visits v JOIN lessons l ON l.id=v.lesson_id
-                JOIN progress p ON p.lesson_id=v.lesson_id AND p.user_id=v.user_id
-                JOIN modules m ON l.module_id=m.id JOIN courses c ON c.id=m.course_id
-                WHERE v.user_id=? AND p.completed=0 AND l.status='published' AND c.status='published'
-                AND (l.access='free' OR ?='member' OR ? IN ('editor','admin'))
-                ORDER BY v.visit_order DESC LIMIT 1''', (g.user['id'], g.user['entitlement'], g.user['role']), True)
-            if recent:
-                next_lesson = get_lesson(recent['lesson_id'])
-                course = next(c for c in courses if c['id'] == next_lesson['course_id'])
+        continuation = continuation_context()
+        unfinished = continuation['unfinished']
+        next_lesson = get_lesson(unfinished['lesson_id']) if unfinished else None
         route = selected_route()
-        if route:
-            floor = query('SELECT visit_floor FROM route_selections WHERE user_id=?', (g.user['id'],), True) if g.user else None
-            recent_order = query('SELECT visit_order FROM lesson_visits WHERE user_id=? AND lesson_id=?',
-                                 (g.user['id'], next_lesson['id']), True) if g.user and next_lesson else None
-            if next_lesson and (next_lesson['id'] not in {step['id'] for step in route['steps']} or
-                                (floor and recent_order and recent_order['visit_order'] <= floor['visit_floor'])):
-                next_lesson = None
-            if not next_lesson:
-                next_lesson = route['next_step']
-            if next_lesson:
-                course = next(c for c in courses if c['id'] == next_lesson['course_id'])
+        if not next_lesson and route:
+            candidate = route['next_step']
+            if candidate and can_access(candidate):
+                next_lesson = candidate
         elif not next_lesson and course:
             next_lesson = next((l for l in lesson_list(course['id']) if not l['completed'] and can_access(l)), None)
-        started = bool(g.user and next_lesson and query('SELECT 1 FROM lesson_visits WHERE user_id=? AND lesson_id=?', (g.user['id'],next_lesson['id']), True))
+        if next_lesson:
+            # Course fallback rows do not carry course_id; retained work and route rows do.
+            if 'course_id' in next_lesson.keys():
+                course = next(c for c in courses if c['id'] == next_lesson['course_id'])
+        started = bool(unfinished)
         saved = query('SELECT COUNT(*) n FROM practice WHERE user_id=?', (g.user['id'],), True)['n'] if g.user else 0
-        return render_template('home.html', courses=courses, course=course, next_lesson=next_lesson, saved=saved, route=route, started=started, weekly=weekly_completed())
+        return render_template('home.html', continuation=continuation, courses=courses, course=course, next_lesson=next_lesson, saved=saved, route=route, started=started, weekly=weekly_completed())
 
     @app.get('/catalogue')
     def catalogue():
@@ -424,7 +417,7 @@ def create_app(config=None):
         completed_courses = [c for c in learning if c['total'] and c['done'] == c['total']]
         active_courses = [c for c in learning if c not in completed_courses]
         material_favourites = query('''SELECT m.id,m.title,m.format,m.access FROM material_favourites f JOIN materials m ON m.id=f.material_id WHERE f.user_id=? AND m.status='published' ''', (g.user['id'],))
-        return render_template('profile.html', material_favourites=material_favourites, active_courses=active_courses, completed_courses=completed_courses, practices=practices, favourites=favourites, weekly=weekly_completed(), route=selected_route())
+        return render_template('profile.html', continuation=continuation_context(), material_favourites=material_favourites, active_courses=active_courses, completed_courses=completed_courses, practices=practices, favourites=favourites, weekly=weekly_completed(), route=selected_route())
 
     @app.route('/help', methods=['GET', 'POST'])
     def help_page():
