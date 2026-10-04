@@ -5,7 +5,7 @@ from test_learning import app, login, post, FREE
 
 
 def hero(client):
-    return re.search(r'<a class="atlas-continue"(.*?)</a>',client.get('/').text,re.S).group(1)
+    return re.search(r'<section class="resume-strip".*?<a class="button"(.*?)</a>',client.get('/').text,re.S).group(1)
 
 
 def form(revision='1', **overrides):

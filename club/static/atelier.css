@@ -69,3 +69,5 @@ body.learner-surface:has(.onboarding) .shell main{container-type:normal;padding-
 }
 @media(max-width:800px){.learner-surface .onboarding fieldset:has(input[name=minutes]){grid-template-columns:1fr 1fr}}
 @media(min-width:600px) and (max-width:800px){.learner-surface .onboarding fieldset{grid-template-columns:1fr 1fr}}
+
+.last-result{margin:18px 0;padding:0 0 16px;border-bottom:1px solid var(--line)}.last-result .eyebrow{margin:0 0 6px}.last-result p{margin:0;overflow-wrap:anywhere}.last-result span{display:block;font-size:13px;color:var(--muted);margin-top:6px}.latest-work>div{min-width:0}.latest-work h2,.resume-strip h2{overflow-wrap:anywhere}
