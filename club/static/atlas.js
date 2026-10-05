@@ -29,6 +29,11 @@
     return r.json();
   }
   function family(id) { return id.split('.')[0]; }
+  function lessonUrl(lessonId, nodeId) {
+    const context = new URLSearchParams({node:nodeId,view:list?'list':'map'});
+    if(search.value) context.set('q',search.value);
+    return '/lessons/'+encodeURIComponent(lessonId)+'?'+context;
+  }
   function evidenceLabel(coverage, fallback) {
     if(coverage?.verified)return `✓ Понимание подтверждено: ${coverage.verified} из ${coverage.eligible}`;
     if(coverage?.application_verified)return '✓ Применение подтверждено · понимание '+(coverage.assessed?'пока не подтверждено':'ещё не проверено');
@@ -47,6 +52,8 @@
     b.onclick=()=>choose(node.id); return b;
   }
   function render() {
+    document.querySelector('#map-view').setAttribute('aria-pressed',String(!list));
+    document.querySelector('#list-view').setAttribute('aria-pressed',String(list));
     map.replaceChildren(); map.classList.toggle('as-list',list); map.classList.remove('sparse-map');
     const q=search.value.trim().toLocaleLowerCase('ru');
     if(q) {
@@ -107,7 +114,7 @@
       body.append(el('p',evidenceLabel(coverage,'Понимание ещё не проверено'),'evidence-label'));
       if(data.readiness.length){const ready=el('details');ready.append(el('summary','Что поможет начать'));for(const edge of data.readiness)ready.append(el('p',`Будет полезно: ${names.get(edge.source)?.title}. Это рекомендация, не ограничение.`));body.append(ready);}
       if((children.get(id)||[]).length){const more=el('details');more.append(el('summary','Навыки этого раздела'));for(const child of children.get(id))more.append(button(names.get(child)));body.append(more);}
-      if(data.content.length) for(const lesson of data.content){const a=el('a',`${lesson.title} · ${lesson.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href='/lessons/'+encodeURIComponent(lesson.id)+'?'+new URLSearchParams({node:id});body.append(a);}
+      if(data.content.length) for(const lesson of data.content){const a=el('a',`${lesson.title} · ${lesson.access==='free'?'Бесплатно':'Для участников'}`,'resource-link');a.href=lessonUrl(lesson.id,id);body.append(a);}
 
       for(const pending of data.pending_attempts||[]){const a=el('a','Продолжить начатую проверку →','resource-link');a.href='/challenges?'+new URLSearchParams({node:pending.node_id,attempt:pending.id});body.append(a);}
       if(data.latest_completed_attempt){const saved=data.latest_completed_attempt,a=el('a','Сохранённый разбор →','resource-link');a.href='/challenges?'+new URLSearchParams({node:saved.node_id,attempt:saved.id});body.append(a);}
@@ -122,7 +129,7 @@
         const descendants=[];function collect(parent){for(const child of children.get(parent)||[]){if(names.get(child).kind==='ability')descendants.push(child);collect(child);}}collect(id);
         const related=await Promise.all(descendants.slice(0,12).map(child=>api('/api/skills/nodes/'+encodeURIComponent(child))));if(seq!==detailSequence)return;
         const available=related.filter(d=>d.content.length||d.assessments.length).slice(0,3);
-        if(available.length){const section=el('section');section.append(el('h3','Начать с навыка'));for(const d of available){const group=el('div');group.append(el('strong',d.node.title));if(d.content[0]){const a=el('a','Изучить →','resource-link');a.href='/lessons/'+encodeURIComponent(d.content[0].id)+'?'+new URLSearchParams({node:d.node.id});group.append(a);}if(d.assessments[0]){const a=el('a',d.assessments[0].pending_attempt?'Продолжить проверку →':d.assessments[0].start_mode==='practice'?'Тренировка · без нового зачёта →':'Проверить понимание →','resource-link');a.href='/challenges?'+new URLSearchParams({node:d.node.id,assessment:d.assessments[0].id});group.append(a);}section.append(group);}body.append(section);}
+        if(available.length){const section=el('section');section.append(el('h3','Начать с навыка'));for(const d of available){const group=el('div');group.append(el('strong',d.node.title));if(d.content[0]){const a=el('a','Изучить →','resource-link');a.href=lessonUrl(d.content[0].id,d.node.id);group.append(a);}if(d.assessments[0]){const a=el('a',d.assessments[0].pending_attempt?'Продолжить проверку →':d.assessments[0].start_mode==='practice'?'Тренировка · без нового зачёта →':'Проверить понимание →','resource-link');a.href='/challenges?'+new URLSearchParams({node:d.node.id,assessment:d.assessments[0].id});group.append(a);}section.append(group);}body.append(section);}
       }
       if(atlas.dataset.authenticated==='yes') { try {await api('/api/skills/explore',{node_id:id});}catch(e){body.append(el('p','Не удалось сохранить исследование. '+e.message));} }
       else {const a=el('a','Войти и сохранять своё развитие →');a.href='/login';body.append(a);}

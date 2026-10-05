@@ -10,7 +10,10 @@
     const lesson = decodeURIComponent(location.pathname.split('/').pop());
     if (!data.content.some(item => item.id === lesson)) return;
     link.textContent = '← ' + data.node.title;
-    link.href = '/?' + new URLSearchParams({node});
+    const source = new URL(location).searchParams;
+    const context = new URLSearchParams({node,view:source.get('view')==='list'?'list':'map'});
+    if(source.get('q')) context.set('q',source.get('q'));
+    link.href = '/?' + context;
     link.hidden = false;
   } catch (_) { /* The course breadcrumb remains available offline. */ }
 })();
