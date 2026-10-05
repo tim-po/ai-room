@@ -1,0 +1,77 @@
+AI Room — visual identity and learner experience
+
+Shared delivery requirements
+
+Provenance
+
+Copied from education-platform-for-people-learning on 2026-10-04 following owner rejection of current visual quality. Original loop and artifacts remain unchanged. Read /home/claude/bot-swarm/data/_loops/education-platform-for-people-learning/product-brief.json and /home/claude/bot-swarm/data/_loops/education-platform-for-people-learning/manager-loop-policy.json for historical capabilities and boundaries, plus /home/claude/bot-swarm/data/_loops/education-platform-for-people-learning/finish-report.md and /home/claude/bot-swarm/data/_loops/_output/education-platform-for-people-learning/deliverables/skill-tree-r2/current-direction.json for actual unfinished work. This brief's new owner contract and role scope supersede historical presentation decisions, stale status, reviewer scheduling restrictions and parent/child authority. Do not copy an old complete verdict.
+
+Preparation
+
+SAVE ONLY during preparation. Owner starts each new loop. These are two peer loops, not automatically launched children. Do not start the other loop or create successors to consume more turns. Once started, implement the scoped product, test it and deliver staging under the coordination rules.
+
+Baseline
+
+At preparation: public staging https://airoom.nolimlabs.uk/ health reports dae021716ac92abe5fdf1253093f82ac8f3f3286. Pending bc4ba3c1f2eed39e42f611836d6990acf7b0a62d is at /home/claude/ai-room-pending-review; /home/claude/ai-room is historical first iteration, accepted application bc700c5762f559a68b7c1caf9ad297ea29020e97. Reverify actual git/health state at execution. First iteration and Orbit/Campus prototypes are starting references, not accepted final aesthetics. Retain useful second-iteration graph/data/backend capabilities without preserving its rejected visuals. Do not reset installed data or blindly deploy pending unreviewed content.
+
+Coordination
+
+Create isolated worktrees in /home/claude, obey repository AGENTS.md, record exact base SHA, file ownership and API/schema contract before edits. No application source in swarmdev. Default execution is UI loop first, backend/admin loop second, rebased onto the UI accepted handoff. If owner starts both, managers must agree disjoint ownership and one staging deployment owner in a shared durable coordination record before writes/integration. UI owns learner templates/styles/JS/art and minimal learner route adapters; backend owns engine/schema/jobs/admin routes and admin-only templates/styles. Global tokens, auth, shared routes, dependencies and migrations require an explicit ownership transfer. No concurrent staging deployment; backend integration must preserve approved learner UI and rerun affected visual journeys.
+
+Boundaries
+
+Independent new platform only. Preserve IDs, content, accounts, entitlements, completions, attempts, evidence, saved practice, media and prototypes. Production/old live site untouched. No live billing, production migration, new paid commitments or third-party messages. Credentials never enter output. Use approved synthetic or rights-cleared teaching assets; label fixtures. No fake mastery, learner counts, testimonials or retention claims.
+
+Acceptance
+
+Maintain requirement-to-evidence matrix with pass/fail/unverified. Every review records exact app SHA, content/graph version or manifest, URL, browser/viewport and tested states. Reviewer must examine actual browser-rendered app and open screenshots, not only create screenshot files. Builder tests and manager opinions do not substitute for independent reviewers. Material visual/usability or semantic failures block acceptance; do not demote them to optional polish. Budget exhaustion is incomplete, never success.
+
+Scheduling
+
+Reserve at least the final third of MAIN collective turns for independent reviews, fixes and rechecks; do not defer required reviews to builder-only wind-down. Manager tracks remaining turns before every expansion and narrows speculative work first. The explicit main stepOrder includes early review, complete-product review, correction, staged review, correction and staged recheck. Reviewers act on their first scheduled turn, even if only reporting blockers. If engine cannot schedule required reviews, report the engine dependency and incomplete verdict immediately; stop repeating tests/docs as substitute work.
+
+Loop requirements
+
+Mission
+
+Manufacture the product feel: deliver a beautiful, comprehensive Russian-first educational platform with a distinctive identity, effortless onboarding and useful reasons to return. Owner says current UI looks really bad and onboarding is not visible. Treat that as a product failure requiring substantial redesign. Deliver working connected learner UI, not research-only reports, static mockups, a tree-only reskin or another dashboard of generic cards.
+
+Research
+
+Before design selection, browse and inspect at least five relevant education products spanning guided practice, technical skill development and course learning (examples to investigate, not endorsed claims: Duolingo, Brilliant, Khan Academy, Codecademy, Coursera). Document source URLs, access dates, screenshots where accessible, onboarding/first-value/lesson/feedback/return patterns and limitations. Use primary product documentation and primary learning-science studies for factual claims. Separate observed UI patterns, marketing claims, causal evidence and hypotheses; do not invent conversion or retention data. Use available anonymized platform analytics only with cohort/window/fixture caveats. Turn each selected insight into a concrete design decision and acceptance task; research must change the product.
+
+Identity
+
+Art director must produce two genuinely distinct visual directions rendered as working HTML views with realistic Russian content, each including welcome/onboarding, skill map and lesson at desktop/mobile. Independently critique them, choose and record one before broad rollout. Define loaded Cyrillic fonts, typography scale, spacing, composition, color, illustration/art direction, icon system, branch/node language, focus, motion and responsive behavior. Use first-iteration strengths and Orbit/Campus as references, not copy-paste. Intentional crafted surfaces, clear hierarchy and purposeful art must replace generic empty panels, dense metadata and repeated placeholder glyphs. A coherent learner product takes priority over map decoration.
+
+Learner scope
+
+- Welcome and sign-in/access states with a clear product promise and obvious first action; new signed-in learner actually encounters onboarding automatically. Existing learner has a visible restart/edit entry. Demonstrate with genuinely fresh accounts, not only direct /onboarding links.
+
+- Short multi-step Russian onboarding: welcome/value, optional multiple interests, experience and time, optional diagnostic, personalized but nonexclusive start and first achievable activity. Skip, back, resume after refresh/logout, edit preferences and returning states must work and persist server-side. No mandatory class, single route or questionnaire disguised as a settings page.
+
+- Central inviting skill map: one Basic AI Knowledge root, Coding with AI, AI Teams, Content Creation, Automation, Agents; recursive sibling subbranches, progressive disclosure, legible branch art and spatial relationships, search/recenter, keyboard/touch controls, synchronized list, concise node detail and mobile context preservation. Many simultaneous interests/progress; readiness distinct from membership.
+
+- Complete supporting surfaces: discover/search/filter, realistic long course curriculum, readable video/text lesson with materials/practice and resume, challenge entry/questions/results/source explanations, character/profile with evidence and unknown states, saved work/favorites, help, preferences and account/access recovery. Retain existing baseline functions; tree must connect to actual learning.
+
+- Design the complete first useful result: discover ability -> learn/practice -> meaningful feedback -> save progress -> clear next action. Design interrupted session, return next day, completed unit, weak/partial result, multi-branch exploration and return after long absence.
+
+- Retention through useful progress, achievable practice, timely feedback, continuity and optional flexible goals. Use evidence-backed retrieval/spaced-review patterns where existing reviewed content supports them. No punitive streaks, fabricated urgency, addictive friction, leaderboards or forced specialization. New grading algorithms belong to backend loop; UI cannot manufacture competence.
+
+- Comprehensive loading/empty/offline/error/forbidden/expired/unpublished/media failure and assessment-unknown states. Useful concise copy and real recovery actions. No dead-end demo controls.
+
+Onboarding acceptance
+
+Fresh synthetic novice completes or skips onboarding, chooses at least two interests, reaches a permitted first activity without developer instructions, saves first practical result, signs out/in and sees the correct continuation. Experienced learner can skip and challenge a topic; interrupted onboarding resumes; returning learner can edit interests without resetting learning. Record actual headless Chromium journeys, screen sequence and task observations. Agent walkthroughs must be labelled expert/simulated evaluations, never real human usability studies.
+
+Visual gate
+
+Use actual headless Chromium (Playwright or equivalent) against running app at 360,390,768,1440 widths. Capture durable baseline and final full-page AND task/viewport screenshots of welcome/onboarding steps, map overview/selection/deep branch/list/mobile detail, discovery/course, video/text lesson/practice, challenge/feedback, profile empty/uneven strengths, return and error states. Reviewers OPEN and visually inspect images and interact with app. Compare to selected benchmark for identity, composition, hierarchy, typography, imagery, density, orientation and perceived finish. Record concrete failures with screenshot paths and expected corrections. Pixel diffs/contrast/no-overflow/HTTP checks are supplemental. Test keyboard focus, touch alternatives, reduced motion, 200% zoom and long Cyrillic text. All critical journeys and surfaces must pass explicit design and task acceptance; a numeric average cannot hide a failing core screen.
+
+Measurement
+
+Define and implement minimal privacy-preserving events for onboarding exposure/step/skip/completion, first meaningful activity/result, lesson resume, feedback and meaningful return, coordinating backend ownership. Report activation, funnel drop-off, time-to-first-result and cohort D1/D7 meaningful learning return with explicit denominators and windows. Synthetic smoke data validates instrumentation only. Propose measurable retention hypotheses and future experiments, do not claim achieved uplift before real observation.
+
+Delivery
+
+Deliver implemented learner app, research-to-decision register, selected visual system, real onboarding, connected journeys, labeled credible teaching content, durable before/after screenshot gallery, independent visual and functional verdicts, event definitions, exact commit/content ledger, staging URL and rollback handoff. AI provider issues must not block unrelated learner visual work; explicitly carry unmet engine dependencies to backend loop. No overall platform-complete claim while those remain.

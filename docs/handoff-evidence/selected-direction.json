@@ -1,0 +1,41 @@
+{
+  "manager_turn": 3,
+  "selected": "atelier",
+  "name": "Мастерская",
+  "scope": "Visual benchmark chosen; implementation and final acceptance remain needs_work",
+  "artifact_sha256": {
+    "index.html": "dca768c40764a61cccd32a020e6663c35a846cf9c55652404c00be79686788d3",
+    "prototype.js": "0e6dae481067fde2e42e5f39fe20853de7e80cc94d4afc19b0eae06282585155",
+    "system.css": "1234a916fef069dcd9f6dfee9c434d25f1aaae657231433748c51bf8149bf525"
+  },
+  "independent_review": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/visual-critic/REVIEW.md",
+  "research": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/research/RESEARCH-DECISIONS.md",
+  "visual_system": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/art/VISUAL-SYSTEM.md",
+  "reason": "Warm paper/Golos/editorial lesson and saved-work hierarchy form a coherent first-action-to-result product. Independent critic favors A. Research informs task hierarchy, not a claim that palette improves retention.",
+  "manager_opened": [
+    "visual-critic/atelier-welcome-1440-viewport.png",
+    "visual-critic/observatory-welcome-1440-viewport.png",
+    "visual-critic/atelier-map-390-viewport.png",
+    "visual-critic/atelier-lesson-1440-viewport.png"
+  ],
+  "mandatory_corrections": [
+    "VC-04: mobile continuation illustration must be a bounded small icon, with action/search/map visible without huge decoration.",
+    "VC-05: adjacent selected detail or accessible focused sheet; real recursive sibling navigation and URL/list/search context.",
+    "VC-07: visible relationship lines and readable subtitles.",
+    "VC-08: remove prototype chrome and compress mobile course navigation.",
+    "VC-01/02/03/06: automatic persisted onboarding, saved-work-led return and one visual system across actual learner surfaces."
+  ],
+  "preserve_both_prototypes": true,
+  "research_decisions_adopted": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05",
+    "D06",
+    "D07",
+    "D08",
+    "D09"
+  ],
+  "content_limit": "Prototype and proposed first exercise are editorial examples, not published approved assessments. Use real permitted reviewed or explicitly synthetic learning content; source-grounded self-comparison is not mastery."
+}

@@ -1,0 +1,69 @@
+AI Room — backend and admin engine
+
+Shared delivery requirements
+
+Provenance
+
+Copied from education-platform-for-people-learning on 2026-10-04 following owner rejection of current visual quality. Original loop and artifacts remain unchanged. Read /home/claude/bot-swarm/data/_loops/education-platform-for-people-learning/product-brief.json and /home/claude/bot-swarm/data/_loops/education-platform-for-people-learning/manager-loop-policy.json for historical capabilities and boundaries, plus /home/claude/bot-swarm/data/_loops/education-platform-for-people-learning/finish-report.md and /home/claude/bot-swarm/data/_loops/_output/education-platform-for-people-learning/deliverables/skill-tree-r2/current-direction.json for actual unfinished work. This brief's new owner contract and role scope supersede historical presentation decisions, stale status, reviewer scheduling restrictions and parent/child authority. Do not copy an old complete verdict.
+
+Preparation
+
+SAVE ONLY during preparation. Owner starts each new loop. These are two peer loops, not automatically launched children. Do not start the other loop or create successors to consume more turns. Once started, implement the scoped product, test it and deliver staging under the coordination rules.
+
+Baseline
+
+At preparation: public staging https://airoom.nolimlabs.uk/ health reports dae021716ac92abe5fdf1253093f82ac8f3f3286. Pending bc4ba3c1f2eed39e42f611836d6990acf7b0a62d is at /home/claude/ai-room-pending-review; /home/claude/ai-room is historical first iteration, accepted application bc700c5762f559a68b7c1caf9ad297ea29020e97. Reverify actual git/health state at execution. First iteration and Orbit/Campus prototypes are starting references, not accepted final aesthetics. Retain useful second-iteration graph/data/backend capabilities without preserving its rejected visuals. Do not reset installed data or blindly deploy pending unreviewed content.
+
+Coordination
+
+Create isolated worktrees in /home/claude, obey repository AGENTS.md, record exact base SHA, file ownership and API/schema contract before edits. No application source in swarmdev. Default execution is UI loop first, backend/admin loop second, rebased onto the UI accepted handoff. If owner starts both, managers must agree disjoint ownership and one staging deployment owner in a shared durable coordination record before writes/integration. UI owns learner templates/styles/JS/art and minimal learner route adapters; backend owns engine/schema/jobs/admin routes and admin-only templates/styles. Global tokens, auth, shared routes, dependencies and migrations require an explicit ownership transfer. No concurrent staging deployment; backend integration must preserve approved learner UI and rerun affected visual journeys.
+
+Boundaries
+
+Independent new platform only. Preserve IDs, content, accounts, entitlements, completions, attempts, evidence, saved practice, media and prototypes. Production/old live site untouched. No live billing, production migration, new paid commitments or third-party messages. Credentials never enter output. Use approved synthetic or rights-cleared teaching assets; label fixtures. No fake mastery, learner counts, testimonials or retention claims.
+
+Acceptance
+
+Maintain requirement-to-evidence matrix with pass/fail/unverified. Every review records exact app SHA, content/graph version or manifest, URL, browser/viewport and tested states. Reviewer must examine actual browser-rendered app and open screenshots, not only create screenshot files. Builder tests and manager opinions do not substitute for independent reviewers. Material visual/usability or semantic failures block acceptance; do not demote them to optional polish. Budget exhaustion is incomplete, never success.
+
+Scheduling
+
+Reserve at least the final third of MAIN collective turns for independent reviews, fixes and rechecks; do not defer required reviews to builder-only wind-down. Manager tracks remaining turns before every expansion and narrows speculative work first. The explicit main stepOrder includes early review, complete-product review, correction, staged review, correction and staged recheck. Reviewers act on their first scheduled turn, even if only reporting blockers. If engine cannot schedule required reviews, report the engine dependency and incomplete verdict immediately; stop repeating tests/docs as substitute work.
+
+Loop requirements
+
+Mission
+
+Refine only the platform backend and administrative engine, building on preserved data and the UI loop handoff. Deliver reliable learning/assessment state, content lifecycle, AI-assisted teacher authoring, operational recovery and useful admin workflows. Do not redesign learner navigation, typography, art or visual identity.
+
+Engine scope
+
+- Audit existing staged and pending implementations and exact prior unresolved gates before expanding code. Integrate valuable pending work only after semantic/security review. Produce one coherent versioned API/schema contract for the UI team.
+
+- Preserve independent authentication, roles, membership/media/file authorization, CSRF, learner isolation, privacy and server-side answer keys/grading. Test direct API/storage boundaries, not merely hidden controls.
+
+- Versioned recursive competency graph: typed containment/prerequisite/cross-links, stable IDs, mappings, cycle/dangling checks, draft review/activation/rollback and compatible edition transitions. Browse all branches without forced single selection.
+
+- Persist optional onboarding, multiple interests, diagnostic resume and adaptive evidence-based recommendations; topic challenges, partial feedback, practical submissions/revisions and explicit human review of uncertain grading. Separate unknown, understanding, application and activity; prevent duplicate credit and retake farming. Preserve provenance across question/rubric/graph/score edits and withdrawals/replacements.
+
+- Simple teacher upload-first workflow: protected real browser video/material uploads -> queued processing -> real transcription/analysis -> source-grounded outcomes/existing or proposed skills/assessments/practice -> concise editable review -> learner preview -> publish. Review changes to shared taxonomy separately. Manage drafts, stale revisions, publication, withdrawal/replacement, archive, impact preview and rollback with stable content identity.
+
+- Reliable AI/jobs/storage: supported file/URL formats and limits, source prompt injection resistance, SSRF and unsafe file controls, provider timeouts, cancellation, crash/restart recovery, bounded retries/idempotency, charge/cost limits, protected source retention and provider/model provenance. Discover approved configuration by names/status only. Actual spoken-video plus material provider-backed run required; mocks cannot pass. If credentials missing, finish independent work and report exact dependency without borrowing unrelated secrets.
+
+- Admin operations: processing/draft/published queues, failure/retry visibility, graph and assessment review, learner evidence/support and privacy-safe analytics as justified by existing capabilities. Reuse accepted UI tokens with admin-only styles; essentials first, advanced options disclosed. Novice teacher completes upload/review/correction/preview/publish in headless Chromium without schema knowledge.
+
+- Meaningful activation/learning return/assessment/cross-branch/processing/publication metrics with explicit denominators, retention windows, deduplication and no sensitive text. Coordinate UI event contract; distinguish learning, competence and membership.
+
+- Additive backed-up migrations preserving installed state; documented fresh setup, process supervisor/queue restart, lease recovery, paired database/media restoration and rollback preserving later writes where compatible. No shared production actions.
+
+Learning gate
+
+Independent assessment specialist reviews actual source passages/timestamps, every newly publishable item/answer/explanation/rubric/mapping and exact hashes. Separate taught-case understanding from transfer/equivalent retakes and applied competence. Reject ambiguous, unsupported, leaked or under-covered items. Prior builder validation is not editorial approval. Do not publish unreviewed pending content just to improve coverage numbers.
+
+Testing gate
+
+Independent QA/security runs real HTTP/API and headless Chromium teacher/admin journeys on exact integrated candidate, attacks role/entitlement and cross-user boundaries, tests lifecycle/versioning/idempotency/restart/migration and real-provider failures. Record screenshots of admin review and recoverable errors; inspect images for usability, not merely overflow. Independent learning and admin product review plus QA required before final staged acceptance. Any backend change affecting learner rendering requires UI visual regression against accepted screenshots.
+
+Delivery
+
+Deliver implemented engine/admin improvements, versioned contracts, semantic content decisions, real provider-run provenance and cost limits, API/security/regression evidence, admin browser evidence, migration/restart/restore/rollback results, names-only env docs and exact staging handoff. Missing approved provider access leaves AI acceptance explicitly blocked; no fake success or indefinite builder loops.
