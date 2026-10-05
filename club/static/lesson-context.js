@@ -26,12 +26,14 @@
   if (!video || !retry || !message) return;
   let pending = false;
   let timeout;
-  const settle = (failed) => {
+  const settle = (failed, timedOut = false) => {
     pending = false;
     clearTimeout(timeout);
     retry.setAttribute('aria-busy', 'false');
     retry.setAttribute('aria-disabled', 'false');
-    message.textContent = failed
+    message.textContent = timedOut
+      ? 'Видео загружается дольше обычного. Можно повторить попытку или перейти к тексту; ваш черновик остаётся на месте.'
+      : failed
       ? 'Видео пока недоступно. Повторите загрузку или продолжите по тексту.'
       : 'Видео готово к просмотру.';
     // The shared player hides the error panel on success; preserve keyboard focus.
@@ -48,7 +50,7 @@
     retry.setAttribute('aria-busy', 'true');
     retry.setAttribute('aria-disabled', 'true');
     message.textContent = 'Загружаем видео. Ваш текст практики остаётся на месте.';
-    timeout = setTimeout(() => settle(true), 15000);
+    timeout = setTimeout(() => settle(true, true), 15000);
     video.load();
   });
   document.querySelector('#video-read')?.addEventListener('click', (event) => {
