@@ -54,6 +54,19 @@
   };
   video.addEventListener('loadstart', watchInitialLoad);
   watchInitialLoad();
+  // Metadata can arrive successfully even when playback later loses its connection.
+  video.addEventListener('waiting', () => {
+    if (pending || video.paused || video.ended) return;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => settle(true, true), 15000);
+  });
+  video.addEventListener('playing', () => {
+    settle(false);
+    if (errorPanel) errorPanel.hidden = true;
+  });
+  video.addEventListener('pause', () => {
+    if (!pending && video.readyState >= video.HAVE_METADATA) clearTimeout(timeout);
+  });
   retry.addEventListener('click', () => {
     if (pending) return;
     pending = true;
