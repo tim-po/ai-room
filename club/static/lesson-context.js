@@ -67,6 +67,11 @@
   video.addEventListener('pause', () => {
     if (!pending && video.readyState >= video.HAVE_METADATA) clearTimeout(timeout);
   });
+  // Ending a clip is a successful terminal state, not a stalled connection.
+  video.addEventListener('ended', () => {
+    settle(false);
+    if (errorPanel) errorPanel.hidden = true;
+  });
   retry.addEventListener('click', () => {
     if (pending) return;
     pending = true;
