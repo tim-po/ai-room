@@ -74,3 +74,30 @@ body.learner-surface:has(.onboarding) .shell main{container-type:normal;padding-
 
 /* Support is a readable correspondence, with the original question always retained. */
 .help-workspace{max-width:1100px;margin:auto}.help-heading{max-width:680px;margin-bottom:32px}.help-heading h1{font-size:clamp(32px,4vw,48px);margin:16px 0}.help-heading>p{font-size:18px;line-height:1.65}.help-history{margin-top:40px}.help-history-heading,.help-ticket header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.help-history-heading h2{margin:0}.help-ticket{border-top:1px solid var(--line);padding:24px 0;overflow-wrap:anywhere}.help-ticket h3{margin:0;font-size:20px}.help-ticket-state{font-size:13px;color:#245646;background:#e8ecdf;padding:6px 10px;border-radius:6px}.help-question,.help-answer-body{max-width:72ch;line-height:1.75}.learner-surface .help-question,.learner-surface .help-answer-body{color:var(--text)}.help-answer{border-left:3px solid #245646;padding:2px 24px;background:#e9ebdf;margin:20px 0 0}.help-answer h4{font-size:17px;margin:16px 0 8px}.help-workspace .home-panels>section{min-width:0}.help-workspace textarea{width:100%}.help-workspace details a{display:inline-block;margin:0 0 16px}.help-workspace #support-status{font-size:14px;line-height:1.6;max-width:72ch}@media(max-width:800px){.help-workspace .home-panels{grid-template-columns:minmax(0,1fr)}.help-workspace .panel{padding:20px}.help-answer{padding:2px 16px}.help-history-heading{align-items:flex-start}.help-history-heading button{width:100%}}
+
+/* Keep return context useful without displacing the central mobile map. */
+.map-saved-context{margin-top:20px}
+@media(max-width:800px){
+  .learner-surface .atlas-heading{display:flex;align-items:center;gap:12px;margin:0 0 12px}
+  .learner-surface .atlas-heading .eyebrow{margin:0;font-size:10px}
+  .learner-surface .atlas h1{font-size:25px;line-height:1.2;margin:6px 0 0}
+  .learner-surface .atlas-heading>a{font-size:12px;min-height:44px;display:flex;align-items:center;max-width:100px;flex-shrink:0}
+  .learner-surface .atlas .resume-strip{padding:12px;gap:8px;margin:12px 0;flex-wrap:nowrap}
+  .learner-surface .atlas .resume-symbol{display:none}
+  .learner-surface .atlas .resume-strip>div{min-width:0}
+  .learner-surface .atlas .resume-strip h2{font-size:15px;overflow-wrap:anywhere}
+  .learner-surface .atlas .resume-strip .button{width:auto;flex-shrink:0;padding:10px;font-size:12px;min-height:44px}
+  .learner-surface .atlas-toolbar{margin:12px 0 8px;gap:8px}
+  .learner-surface .atlas #atlas-status{margin:6px 0;font-size:12px}
+  .learner-surface .atlas .map-breadcrumb:empty{height:0}
+  .learner-surface .atlas .spatial-node{min-height:68px}
+}
+@media(max-width:800px){
+  .learner-surface .atlas .spatial-stage{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-left:12px;margin-left:4px}
+  .learner-surface .atlas .spatial-node.focus-node{grid-column:1/-1}
+  .learner-surface .atlas .spatial-node:not(.focus-node){grid-template-columns:1fr;gap:4px;padding:8px!important;min-height:96px}
+  .learner-surface .atlas .spatial-node:not(.focus-node) .branch-art{grid-row:auto;width:26px;height:26px}
+  .learner-surface .atlas .spatial-node:not(.focus-node) small{grid-column:1}
+  .learner-surface .atlas .spatial-node:not(.focus-node) strong{font-size:14px!important}
+  .learner-surface .atlas .spatial-node:nth-of-type(odd):not(.focus-node):after{display:none}
+}

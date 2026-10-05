@@ -6,9 +6,14 @@
   const tickets = new Map([...document.querySelectorAll('[data-help-ticket]')]
     .map(node => [Number(node.dataset.helpTicket), node]));
   let loaded = false;
+  let loading = false;
   refresh.hidden = false;
   async function load() {
-    refresh.disabled = true;
+    if (loading) return;
+    loading = true;
+    // Native disabled drops keyboard focus; retain it without later stealing focus.
+    refresh.setAttribute('aria-disabled', 'true');
+    refresh.setAttribute('aria-busy', 'true');
     status.textContent = 'Загружаем ответы…';
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
@@ -41,7 +46,9 @@
       refresh.textContent = 'Повторить загрузку ответов';
     } finally {
       clearTimeout(timeout);
-      refresh.disabled = false;
+      loading = false;
+      refresh.removeAttribute('aria-disabled');
+      refresh.removeAttribute('aria-busy');
     }
   }
   refresh.addEventListener('click', load);
