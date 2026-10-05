@@ -26,11 +26,13 @@
   if (!video || !retry || !message) return;
   let pending = false;
   let timeout;
+  const errorPanel = document.querySelector('#video-error');
   const settle = (failed, timedOut = false) => {
     pending = false;
     clearTimeout(timeout);
     retry.setAttribute('aria-busy', 'false');
     retry.setAttribute('aria-disabled', 'false');
+    if (failed && errorPanel) errorPanel.hidden = false;
     message.textContent = timedOut
       ? 'Видео загружается дольше обычного. Можно повторить попытку или перейти к тексту; ваш черновик остаётся на месте.'
       : failed
@@ -42,6 +44,16 @@
   video.addEventListener('error', () => settle(true));
   video.querySelector('source')?.addEventListener('error', () => settle(true));
   video.addEventListener('loadedmetadata', () => settle(false));
+  // Initial requests need the same escape hatch as retries, including cached loads.
+  const watchInitialLoad = () => {
+    if (pending) return;
+    clearTimeout(timeout);
+    if (video.readyState < video.HAVE_METADATA &&
+        video.networkState !== video.NETWORK_NO_SOURCE)
+      timeout = setTimeout(() => settle(true, true), 15000);
+  };
+  video.addEventListener('loadstart', watchInitialLoad);
+  watchInitialLoad();
   retry.addEventListener('click', () => {
     if (pending) return;
     pending = true;
