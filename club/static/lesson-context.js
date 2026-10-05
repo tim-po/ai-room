@@ -85,6 +85,7 @@
   });
   document.querySelector('#video-read')?.addEventListener('click', (event) => {
     event.preventDefault();
+    video.pause();
     const heading = document.querySelector('#lesson-reading h2');
     heading?.focus({preventScroll: true});
     heading?.scrollIntoView({block: 'start'});
