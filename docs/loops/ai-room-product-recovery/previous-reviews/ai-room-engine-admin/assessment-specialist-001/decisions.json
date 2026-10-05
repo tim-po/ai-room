@@ -1,0 +1,831 @@
+{
+  "verdict": "needs_work",
+  "reviewer": "assessment_specialist",
+  "authored_reviewed_content": false,
+  "application_sha": "bc4ba3c1f2eed39e42f611836d6990acf7b0a62d",
+  "manifest_sha256": "9360018f5f0a922e64ab5316fe2b065a4317de5edb77fc40519478b964639e28",
+  "curriculum_manifest_sha256": "aa69319f873d2dc30c38d1f67184d77c4e4b08ed8d21b58358e242909f601350",
+  "graph_release": "curriculum-aa69319f873d2dc30c38d1f67184d77c4e4b08ed8d21b58358e242909f601350",
+  "url": "http://127.0.0.1:18763",
+  "browser": "Playwright Chromium",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "staging_health": {
+    "url": "http://127.0.0.1:8098/health",
+    "build": "dae021716ac92abe5fdf1253093f82ac8f3f3286",
+    "schema": 6,
+    "final_browser_signoff": false
+  },
+  "decisions": [
+    {
+      "kind": "teaching_revision_and_mapping",
+      "id": "foundations-context-01",
+      "sha256": "b9bcec70a799eabf04526b40d06487729d9d7ad8204c4ac1a1066faef9155616",
+      "objective_id": "basic-ai.context",
+      "decision": "accept",
+      "scope": "Составление инструкции с ограниченным контекстом для табличного черновика; не доказательство планирования встреч или практической квалификации.",
+      "reason": "Explicit instruction separates facts, unknown date, computed remaining time and prohibited external actions.",
+      "grants_competence": false
+    },
+    {
+      "kind": "teaching_revision_and_mapping",
+      "id": "foundations-context-02",
+      "sha256": "68e076261d1363e92dd6581e0b6deaf15d7af32af85aba282469d8915ec580dc",
+      "objective_id": "basic-ai.context",
+      "decision": "accept",
+      "scope": "Составление инструкции с примерами и проверкой границ на малом вымышленном наборе; не доказательство качества промышленного классификатора.",
+      "reason": "Boundary examples distinguish mention of payment from an actual billing question; the deliberately wrong B2 draft is explicitly corrected.",
+      "grants_competence": false
+    },
+    {
+      "kind": "teaching_revision_and_mapping",
+      "id": "foundations-context-03",
+      "sha256": "98474abe530946cf2c92ea1ac96afaa6e7512fbc0a22732287a1759e6d6c80e9",
+      "objective_id": "basic-ai.safety",
+      "decision": "accept",
+      "scope": "Минимизация данных для учебной классификации; не аттестация информационной безопасности.",
+      "reason": "Synthetic input removes unnecessary identifiers and secrets; task and checklist exercise minimization rather than claiming anonymity.",
+      "grants_competence": false
+    },
+    {
+      "kind": "teaching_revision_and_mapping",
+      "id": "foundations-context-04",
+      "sha256": "9671fc2ea4045757cefccced4c185acfec6b42cd2872cfa029f54b4363361ed5",
+      "objective_id": "basic-ai.limitations",
+      "decision": "accept",
+      "scope": "Ограничения текстовой модели и проверка неподтверждённых действий; не владение системой бронирования.",
+      "reason": "Separates snapshot arithmetic, absent price/date and unperformed tool actions; the stated 19-word count was independently recomputed.",
+      "grants_competence": false
+    },
+    {
+      "kind": "teaching_revision_and_mapping",
+      "id": "foundations-verify-01",
+      "sha256": "9a3f4e398f8ae99bfab985c12cde0245cd581fc95c04c84c84f8296226670db8",
+      "objective_id": "basic-ai.verification",
+      "decision": "accept",
+      "scope": "Проверка численного утверждения по маленькому журналу; не статистическая или причинная экспертиза.",
+      "reason": "Correctly distinguishes 10 percentage points from 16.7 percent relative change and avoids causal/productivity claims.",
+      "grants_competence": false
+    },
+    {
+      "kind": "teaching_revision_and_mapping",
+      "id": "foundations-verify-02",
+      "sha256": "fc72b0e4c03418a760820003c282add14f1b68285c644a957b57460dca093c42",
+      "objective_id": "basic-ai.verification",
+      "decision": "accept",
+      "scope": "Проверка обещаний по версиям предоставленной документации; не самостоятельное внешнее исследование.",
+      "reason": "Distinguishes superseded documentation, explicit contradiction and unknown PDF support.",
+      "grants_competence": false
+    },
+    {
+      "kind": "teaching_revision_and_mapping",
+      "id": "foundations-texts-01",
+      "sha256": "d5b4ed079125a258e183b8116c3b3b35cd2c41000c537d552efdd4d6927971b6",
+      "objective_id": "content.writing.demonstrate",
+      "decision": "accept",
+      "scope": "Проверка утверждений в коротком информационном черновике; не доказательство владения всем копирайтингом.",
+      "reason": "Worked draft preserves format, duration and closed registration without promising unsupported outcomes.",
+      "grants_competence": false
+    },
+    {
+      "kind": "teaching_revision_and_mapping",
+      "id": "foundations-workflow-01",
+      "sha256": "780b926444a4a6c472e3b7afff9043df5b022fa786c1f0e3321463de70093856",
+      "objective_id": "automation.workflow.demonstrate",
+      "decision": "accept",
+      "scope": "Постановка автоматизируемого процесса и проверяемых ожиданий; не сертификат реализованной надёжности.",
+      "reason": "Defines trigger, required inputs, output, duplicate expectation and unresolved cancellation policy without claiming execution.",
+      "grants_competence": false
+    },
+    {
+      "kind": "teaching_revision_and_mapping",
+      "id": "foundations-research-02",
+      "sha256": "65ab39373ac7c31c19485d280ec5538e9c155a72a63bdf494e2b42d215aa597c",
+      "objective_id": "agents.memory.demonstrate",
+      "decision": "accept",
+      "scope": "Проверка релевантности найденного свидетельства в малом корпусе; не создание поисковой системы и не полная защита от инъекций.",
+      "reason": "Matches retrieved evidence by subject, plan and version; absent matching evidence remains unknown.",
+      "grants_competence": false
+    },
+    {
+      "kind": "teaching_revision_and_mapping",
+      "id": "foundations-quality-01",
+      "sha256": "3a08ab1013f631cd926cd3fcf60b7f54014ca15bf4ee45adf5cfb381848babd0",
+      "objective_id": "teams.evaluation.demonstrate",
+      "decision": "accept",
+      "scope": "Применение явной бинарной рубрики к коротким ответам; не широкая аттестация оценщика.",
+      "reason": "Explicit binary rubric, whole-response rule and disagreement procedure support the stated narrow evaluation objective.",
+      "grants_competence": false
+    },
+    {
+      "kind": "retained_forms",
+      "id": "skill-foundation-form-foundations-context-a-v1",
+      "sha256": "865b4709b3864bb914c15f94810e010c1ebb4ccada9a71774a60f1f07066de96",
+      "decision": "accept",
+      "scope": "Narrow taught-case understanding only; no application or equivalent-retake approval. Retained hash is compact export hash, not publication hash.",
+      "reason": "All three prompts, choices, keyed answers and explanations read against exact source paragraphs; all source text digests match and passages occur in the retained lesson. Three dependent decisions on one worked case do not establish broad competence.",
+      "items": [
+        {
+          "id": "q1",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "11463023fd5f2620ee4fce18668e2bf64de26c5e42d01333a6aae64e63408024"
+        },
+        {
+          "id": "q2",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "11463023fd5f2620ee4fce18668e2bf64de26c5e42d01333a6aae64e63408024"
+        },
+        {
+          "id": "q3",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "30b5de5ed3412f7636c036e1a05c328b9dfa39322f4da74822ca98ba74c236eb"
+        }
+      ],
+      "equivalence": "not_approved"
+    },
+    {
+      "kind": "retained_forms",
+      "id": "skill-foundation-form-foundations-limitations-a-v1",
+      "sha256": "bd1437678e6036c8209cb596fba5bdae6f8ef65690cbd51e08cee6b4cc4f0c1b",
+      "decision": "accept",
+      "scope": "Narrow taught-case understanding only; no application or equivalent-retake approval. Retained hash is compact export hash, not publication hash.",
+      "reason": "All three prompts, choices, keyed answers and explanations read against exact source paragraphs; all source text digests match and passages occur in the retained lesson. Three dependent decisions on one worked case do not establish broad competence.",
+      "items": [
+        {
+          "id": "q1",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "e5d1ff67a6dbf1a74be38b841a5e5f83f0738f83efc564aab12b2753d447a5c3"
+        },
+        {
+          "id": "q2",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "728b4b697a98fb8dfcba24ed7af2e168c38caa0a293bd6a24a353c1fc2eb1bc6"
+        },
+        {
+          "id": "q3",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "72e20059cf78c136cbd9dbd137885d356bb10a669a7133c65695f43505a37649"
+        }
+      ],
+      "equivalence": "not_approved"
+    },
+    {
+      "kind": "retained_forms",
+      "id": "skill-foundation-form-foundations-safety-a-v1",
+      "sha256": "713f2e85fa0dad98abea79fe00a02fd1cca2cf0eeed0a67d8b2c1516d0484e65",
+      "decision": "accept",
+      "scope": "Narrow taught-case understanding only; no application or equivalent-retake approval. Retained hash is compact export hash, not publication hash.",
+      "reason": "All three prompts, choices, keyed answers and explanations read against exact source paragraphs; all source text digests match and passages occur in the retained lesson. Three dependent decisions on one worked case do not establish broad competence.",
+      "items": [
+        {
+          "id": "q1",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "19361b2e676cbc948b7a3ac33cd3892866b6d2c7a43edd2dbbf8636daff50c46"
+        },
+        {
+          "id": "q2",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "19361b2e676cbc948b7a3ac33cd3892866b6d2c7a43edd2dbbf8636daff50c46"
+        },
+        {
+          "id": "q3",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "079368a1ab0254cbaa853ba22eebe0e19646af3f2006ae0f8e43499bf4dc50e5"
+        }
+      ],
+      "equivalence": "not_approved"
+    },
+    {
+      "kind": "original_form_proposals",
+      "id": "skill-example-form-verification-v1",
+      "sha256": "8d3c46f4c1fe3ed5c3b0ec8241730ff99d94259ca797fe93ecaba8264dcfdc2b",
+      "decision": "accept",
+      "scope": "Narrow taught-case understanding only; no application or equivalent-retake approval. Retained hash is compact export hash, not publication hash.",
+      "reason": "All three prompts, choices, keyed answers and explanations read against exact source paragraphs; all source text digests match and passages occur in the retained lesson. Three dependent decisions on one worked case do not establish broad competence.",
+      "items": [
+        {
+          "id": "q1",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "e1859fcf767a4b301e968c85b941d3f80a3712a45c45418fe1dcc0d74fefd941"
+        },
+        {
+          "id": "q2",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "8cfec61d028516d17be639b1fedbd75c62577f14f827f758d9e596b9557b8632"
+        },
+        {
+          "id": "q3",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "afd2e7c44897651fee8acd8e0cf742c1c23bbece5e5b252722970cc9089082e4"
+        }
+      ],
+      "equivalence": "not_approved"
+    },
+    {
+      "kind": "original_form_proposals",
+      "id": "skill-example-form-mobile-v1",
+      "sha256": "df75718a0f9a1ef6f3393cf85ac38e59ad6c4a165ad2ec08974e740c55d98329",
+      "decision": "accept",
+      "scope": "Narrow taught-case understanding only; no application or equivalent-retake approval. Retained hash is compact export hash, not publication hash.",
+      "reason": "All three prompts, choices, keyed answers and explanations read against exact source paragraphs; all source text digests match and passages occur in the retained lesson. Three dependent decisions on one worked case do not establish broad competence.",
+      "items": [
+        {
+          "id": "q1",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "dccd09f24486a109d42d600eb6e3f81390096bf6617d20a07524021cc4ca4097"
+        },
+        {
+          "id": "q2",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "57c3a8858372a62db27301a91f17e2b9536ef5c8a3f851d69d53b38024ebd132"
+        },
+        {
+          "id": "q3",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "57c3a8858372a62db27301a91f17e2b9536ef5c8a3f851d69d53b38024ebd132"
+        }
+      ],
+      "equivalence": "not_approved"
+    },
+    {
+      "kind": "original_form_proposals",
+      "id": "skill-example-form-review-v1",
+      "sha256": "8ecd9d11c67ed0099f589084ad7eec06b012c81d139911b45adc93a21ad7e350",
+      "decision": "accept",
+      "scope": "Narrow taught-case understanding only; no application or equivalent-retake approval. Retained hash is compact export hash, not publication hash.",
+      "reason": "All three prompts, choices, keyed answers and explanations read against exact source paragraphs; all source text digests match and passages occur in the retained lesson. Three dependent decisions on one worked case do not establish broad competence.",
+      "items": [
+        {
+          "id": "q1",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "4cce4c9c1a22869925f6bb0900ec00bc7e9f0594c74fe7d72755d47545297069"
+        },
+        {
+          "id": "q2",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "4cce4c9c1a22869925f6bb0900ec00bc7e9f0594c74fe7d72755d47545297069"
+        },
+        {
+          "id": "q3",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "34ca690bd03f76c4fbf209081dfaefae5c33e0698813896447914d820c64f3f5"
+        }
+      ],
+      "equivalence": "not_approved"
+    },
+    {
+      "kind": "original_form_proposals",
+      "id": "skill-example-form-writing-v1",
+      "sha256": "247ad59b6dcd7fd0c1187efabcd9809fefbcc985fd899c664985f0cfecb384d5",
+      "decision": "accept",
+      "scope": "Narrow taught-case understanding only; no application or equivalent-retake approval. Retained hash is compact export hash, not publication hash.",
+      "reason": "All three prompts, choices, keyed answers and explanations read against exact source paragraphs; all source text digests match and passages occur in the retained lesson. Three dependent decisions on one worked case do not establish broad competence.",
+      "items": [
+        {
+          "id": "q1",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "9163d509fcc253d048230892af82241d0e8b34b7521801b1c83b3c0cc0acc310"
+        },
+        {
+          "id": "q2",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "c70849bd227ef87a3c65af09e263628e5d25eea7a32316f5cbd73cc356f8c04c"
+        },
+        {
+          "id": "q3",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "c58bdec26ad83ccfbe54944c6e0452a1987419cddfefc9e220ef0d94071822b0"
+        }
+      ],
+      "equivalence": "not_approved"
+    },
+    {
+      "kind": "original_form_proposals",
+      "id": "skill-example-form-handoff-v1",
+      "sha256": "396147b4aaf00267da06c887310f4a06ad4aa9ba91643dd3a400fcc0fff03b7a",
+      "decision": "accept",
+      "scope": "Narrow taught-case understanding only; no application or equivalent-retake approval. Retained hash is compact export hash, not publication hash.",
+      "reason": "All three prompts, choices, keyed answers and explanations read against exact source paragraphs; all source text digests match and passages occur in the retained lesson. Three dependent decisions on one worked case do not establish broad competence.",
+      "items": [
+        {
+          "id": "q1",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "fe63c70ac3faabdb0658ec08d7187b3e72036eba1cac807142fa7d86119f070e"
+        },
+        {
+          "id": "q2",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "3de6e7ebb068de711ac99ce0a2b82bc1fbb9f85ef7e753292b729559c1e66dee"
+        },
+        {
+          "id": "q3",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "e4976dc087b88271dbbded2db53b0ea9c34d8dfea356f7e37ffecdf5ef49da5b"
+        }
+      ],
+      "equivalence": "not_approved"
+    },
+    {
+      "kind": "original_form_proposals",
+      "id": "skill-example-form-workflow-v1",
+      "sha256": "5a406c11623a255a24eb57b4fc617c12f41621d1760128f2a365d4a133b3078e",
+      "decision": "accept",
+      "scope": "Narrow taught-case understanding only; no application or equivalent-retake approval. Retained hash is compact export hash, not publication hash.",
+      "reason": "All three prompts, choices, keyed answers and explanations read against exact source paragraphs; all source text digests match and passages occur in the retained lesson. Three dependent decisions on one worked case do not establish broad competence.",
+      "items": [
+        {
+          "id": "q1",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "44ac81c9eb4f42422c02f72ba66a2ab5ff1910be36b1b8101ec1db1955833178"
+        },
+        {
+          "id": "q2",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "44ab65ead328cdbca6d4a712d730b1027473832dabd5c429ddb80da1848f443e"
+        },
+        {
+          "id": "q3",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "abeb4cc1d463bbf6ccdad514c7c51d94a404d4f47d7be7680726d995b80d2f06"
+        }
+      ],
+      "equivalence": "not_approved"
+    },
+    {
+      "kind": "original_form_proposals",
+      "id": "skill-example-form-tools-v1",
+      "sha256": "181945075aea85c90980076d4a7c0e5d5af6326dea829541f70ad603633e2f7f",
+      "decision": "accept",
+      "scope": "Narrow taught-case understanding only; no application or equivalent-retake approval. Retained hash is compact export hash, not publication hash.",
+      "reason": "All three prompts, choices, keyed answers and explanations read against exact source paragraphs; all source text digests match and passages occur in the retained lesson. Three dependent decisions on one worked case do not establish broad competence.",
+      "items": [
+        {
+          "id": "q1",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "4e4f46fff42d3a4739bae77074bd893c9fa29125df89912ffff17f6b9b94b155"
+        },
+        {
+          "id": "q2",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "542db5bd53cd7670a2d6ccabc05c1fe9b5b452e5b70a7978ddc3fb70a3d709b9"
+        },
+        {
+          "id": "q3",
+          "decision": "accept",
+          "scope": "taught-case understanding",
+          "source_sha256": "a5415d0e1a376e02bedd9b0358d4869a89678ec1a1616cc034e347085d591655"
+        }
+      ],
+      "equivalence": "not_approved"
+    },
+    {
+      "kind": "transfer_form",
+      "id": "transfer-B-verification",
+      "sha256": "37583d6cb0a1738fc6dbec00a6db0aaff3ae1c999405a4505b55a626d7762da0",
+      "source_sha256": "f46f852a4a97276d59199690028bf6a7f78eb820315a4394f9cbd49eba0103d1",
+      "decision": "revise",
+      "reason": "Shared pre-answer DTO/UI omits the source case; reproduced for verification exact bound hash. All seven forms use identical fixed correct-choice positions 0,1,2. Correct arithmetic/keys in an editorial file do not make the delivered assessment valid.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        }
+      ],
+      "equivalence": "not_approved",
+      "equivalence_reason": "Different subject matter is not sufficient evidence of equivalent difficulty/coverage. Workflow and tools also closely mirror taught-case decisions; preserve shared observation lineage for paraphrases."
+    },
+    {
+      "kind": "transfer_form",
+      "id": "transfer-B-mobile",
+      "sha256": "23b4d020a6efaa4d5ea62be549873530469d4dd5da11852eac6b4b6e731570e6",
+      "source_sha256": "b0211d543ff91a6580a7a09009f0fdd61e9cf57b47e5c6a459d9300e2dc48aab",
+      "decision": "revise",
+      "reason": "Shared pre-answer DTO/UI omits the source case; reproduced for verification exact bound hash. All seven forms use identical fixed correct-choice positions 0,1,2. Correct arithmetic/keys in an editorial file do not make the delivered assessment valid.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        }
+      ],
+      "equivalence": "not_approved",
+      "equivalence_reason": "Different subject matter is not sufficient evidence of equivalent difficulty/coverage. Workflow and tools also closely mirror taught-case decisions; preserve shared observation lineage for paraphrases."
+    },
+    {
+      "kind": "practical_rubric",
+      "id": "transfer-B-mobile-practical",
+      "sha256": "0aac26ae641a246df817cd64134de94c3f7e0cff14339f1ee4433d16ae4e3dce",
+      "decision": "accept",
+      "scope": "Rubric instrument for this specific synthetic task, with independent human artifact review; no learner application credit approved.",
+      "reason": "Mobile requires versioned code/diff and observed allow/refuse/revoke/reopen behavior without permission expansion. Tools requires executable validation, positive/negative tests, restricted output and before/after injection-state checks. Plans and prose promises cannot satisfy criteria.",
+      "runtime_review": "unverified on final staging"
+    },
+    {
+      "kind": "transfer_form",
+      "id": "transfer-B-review",
+      "sha256": "7ecb8b612da95ccab1767433e1d248465174a448b706076daf8f6785d46c521d",
+      "source_sha256": "b2ec243279b7a459636d381128ca3feba671f4853358b2d397eb6a0ad758818d",
+      "decision": "revise",
+      "reason": "Shared pre-answer DTO/UI omits the source case; reproduced for verification exact bound hash. All seven forms use identical fixed correct-choice positions 0,1,2. Correct arithmetic/keys in an editorial file do not make the delivered assessment valid.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        }
+      ],
+      "equivalence": "not_approved",
+      "equivalence_reason": "Different subject matter is not sufficient evidence of equivalent difficulty/coverage. Workflow and tools also closely mirror taught-case decisions; preserve shared observation lineage for paraphrases."
+    },
+    {
+      "kind": "transfer_form",
+      "id": "transfer-B-writing",
+      "sha256": "9c89f72f1d75a479e42c6dc94f966bafdc7acb401f547116d20b4b1abcebbc5e",
+      "source_sha256": "d640bcd693aed1ca932c9ae0b8c9e9e998671a9e2d72fba8ca36d8e6efa5cc6f",
+      "decision": "revise",
+      "reason": "Shared pre-answer DTO/UI omits the source case; reproduced for verification exact bound hash. All seven forms use identical fixed correct-choice positions 0,1,2. Correct arithmetic/keys in an editorial file do not make the delivered assessment valid.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        }
+      ],
+      "equivalence": "not_approved",
+      "equivalence_reason": "Different subject matter is not sufficient evidence of equivalent difficulty/coverage. Workflow and tools also closely mirror taught-case decisions; preserve shared observation lineage for paraphrases."
+    },
+    {
+      "kind": "transfer_form",
+      "id": "transfer-B-handoff",
+      "sha256": "d48592a251588b2938282fe54babea23f60afdd172c839f0218aec52709e7d3a",
+      "source_sha256": "4ffee59e6fa493a9a1fa879869953cd0e5e4d816aabf26033f4b13ae4988709d",
+      "decision": "revise",
+      "reason": "Shared pre-answer DTO/UI omits the source case; reproduced for verification exact bound hash. All seven forms use identical fixed correct-choice positions 0,1,2. Correct arithmetic/keys in an editorial file do not make the delivered assessment valid.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        }
+      ],
+      "equivalence": "not_approved",
+      "equivalence_reason": "Different subject matter is not sufficient evidence of equivalent difficulty/coverage. Workflow and tools also closely mirror taught-case decisions; preserve shared observation lineage for paraphrases."
+    },
+    {
+      "kind": "transfer_form",
+      "id": "transfer-B-workflow",
+      "sha256": "b58c08e759223e4205f7f19d8c60a8cb6a2901e45313a2bd3482a06405a0f652",
+      "source_sha256": "478064705f9e96ff62a43a2e4b8faa94627249dd6a423342299275cdd3cc076a",
+      "decision": "revise",
+      "reason": "Shared pre-answer DTO/UI omits the source case; reproduced for verification exact bound hash. All seven forms use identical fixed correct-choice positions 0,1,2. Correct arithmetic/keys in an editorial file do not make the delivered assessment valid.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        }
+      ],
+      "equivalence": "not_approved",
+      "equivalence_reason": "Different subject matter is not sufficient evidence of equivalent difficulty/coverage. Workflow and tools also closely mirror taught-case decisions; preserve shared observation lineage for paraphrases."
+    },
+    {
+      "kind": "transfer_form",
+      "id": "transfer-B-tools",
+      "sha256": "06c276fa3cfe5db63c1889d773e5b4092cd7a2b4889ab0ba4318909d5b0f4abf",
+      "source_sha256": "3031a01360d5ea1e6acddc73ad55c56d6d31aecb15a035b9b9200181994836e2",
+      "decision": "revise",
+      "reason": "Shared pre-answer DTO/UI omits the source case; reproduced for verification exact bound hash. All seven forms use identical fixed correct-choice positions 0,1,2. Correct arithmetic/keys in an editorial file do not make the delivered assessment valid.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Provide exact case before response and remove shared answer-position cue. Editorial key and rationale are consistent with the supplied case, but standalone delivered prompt is insufficient."
+        }
+      ],
+      "equivalence": "not_approved",
+      "equivalence_reason": "Different subject matter is not sufficient evidence of equivalent difficulty/coverage. Workflow and tools also closely mirror taught-case decisions; preserve shared observation lineage for paraphrases."
+    },
+    {
+      "kind": "practical_rubric",
+      "id": "transfer-B-tools-practical",
+      "sha256": "0352c362a1eb9de25587c64cbca2e68492116ec8e5a09efc15c16a0235adbaa5",
+      "decision": "accept",
+      "scope": "Rubric instrument for this specific synthetic task, with independent human artifact review; no learner application credit approved.",
+      "reason": "Mobile requires versioned code/diff and observed allow/refuse/revoke/reopen behavior without permission expansion. Tools requires executable validation, positive/negative tests, restricted output and before/after injection-state checks. Plans and prose promises cannot satisfy criteria.",
+      "runtime_review": "unverified on final staging"
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-foundations-context-a-v1",
+      "sha256": "625ae08f9de43b01a1e93768edc13abdef99b9372979d03d4e7d040b93efc123",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-foundations-context-b-v1",
+      "sha256": "c50cc112bffa6dd0833bc200c3a13727f9f0f02c5eba9a4804e2021c03ed4ba3",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-foundations-limitations-a-v1",
+      "sha256": "37d2fb98e694873b2f6d5eb0d74cb1b342a768da3939c26b692ed25fedf2bd5b",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-foundations-limitations-b-v1",
+      "sha256": "bedad88c756e7515bb46498274b9349e1aeabd0f564e48f0951a8cbef3c38130",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-foundations-safety-a-v1",
+      "sha256": "d9d5e3bc9ea68e0fa15a64b757a70a98f4145a72e2c26c8e8f083d1a04a4b265",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-foundations-safety-b-v1",
+      "sha256": "ff9d6cd34fe0b956dcd90575cf4243c30e225671fab123a286e677cb369326d1",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-handoff-v1",
+      "sha256": "b4078805af3ae4501a0303d213347b9beff1d77c13e65c9b076ec07e3c1e6a56",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-mobile-v1",
+      "sha256": "2f4a951a073dc07da10a55a7f667b78f3eb91b9d699a14e32fc0489027fc2ac1",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-review-v1",
+      "sha256": "5ecdf3aaf1c83cd848f97ce023d2f2ff16923a8b6b9e776e7bf7b4917249e1b2",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-tools-v1",
+      "sha256": "34aa9f7c739d3720348ceb10f2ad93b515d17305585ee420cd8d9a554f87e317",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-verification-v1",
+      "sha256": "8599d2a88f0235b11d906368fb332eeaed694fe611a8d8e4848c6fc8aa3699b4",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-workflow-v1",
+      "sha256": "a305bb4ff1a60af260c036c5078ac2f87fd0bbc11abf8684d13974b0a9b8eb81",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-example-writing-v1",
+      "sha256": "06729d2bc6ab623fdbe2c739d80eda72ff86b1c2d5d555a655cb79c2e004cde4",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-agent-safety-v1",
+      "sha256": "9de5b01411aa86cd5ddc1306abd3cdab8ac146d459685bc76a6ac5e8ed6c39e6",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-codebase-v1",
+      "sha256": "e1c0c86f181aaf16d6f6ee18e45cbd71236f9d7169f83274022dcd220e00d4fb",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-debug-v1",
+      "sha256": "09a4dd1a29c7742338ffd66133465c5b0cc9e5deb5397a97ea5a68a4a7be3775",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-design-v1",
+      "sha256": "d2738721b416eb30b229ac3d5249241447e29df19be5079a4db30e141be13605",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-integrations-v1",
+      "sha256": "20a5510ab309b34b3ca7768787681d79445f1ce8bc8f802101e745c48541b89b",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-memory-v1",
+      "sha256": "8665843b3ddb149609e51bcbab48540b670563a43f79d39d64510dd7c3c5b17e",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-monitoring-v1",
+      "sha256": "2fe458aedf585cb073209d7c0be2e791f057e3378dd787e06e34f6b993ec8abb",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-planning-v1",
+      "sha256": "509e26dca94ac3a0905405b02cedd3356625824a0e14bad02900cc1d496eeded",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-publishing-v1",
+      "sha256": "df1172364c6da2e9d6f83d2e0c3e75916040e3a5d78eb6c4f1f75f4182ab1412",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-reliability-v1",
+      "sha256": "d94bf2bacbd0c50c4da9be4516eaa74893e392b14634e6c2fb01a747b58d40aa",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-team-context-v1",
+      "sha256": "712906c8b3e5311f5fa94126d7f11bf97e04a0b71763793d61cbd4db5e0412b8",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-team-evaluation-v1",
+      "sha256": "58e4ac8067db58ada39064670d5b56c30d807180d03645a7ec6034d365b63212",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-team-review-v1",
+      "sha256": "80016d6c0a13115a910a70b2b9bbd6efe26001c2bc6bba0c48b91cc74780fac0",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-video-v1",
+      "sha256": "c16a8cf3158971c5a7a378fc672a7772804ce09dba77f1abf08a5b3ed17a27fb",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-visual-v1",
+      "sha256": "4b872bf79cb90265c14b5c732b36972962b859148580401d5a4a1f8dcad1b0d4",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    },
+    {
+      "kind": "before_inventory_mapping",
+      "id": "skill-specialist-web-v1",
+      "sha256": "f12e6a6dc4fdcd2807a537101f042b85d4f67e5db7c4174635b973f06ad2b4f6",
+      "decision": "unverified",
+      "reason": "Historical inventory is not newly approved by this turn; explicit reviewed revision/form decisions above do not grant blanket approval to all inventory mappings."
+    }
+  ],
+  "provider_generated_outputs": {
+    "decision": "unverified",
+    "reason": "Reviewed package contains synthetic editorial examples, not evidence of the required real spoken-video plus material provider run."
+  },
+  "tests": {
+    "targeted_pytest": "22 passed in 29.07s",
+    "http_browser": "Unknown 4 -> partial assessed 1 unknown 3 verified 0; passing assessed 1 unknown 3 verified 1; applied remains 0; repeat leaves evidence count at 1."
+  }
+}

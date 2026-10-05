@@ -1,0 +1,35 @@
+{
+  "verdict": "needs_work",
+  "source_sha": "358599ee91a2de0ae184f18212d210afef0031c6",
+  "url": "http://127.0.0.1:18846",
+  "schema": 6,
+  "content": "fresh repository synthetic seed; no staged publication manifest verified",
+  "environment": "isolated /tmp SQLite and teaching uploads, ephemeral signing key; existing Python environment /home/claude/ai-room/.venv; no approved provider configuration used",
+  "independent_passes": [
+    "Fresh init-db, seed, init-skills, init-teaching, init-onboarding, init-support; repeated all six and compared every row across 54 tables exactly; integrity_check ok",
+    "36 tests passed: tests/test_retained_state.py and tests/test_teaching_pipeline.py, 24.90 seconds; provider transports mocked",
+    "HTTP /health 200 with exact source SHA and schema 6",
+    "Headless Chromium 1440x1000: /, /login, /lessons/foundations-start-01 returned 200 with populated rendered text",
+    "Lesson API returned 200 with actual objective/body/task/checklist data; screenshot opened and inspected"
+  ],
+  "screenshot": "/tmp/reliability-review-lesson.png",
+  "observed_limit": "Missing local media fixture displayed video unavailable fallback; playback not accepted. Setup did not install fixture media.",
+  "builder_evidence_inspected": {
+    "full_lease_result": "deliverables/ai-pipeline-004/result.json",
+    "sha": "0aff086d0608ee8b24a6d83b2def536993655455",
+    "rollback_sha": "6dfdc99062cc21d9b11f5dca86f5244b36df3e1d",
+    "passed": true,
+    "driver_exit": 0,
+    "natural_lease_seconds": 900,
+    "scope": "Network-denied child fault hook before provider call; quiescent paired DB/media restore and compatible rollback retaining later writes; not independently executed here, not current candidate or shared supervisor"
+  },
+  "unverified": [
+    "Current candidate killed-claim/natural lease recovery",
+    "Actual deployed application and queue supervisor restart",
+    "Final staging health and installed content/environment identity",
+    "Installed learner-data before/after comparison",
+    "Current candidate paired database/private-source/media restore and selected compatible rollback preserving later writes",
+    "Real spoken-video plus material provider run and monetary limits"
+  ],
+  "capability_gap": "Turn explicitly prohibits restarting services or killing processes and allows HTTP probes only on localhost. No forbidden command attempted. Manager must own supervised staging drill and arrange permitted independent observation; old builder evidence cannot satisfy final gate."
+}

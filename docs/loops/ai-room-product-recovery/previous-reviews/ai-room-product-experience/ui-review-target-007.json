@@ -1,0 +1,9 @@
+{
+  "app_sha": "ddc0f32e37a045687f9aecaffbda5b964aa77514",
+  "status": "independently_reviewed_needs_work",
+  "evidence": ["visual-critic-004/REVIEW.md", "qa-003/REVIEW.md", "learning-004/REVIEW.md"],
+  "pass_scope": "Onboarding controls/history/conflicts, truthful dirty state, Help contrast, assessment case/source transport, and bounded auth/persistence checks.",
+  "fail_scope": "Home continuation still points to foundations-start-01 after second-branch work; approved first self-check absent; legacy passive GET return metric remains; full map-to-lesson/media/accessibility and staging gates open.",
+  "fixture_boundary": "Disposable synthetic seed and assessment transport fixture are wiring evidence only. They do not approve editorial forms, retake equivalence, mastery, retention, or staged publication.",
+  "next_review": "Review the exact candidate after continuation, approved self-check, support consumer, and metric corrections. Record app SHA, graph/content manifest, URL, browser, viewport, opened screenshots, and tested states."
+}

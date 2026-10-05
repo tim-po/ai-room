@@ -239,3 +239,7 @@ Latest recorded Loopyard signed release: `0.1.3-beta.6`, source `5b17d26`. A lat
 5. Require a same-build independent product review before calling the redesign accepted. Count tests as behavior evidence, not proof of beauty or educational usefulness.
 
 After writing the initial handoff, the owner explicitly requested pushing the handoff and code to Git. This publication adds documentation and preserves the existing development branches; it does not approve the product, merge the backend wholesale, or redeploy staging.
+
+## Replacement loop prepared after this audit
+
+`ai-room-product-recovery` is saved in Loopyard, NOT started. Configuration, execution brief, launch checklist and 67 preserved review/decision/contract files live at [docs/loops/ai-room-product-recovery/BRIEF.md](docs/loops/ai-room-product-recovery/BRIEF.md). It uses a manager, three implementers and two independent reviewers, explicit Codex/model selection, board-delivered concrete assignments, 80 collective main attempts and a single report-only wrap-up. Schema and fresh-board delivery smoke checks passed. The quota/accounting defects in the RUNNING engine remain a launch blocker; the checklist is documentary, not an engine interlock. No claim is made that board mode alone resolves the previous failures.

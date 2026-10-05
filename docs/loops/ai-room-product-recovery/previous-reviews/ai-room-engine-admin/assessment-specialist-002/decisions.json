@@ -1,0 +1,13 @@
+{
+  "verdict": "needs_work",
+  "application_sha": "b32d43fb94bdb523750d1b20cd702062815d93bc",
+  "graph_release": "curriculum-aa69319f873d2dc30c38d1f67184d77c4e4b08ed8d21b58358e242909f601350",
+  "prior_per_artifact_decisions": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/assessment-specialist-001/decisions.json",
+  "prior_decisions_file_sha256": "feca2d264f4bf8e4c9eee664edb31521770b70464cca8a16783cc113b64a1766",
+  "transfer_verification_decision": "revise: exact case absent before response; fixed answer positions 0,1,2",
+  "runtime_form_body_raw_sha256": "111ae31b20836bf38ca7c734f88ab3b9badbc5772f8a7b2a423ce11cde3277b9",
+  "runtime_form_canonical_sha256": "d4a6cc7365def8d6954a9785d0e2e58595a304672c842c6d218c45e659d5d080",
+  "equivalent_retakes": "not approved",
+  "provider_outputs": "unverified: no actual provider outputs supplied; latest names-only status reports CLUB_AI_APPROVED not approved and CLUB_AI_API_KEY/CLUB_AI_MODEL absent",
+  "publication": "No new approval or publication; prior decisions retain original exact-hash scope."
+}

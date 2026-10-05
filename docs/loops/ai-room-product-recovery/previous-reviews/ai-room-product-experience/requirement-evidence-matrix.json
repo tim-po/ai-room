@@ -1,0 +1,141 @@
+{
+  "revision": 7,
+  "latest_manager_direction": "manager-direction-031.json",
+  "latest_exact_candidate": "58af5d9aece9615fd8c883c85a1f146f557082cb",
+  "latest_independent_reviews": [
+    "visual-critic-019/REVIEW.md",
+    "learning-018/REVIEW.md",
+    "qa-015/REVIEW.md"
+  ],
+  "candidate_under_review": "ddc0f32e37a045687f9aecaffbda5b964aa77514",
+  "latest_independent_review": {
+    "visual": "visual-critic-004/REVIEW.md",
+    "qa": "qa-003/REVIEW.md",
+    "learning": "learning-004/REVIEW.md"
+  },
+  "requirements": [
+    {
+      "id": "five_product_research_learning_evidence",
+      "status": "pass",
+      "evidence": [
+        "research/RESEARCH-DECISIONS.md; bounded accessible inspection, no authenticated end-to-end claim"
+      ]
+    },
+    {
+      "id": "two_rendered_directions_independent_selection",
+      "status": "pass",
+      "evidence": [
+        "selected-direction.json; visual-critic/REVIEW.md; selection only"
+      ]
+    },
+    {
+      "id": "loaded_cyrillic_visual_system",
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "fresh_account_automatic_onboarding",
+      "status": "pass",
+      "evidence": [
+        "qa-002/REVIEW.md bounded local pass",
+        "manager-005/evidence.json"
+      ]
+    },
+    {
+      "id": "skip_back_resume_edit_multi_interest",
+      "status": "fail",
+      "evidence": [
+        "qa-002/REVIEW.md acknowledged resume pass; browser history/dirty status fail; peer O1 concurrency pending integration/review"
+      ]
+    },
+    {
+      "id": "first_result_saved_return",
+      "status": "fail",
+      "evidence": [
+        "learning-003/REVIEW.md L03/L04/L07; approved exact self-check not yet integrated"
+      ]
+    },
+    {
+      "id": "recursive_map_list_search_recenter_keyboard_touch",
+      "status": "unverified",
+      "evidence": [
+        "visual-critic-002/REVIEW.md VC-04/05 narrow pass; full matrix pending"
+      ]
+    },
+    {
+      "id": "discovery_long_curriculum",
+      "status": "unverified",
+      "evidence": [
+        "qa-002/REVIEW.md course contrast fixed; full filter/favorite/back journey pending"
+      ]
+    },
+    {
+      "id": "video_text_materials_practice_resume",
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "challenge_feedback_sources_unknown",
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "profile_saved_help_preferences_access_recovery",
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "error_empty_offline_expired_media_states",
+      "status": "fail",
+      "evidence": [
+        "visual-critic-003/REVIEW.md help contrast/mobile actions; full matrix pending"
+      ]
+    },
+    {
+      "id": "healthy_return_journeys",
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "privacy_events_metric_denominators",
+      "status": "fail",
+      "evidence": [
+        "learning-002/REVIEW.md L05; elapsed-window definition now authoritative"
+      ]
+    },
+    {
+      "id": "durable_visual_gallery_four_widths",
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "independent_exact_candidate_reviews",
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "staging_same_build_rechecks_rollback",
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "preserved_data_backend_prototypes",
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "peer_ownership_agreement",
+      "status": "pass",
+      "evidence": [
+        "/home/claude/bot-swarm/data/_loops/_output/ai-room-shared-coordination/ownership-proposal-001.json; baseline/shell agreed, further onboarding API confirmation pending"
+      ]
+    }
+  ],
+  "candidate": "ddc0f32e37a045687f9aecaffbda5b964aa77514",
+  "latest_independent_review_candidate": "ddc0f32e37a045687f9aecaffbda5b964aa77514",
+  "pending_corrections": {
+    "VC-12/13/14/15": "c7d95fd builder evidence, independent recheck now",
+    "O1": "aba39cb integrated, independent recheck now",
+    "case_delivery": "ddc0f32 builder evidence only; semantic acceptance separate"
+  }
+}

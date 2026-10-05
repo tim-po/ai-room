@@ -1,0 +1,47 @@
+# Independent QA 002 — needs_work
+
+2026-10-04. Exact clean candidate **6e7d7b31e9d82ba2849a0415a8563eebe5a6d8e6**, `/home/claude/ai-room-product-experience`. Actual headless Chromium **153.0.8010.12**, localhost ports **18871–18873**, disposable temporary SQLite/media directories, genuinely fresh synthetic identities. Independent expert/simulated agent evaluation, not a real human usability study. No repository edits, shared account/data mutation, deployment, service restart or process kills. Harnesses adapted from earlier interaction audit but executed anew and supplemented with independently selected checks; no inherited signoff.
+
+Content: ordinary synthetic seed + init-skills + init-onboarding. Graph `tree-2026-10-v1`, root basic-ai, response SHA256 `c19c98cef4c00cce21f36c796f2c8732b7229557b56da9546d786a7308a76553`. Seed/source hashes and exact requests in evidence.json. This is not the reviewed installed assessment publication manifest; no eligible real question/feedback journey accepted.
+
+Widths: 360×844, 390×844, 768×900, 1440×900; supplementary 360×640 and touch-enabled new context 390×844. Main audit captured 74 full-page/viewport pairs; additional challenge, diagnostic, conflict, browser Back and help captures. No measured document overflow or main-audit JavaScript errors. These checks do not override material failures.
+
+## Blocking findings
+
+| ID | Actual reproduction/evidence | Correction |
+|---|---|---|
+| QA-03 remains / IX2-02 | Complete onboarding → actual `/lessons/agent-lab-intro-01` → save result → edit interests → logout/login and entirely new browser context. Home labels foundations-start-01 “Первый небольшой шаг”; profile correctly resumes “Границы и разрешения агента”. `return-viewport.png`, `new-context-return-viewport.png`, `profile-viewport.png`, checks.home_links/first_lesson/new_context_practice. | Resolve latest permitted unfinished meaningful work across branches consistently on home and profile; recheck interests edits and logout. |
+| QA-06 / IX2-01 mobile task action obscured | At 390×844 interests Next is y=787.8–838.2, almost entirely under fixed bottom tabs. At 360 pace Next starts y=956.2, outside viewport; 1440×900 pace action extends to y=934. Opened `interests-390-viewport.png`, full `interests-390.png`, `pace-360-viewport.png`, `lost-response-viewport.png`. | Dedicated visible onboarding actions with reserved space and clear hierarchy; do not let global tabs obscure primary action or recovery. Scrolling enables completion, but initial orientation/first-action acceptance fails. |
+| QA-07 / IX2-03 browser Back | Ordinary login → welcome → interests → acknowledged pace → browser Back returns to `/login`, not previous onboarding step. `browser-back-viewport.png`, supplement.json. On-page Back passes. | Implement coherent browser history for acknowledged steps without stale mutation replay. |
+| QA-08 new Help contrast | `/help` has white “Задать вопрос” heading and “Что не получается?” form label on pale beige. Computed rgb(255,253,247) on rgb(237,232,218), **1.20:1**; sizes 26px and 14px. `recheck-help-390-viewport.png`, help.json. Real question submission succeeds and is visible afterward. | Correct shared warm-panel foreground inheritance and inspect every affected supporting surface. Course-only patch is insufficient. |
+
+## Correction and requirement matrix
+
+| Requirement | Status / concrete evidence |
+|---|---|
+| QA-01 new learner automatic onboarding | **PASS bounded**: ordinary fresh sign-in opens `/onboarding`; real welcome screenshots at all widths. |
+| QA-02 acknowledged onboarding persistence | **PASS bounded**: two interests, step, experience and minutes preserved server-side; refresh/logout resume; experienced+5min saved at start; new browser context retains completed interests agents/coding/content and 10min. Explicit Back preserves choices. Unsaved selection autosave is not claimed. |
+| Skip/edit without resetting learning | **PASS bounded**: fresh separate learner skips; original learner adds agents; API confirms original saved practice unchanged. |
+| Stalled save recovery | **PASS mechanism**: let real server commit then withhold response, wait actual 15s; choices retained, controls restored, identical retry payload/key, revision remains 2. Recovery placement still fails QA-06. |
+| Conflicting tabs | **PASS bounded**: stale tab cannot overwrite acknowledged edit; actions disabled, explanatory reload action restores server pace step. supplement.json/conflict.png. |
+| QA-04 course heading | **PASS corrected**: 37-lesson course rendered at all widths, foreground rgb(32,61,50) on rgb(237,232,218), **9.67:1**. Opened course 390 screenshot. Wider inherited-panel acceptance fails QA-08. |
+| QA-05 diagnostic empty-state | **PASS corrected unavailable state**: actual “Начать необязательную проверку” POST returns 201; no forms → “Проверка сейчас недоступна. Результатов пока нет.” and learning exit. No invented knowledge result. Correct real `/challenges?node=basic-ai.limitations` also provides truthful unavailable state and learning/map exits. |
+| First activity/result | **PASS navigation/storage only**: permitted real lesson, practice POST/GET with actual text. Instructional feedback/self-comparison and approved teaching content are **UNVERIFIED**. |
+| Dirty result then failed re-save | **PASS bounded**: abort real save; current edited text retained; visible connection error; no stale success; retry saves current bytes. |
+| Persistence and privacy | **PASS bounded**: new browser context rereads exact saved practice and onboarding; separate learner gets null practice; signed-out endpoint 401. |
+| Map/search/touch | **PASS bounded**: graph/me/node/explore APIs real; selected Coding focuses heading, close restores Coding trigger; touch open/close same result; Cyrillic search retains focus and refresh state; reset clears query. Full deep map-to-mapped-lesson roundtrip **UNVERIFIED** with unmapped ordinary seed. |
+| Catalogue/course/help/preferences/profile | Actual pages loaded at four widths; catalogue 7 entries, 37-lesson course, real profile saved work. Help question submitted through real HTML form and visible persisted ticket. Full search/filter/favourite/back and preferences mutations **UNVERIFIED**. |
+| Auth | Actual learner `/admin`, `/admin/measurement`, member lesson and its practice return **403**. Anonymous practice **401**, cross-user null. Full expired/revoked/unpublished/member attachment matrix **UNVERIFIED**. |
+| Keyboard/accessibility | Selected-node focus/return and browser Back tested; reduced-motion emulation active. **FAIL** contrast and mobile action orientation. Full Tab/Enter traversal, animation compliance, native 200% zoom, virtual keyboard and long Cyrillic stress **UNVERIFIED**. |
+| Video/errors | 404 and offline save recovery inspected. Actual video playback/resume/media failure not rerun this candidate; earlier build success is not inherited. **UNVERIFIED**. |
+| Experienced eligible challenge/results/source explanation and uneven profile | **UNVERIFIED**: reviewed assessment manifest absent in disposable fixture. Empty-state success cannot substitute. |
+| Return windows/events | Next-day/long-absence behavior, complete event instrumentation and measurement **UNVERIFIED**; no retention claims. |
+| Exact staging | **FAIL delivery gate / candidate not deployed**: read-only actual public Chromium and `/health` still return **dae021716ac92abe5fdf1253093f82ac8f3f3286**, schema 6. Opened staging-welcome-viewport.png shows old dark tree. No final staged candidate signoff. |
+
+## API and evidence integrity
+
+Browser exercise and separate HTTP rereads returned 200 with real content for graph (15,804 bytes), me (7,673), basic-ai.context node (358), onboarding (758), saved practice (214); diagnostics list is real empty inventory, not a missing endpoint. Browser onboarding PUT, node/explore/practice and diagnostic POST calls recorded. Catalogue/course/help/profile/preferences are server-rendered pages, not missing API-backed mocks. Expected auth denials and deliberately injected network errors are not product defects. Main harness accidentally tried invalid `/challenge/basic-ai.context`; its 404 captures are not challenge coverage. Supplement explicitly uses correct `/challenges?node=basic-ai.limitations`, opens it and exercises its actual API. Deliberately unresolved intercepted lost-response request emits Playwright CancelledError at context teardown; main audit finishes exit 0, no page error.
+
+Personally opened and visually inspected: onboarding-welcome-1440 viewport; interests-390 viewport AND full page; pace-360 viewport; return/profile/new state represented by return/profile viewports; course-390 viewport; practice-failed-resave viewport; staging viewport; actual challenge and diagnostic-result viewports; browser-Back viewport; conflict full page; map-768 viewport; lesson-1440 viewport; lost-response viewport; catalogue-360 viewport; help-390 viewport. All other captures are available, not individually approved. Coherent cream/green typography and restrained art improve readability, but observed mobile action and Help contrast failures block acceptance.
+
+Next: correct QA-03, QA-06–08 on one integrated candidate, recheck actual interactions, supply exact reviewed mapped-content/assessment manifest for complete learning journeys, then deploy through sole owner and independently recheck exact public build. Current verdict **needs_work**.

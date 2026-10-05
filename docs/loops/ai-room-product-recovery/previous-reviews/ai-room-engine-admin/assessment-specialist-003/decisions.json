@@ -1,0 +1,116 @@
+{
+  "verdict": "needs_work",
+  "application_sha": "775f69bf6d8a5dbe7e3a5f503d96e748b196b85a",
+  "manifest_sha256": "9360018f5f0a922e64ab5316fe2b065a4317de5edb77fc40519478b964639e28",
+  "graph_release": "curriculum-aa69319f873d2dc30c38d1f67184d77c4e4b08ed8d21b58358e242909f601350",
+  "url": "http://127.0.0.1:18765",
+  "browser": "153.0.8010.12",
+  "viewport": [
+    1440,
+    1000
+  ],
+  "authored_reviewed_content": false,
+  "decisions": [
+    {
+      "id": "skill-specialist-design-v1",
+      "kind": "historical_teaching_mapping",
+      "decision": "accept",
+      "source_sha256": "d2738721b416eb30b229ac3d5249241447e29df19be5079a4db30e141be13605",
+      "body_sha256": "9bb68e47c80266156cd5967db76f0913bc4d84980edc38112fed2b2c1f063f1d",
+      "mappings": [
+        {
+          "objective_id": "coding.design.demonstrate",
+          "lesson_id": "skill-specialist-design-v1",
+          "role": "teaches",
+          "source": {
+            "kind": "original-fictional-example",
+            "lesson_id": "skill-specialist-design-v1",
+            "edition": 1,
+            "paragraph": 1,
+            "sha256": "ebec7acbff3af85d96c1a855c63d2e9b0c13b6f972887c6c800a1a93d545f48f"
+          }
+        }
+      ],
+      "reason": "Paragraphs 1–4 connect stated screen requirements to observations, corrections and an executable keyboard journey. Practice explicitly separates planned and performed checks. Accept teaching of evaluating this small interface against its brief, not general design proficiency.",
+      "scope": "Exact synthetic teaching content and mapping only; checklist is not a certification rubric; no understanding/application credit or equivalent-retake approval."
+    },
+    {
+      "id": "skill-specialist-web-v1",
+      "kind": "historical_teaching_mapping",
+      "decision": "accept",
+      "source_sha256": "f12e6a6dc4fdcd2807a537101f042b85d4f67e5db7c4174635b973f06ad2b4f6",
+      "body_sha256": "091a2fa55b9be08d19d7f16a0d730f775a9a66f9871124a6b97711931d5d87d2",
+      "mappings": [
+        {
+          "objective_id": "coding.web.demonstrate",
+          "lesson_id": "skill-specialist-web-v1",
+          "role": "teaches",
+          "source": {
+            "kind": "original-fictional-example",
+            "lesson_id": "skill-specialist-web-v1",
+            "edition": 1,
+            "paragraph": 1,
+            "sha256": "13a26ddbc8471418026c46c00f5142ad84d5195347ece3b13403c9187ebb444c"
+          }
+        }
+      ],
+      "reason": "Contract and examples distinguish integer/type/range/topic validation, direct server bypass and rejected-write invariants. Task asks for observed requests and row counts. Accept teaching of this validation contract, not general web proficiency.",
+      "scope": "Exact synthetic teaching content and mapping only; checklist is not a certification rubric; no understanding/application credit or equivalent-retake approval."
+    },
+    {
+      "id": "skill-specialist-debug-v1",
+      "kind": "historical_teaching_mapping",
+      "decision": "accept",
+      "source_sha256": "09a4dd1a29c7742338ffd66133465c5b0cc9e5deb5397a97ea5a68a4a7be3775",
+      "body_sha256": "78de406a971f27a2fe6ac0a5e8f6844753b89ea7bd498aff0106c800c2061d9f",
+      "mappings": [
+        {
+          "objective_id": "coding.debug.demonstrate",
+          "lesson_id": "skill-specialist-debug-v1",
+          "role": "teaches",
+          "source": {
+            "kind": "original-fictional-example",
+            "lesson_id": "skill-specialist-debug-v1",
+            "edition": 1,
+            "paragraph": 1,
+            "sha256": "0ec801079f36662b0a6833a936d4497dfa474577bc3b7a2fde9dc82248b00c1d"
+          }
+        }
+      ],
+      "reason": "Stored and rendered JSON parses successfully; numeric ordering gives A,B while str(priority) gives B,A. Input, expected/actual result, minimal change and undefined ties are explicit. Accept teaching of reproducing this sorting defect, not broad debugging competence.",
+      "scope": "Exact synthetic teaching content and mapping only; checklist is not a certification rubric; no understanding/application credit or equivalent-retake approval."
+    },
+    {
+      "id": "skill-specialist-codebase-v1",
+      "kind": "historical_teaching_mapping",
+      "decision": "accept",
+      "source_sha256": "e1c0c86f181aaf16d6f6ee18e45cbd71236f9d7169f83274022dcd220e00d4fb",
+      "body_sha256": "e200e36a27b5e144d60cc9a3dabac90d653f665c425d366ea2b19e078ee41767",
+      "mappings": [
+        {
+          "objective_id": "coding.codebase.demonstrate",
+          "lesson_id": "skill-specialist-codebase-v1",
+          "role": "teaches",
+          "source": {
+            "kind": "original-fictional-example",
+            "lesson_id": "skill-specialist-codebase-v1",
+            "edition": 1,
+            "paragraph": 1,
+            "sha256": "339314c5a9f0910349f3ce3099d80487ec9be34b3a727ad70266d02478957817"
+          }
+        }
+      ],
+      "reason": "Both submit→normalize→save and import_rows→save are explicit; the empty-title invariant must cover both. Task requests code references and four actual checks, separating inspection from execution. Accept teaching of dependency tracing in this small repository, not broad codebase proficiency.",
+      "scope": "Exact synthetic teaching content and mapping only; checklist is not a certification rubric; no understanding/application credit or equivalent-retake approval."
+    }
+  ],
+  "activity_counts": {
+    "progress": 4,
+    "practice": 4,
+    "skill_evidence": 0
+  },
+  "coverage_unchanged": true,
+  "transfer_decision": "revise: UI case consumer absent; equivalence unapproved; backend delivery checks pass locally",
+  "provider_decision": "unverified: no actual provider-generated artifact supplied",
+  "prior_decisions": "Preserve assessment-specialist-001 decisions except these four previously unverified historical mappings are now accepted within exact scope."
+}

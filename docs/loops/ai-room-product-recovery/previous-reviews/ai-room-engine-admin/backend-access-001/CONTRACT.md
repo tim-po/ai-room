@@ -1,0 +1,4 @@
+# A1 implementation contract
+Base bc4ba3c1f2eed39e42f611836d6990acf7b0a62d; clean isolated worktree /home/claude/ai-room-engine-admin-work, branch engine/admin-contract-v1. No applicable AGENTS.md found in checkout or ancestors.
+Ownership follows bilateral ownership-proposal-001.json and manager turn 3. Changes limited to diagnostics.py, practical.py, transfer_sources.py and test_current_content_access.py. No schema, AI pipeline, templates, frozen skills.py or deployment changes.
+AI/admin coordination: no schema changes and no template changes needed. Existing diagnostic observation access_required and practical submission recovery DTO stay compatible. Forbidden direct practical reads/writes return 403; diagnostic history preserves outcome summaries but removes inaccessible recommendations. Both use current bound lesson/course visibility plus original form access. Staff access remains explicit. Real HTTP regression uses disposable synthetic data only.
