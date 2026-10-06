@@ -1,4 +1,5 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {ReturnBriefing, stepLabel} from '../components/Briefing';
 import {AppLink} from '../Shell';
 import type {HomeData} from '../types';
 // The canvas engine is imperative DOM code (layout, pan/zoom, level-of-detail tweens); React owns
@@ -15,8 +16,15 @@ export default function SkillMap({data}: {data: HomeData}) {
   }, [data]);
 
   const unfinished = data.continuation.unfinished;
+  const briefing = data.briefing;
+  // After a break the strip opens into a briefing over the map; hiding it lasts for this visit.
+  const hideKey = `briefing-hidden:${briefing?.lesson_id}`;
+  const [briefingHidden, setBriefingHidden] = useState(() => { try { return sessionStorage.getItem(hideKey) === '1'; } catch { return false; } });
+  const showBriefing = !!briefing?.returning && !briefingHidden;
+  const step = stepLabel(briefing);
   const resume = unfinished
-    ? {label: unfinished.status === 'draft' ? 'Черновик ждёт вас' : 'Вы остановились на уроке', title: unfinished.title, url: unfinished.url + (unfinished.status === 'draft' ? '#practice' : ''), action: 'Продолжить →', aria: 'Продолжить обучение'}
+    ? {label: unfinished.status === 'draft' ? 'Черновик ждёт вас' : 'Вы остановились на уроке', title: unfinished.title + (step ? ` · ${step}` : ''),
+       url: briefing?.url ?? unfinished.url + (unfinished.status === 'draft' ? '#practice' : ''), action: 'Продолжить →', aria: 'Продолжить обучение'}
     : data.next
       ? {label: 'Следующий шаг', title: data.next.title, url: data.next.url, action: 'Открыть урок →', aria: 'Следующий шаг'}
       : null;
@@ -44,6 +52,10 @@ export default function SkillMap({data}: {data: HomeData}) {
       )}
       <p className="tree-status" role="status" data-tree-status />
       <div className="tree-viewport"><div className="tree-canvas" /></div>
+      {showBriefing && (
+        <ReturnBriefing briefing={briefing!} className="map-briefing"
+          onHide={() => { setBriefingHidden(true); try { sessionStorage.setItem(hideKey, '1'); } catch { /* per-visit nicety only */ } }} />
+      )}
       <ul className="tree-legend" aria-label="Обозначения">
         {LEGEND.map(([state, label]) => (
           <li key={state}><span className={`tree-lesson is-${state}`}><span className="tree-dot" /></span>{label}</li>

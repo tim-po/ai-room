@@ -56,4 +56,4 @@ def test_retired_pages_redirect_and_settings_page_is_simple(legacy):
         response = c.get(path)
         assert response.status_code == 302 and response.headers['Location'].endswith(target)
     assert c.get('/preferences').status_code == 200
-    assert set(c.get('/api/app/preferences').json) == {'goal', 'experience', 'weekly_goal'}
+    assert set(c.get('/api/app/preferences').json) == {'goal', 'experience', 'weekly_goal', 'plan'}

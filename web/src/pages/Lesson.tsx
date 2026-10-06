@@ -1,5 +1,5 @@
 import {useEffect, useState, type FormEvent} from 'react';
-import {useBlocker, useLoaderData, useLocation, useRevalidator, type LoaderFunctionArgs} from 'react-router';
+import {useBlocker, useLoaderData, useLocation, type LoaderFunctionArgs} from 'react-router';
 import {ApiError, bootstrap, getJson, postJson} from '../api';
 import {copyText, PromptPanel, Resources, Video} from '../components/Media';
 import Outline from '../components/Outline';
@@ -7,6 +7,7 @@ import {humanTime, plural} from '../format';
 import {AppLink} from '../Shell';
 import type {LessonData, Practice} from '../types';
 import {useTitle} from '../useTitle';
+import {CheckpointList, FinishPanel, ProgressBar, ResumeBanner, TocHeading, useCheckpoints, type Checkpoints} from './lesson/FinishLine';
 
 export const lessonLoader = ({params, request}: LoaderFunctionArgs) =>
   getJson<LessonData>(`/api/app/lessons/${encodeURIComponent(params.id!)}`, request.signal);
@@ -21,31 +22,6 @@ function useRecordVisit(lessonId: string, locked: boolean) {
     serverVisit = null;
     postJson(`/api/app/lessons/${encodeURIComponent(lessonId)}/visit`, {}).catch(() => { /* navigation history only */ });
   }, [lessonId, locked]);
-}
-
-/** Highlights the "В этом уроке" step being read. */
-function useActiveStep(count: number) {
-  const [active, setActive] = useState<string | null>(null);
-  useEffect(() => {
-    if (!count || !('IntersectionObserver' in window)) return;
-    const targets = [...document.querySelectorAll<HTMLElement>('.lesson-rich h2[id^="step-"], #practice')];
-    const observer = new IntersectionObserver(entries => {
-      const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-      if (visible) setActive(visible.target.id);
-    }, {rootMargin: '0px 0px -70% 0px'});
-    targets.forEach(t => observer.observe(t));
-    return () => observer.disconnect();
-  }, [count]);
-  return active;
-}
-
-function Steps({steps, practice, active}: {steps: string[]; practice: boolean; active: string | null}) {
-  return (
-    <ol>
-      {steps.map((step, i) => <li key={i}><a href={`#step-${i + 1}`} aria-current={active === `step-${i + 1}` ? 'true' : undefined}>{step}</a></li>)}
-      {practice && <li><a href="#practice" aria-current={active === 'practice' ? 'true' : undefined}>Практика</a></li>}
-    </ol>
-  );
 }
 
 function Body({lesson}: {lesson: LessonData['lesson']}) {
@@ -72,7 +48,7 @@ function Body({lesson}: {lesson: LessonData['lesson']}) {
   );
 }
 
-function PracticePanel({data}: {data: LessonData}) {
+function PracticePanel({data, onSaved}: {data: LessonData; onSaved: () => void}) {
   const {lesson} = data;
   const [saved, setSaved] = useState<Practice | null>(data.practice ?? null);
   const [body, setBody] = useState(data.practice?.body ?? '');
@@ -108,6 +84,7 @@ function PracticePanel({data}: {data: LessonData}) {
       setSaved(stored);
       setBody(stored.body);
       setConfirmed(true);
+      onSaved();
       setMessage(status === 'draft' ? 'Черновик сохранён' : 'Работа сохранена');
     } catch (error) {
       setMessage(error instanceof ApiError ? error.message : 'Не удалось сохранить. Текст остаётся в форме. Повторите попытку.');
@@ -157,43 +134,13 @@ function PracticePanel({data}: {data: LessonData}) {
   );
 }
 
-function CompletionPanel({data}: {data: LessonData}) {
-  const [completed, setCompleted] = useState(!!data.progress?.completed);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const revalidator = useRevalidator();
-  async function toggle() {
-    setBusy(true); setError('');
-    try {
-      await postJson(`/api/lessons/${encodeURIComponent(data.lesson.id)}/completion`, {completed: !completed});
-      setCompleted(!completed);
-      revalidator.revalidate();   // the course outline shows the new state
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Не удалось сохранить.');
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <section className={'panel completion' + (data.lesson.task ? ' is-secondary' : '')}>
-      <h2>{completed ? 'Урок завершён' : 'Готовы отметить свой шаг?'}</h2>
-      <p>{completed ? 'Урок отмечен пройденным на карте.' : 'Отметьте урок пройденным — он отметится на карте. Практика сохраняется отдельно.'}</p>
-      {bootstrap.user
-        ? <button type="button" className="button" onClick={toggle} disabled={busy}>{completed ? 'Вернуть в работу' : 'Отметить завершённым'}</button>
-        : <AppLink to={`/login?next=/lessons/${data.lesson.id}`}>Войти, чтобы сохранять прогресс</AppLink>}
-      {error && <p className="small" role="alert">{error}</p>}
-    </section>
-  );
-}
-
-function Sidebar({data, active}: {data: LessonData; active: string | null}) {
-  const steps = data.lesson.steps;
+function Sidebar({data, points}: {data: LessonData; points: Checkpoints | null}) {
   return (
     <aside className="lesson-sidebar">
-      {!data.locked && steps.length > 0 && (
+      {points && points.total > 0 && (
         <nav className="lesson-toc" aria-label="В этом уроке">
-          <p className="lesson-toc-title">В этом уроке</p>
-          <Steps steps={steps} practice={!!data.lesson.task} active={active} />
+          <TocHeading points={points} />
+          <CheckpointList points={points} />
         </nav>
       )}
       <details className="lesson-outline" open>
@@ -237,32 +184,35 @@ function Paywall({data}: {data: LessonData}) {
           {data.free_lesson && <p className="paywall-free">Пока можно пройти бесплатный урок этого курса: <AppLink to={`/lessons/${data.free_lesson.id}`}>{data.free_lesson.title} →</AppLink></p>}
         </section>
       </article>
-      <Sidebar data={data} active={null} />
+      <Sidebar data={data} points={null} />
     </div>
   );
 }
 
 function OpenLesson({data}: {data: LessonData}) {
   const {lesson} = data;
-  const active = useActiveStep(lesson.steps.length);
+  const points = useCheckpoints(data);
+  const [practiceSaved, setPracticeSaved] = useState(!!data.practice);
   return (
     <div className="lesson-layout">
       <article className="lesson-content">
+        <ProgressBar points={points} />
         <span className="eyebrow">{lesson.minutes} минут · {lesson.access === 'free' ? 'Бесплатный урок' : 'Урок клуба'}</span>
         <h1>{lesson.title}</h1>
         <p className="lead">{lesson.objective}</p>
-        {lesson.steps.length > 0 && (
+        <ResumeBanner data={data} points={points} />
+        {points.total > 0 && (
           <details className="lesson-toc-mobile">
-            <summary>В этом уроке · {lesson.steps.length} {plural(lesson.steps.length, 'раздел', 'раздела', 'разделов')}</summary>
-            <Steps steps={lesson.steps} practice={!!lesson.task} active={active} />
+            <summary>В этом уроке · {points.total} {plural(points.total, 'раздел', 'раздела', 'разделов')} · пройдено {points.furthest}</summary>
+            <CheckpointList points={points} />
           </details>
         )}
         {lesson.video && <Video video={lesson.video} resume={data.progress?.video_seconds ?? 0} saveUrl={`/api/lessons/${encodeURIComponent(lesson.id)}/video`} readingAnchor="lesson-reading" />}
         <Body lesson={lesson} />
         {lesson.prompt && <PromptPanel prompt={lesson.prompt} />}
         <Resources resources={data.resources ?? []} title="Материалы" />
-        {lesson.task && <PracticePanel data={data} />}
-        <CompletionPanel data={data} />
+        {lesson.task && <PracticePanel data={data} onSaved={() => setPracticeSaved(true)} />}
+        <FinishPanel data={data} points={points} practiceSaved={practiceSaved} />
         <nav className="lesson-nav" aria-label="Соседние уроки курса">
           {data.previous && <AppLink to={`/lessons/${data.previous.id}`}>← Предыдущий урок курса</AppLink>}
           {data.following
@@ -271,7 +221,7 @@ function OpenLesson({data}: {data: LessonData}) {
         </nav>
         <p><AppLink to={`/help?lesson=${lesson.id}`}>Нужна помощь с этим уроком?</AppLink></p>
       </article>
-      <Sidebar data={data} active={active} />
+      <Sidebar data={data} points={points} />
     </div>
   );
 }

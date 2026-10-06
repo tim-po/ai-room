@@ -1,0 +1,142 @@
+/* The learning loop around lessons: progress through a lesson, the finish moment, the plan and the
+   return briefing. Colours come from the theme tokens (club/static/themes.css). */
+
+/* ---- Sections reached ---- */
+.lesson-rich h2[id^="step-"],#practice,#finish{scroll-margin-top:calc(var(--header-h,64px) + 24px)}
+@media(max-width:1100px){.lesson-rich h2[id^="step-"],#practice,#finish{scroll-margin-top:calc(var(--header-h,56px) + 76px)}}
+.lesson-toc-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.lesson-toc-count{font-variant-numeric:tabular-nums;letter-spacing:0;color:var(--text)}
+.lesson-meter{display:block;height:4px;border-radius:999px;background:var(--track,var(--line));overflow:hidden;margin:0 0 14px}
+.lesson-meter>span{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .6s cubic-bezier(.2,.7,.2,1)}
+.checkpoints li.is-reached>a:after{content:'✓';margin-left:6px;font-weight:700;color:var(--accent-ink,var(--accent))}
+.lesson-toc .checkpoints li.is-reached>a{color:var(--text)}
+.lesson-toc .checkpoints li.is-reached>a:not([aria-current]){border-left-color:var(--accent-line,var(--line-strong))}
+
+/* Phones and tablets: a slim bar under the header that follows the reader. */
+.lesson-progress{display:none}
+@media(max-width:1100px){
+  .lesson-progress{display:block;position:sticky;top:calc(var(--header-h,56px) + 8px);z-index:15;margin:0 0 12px;padding:8px 14px 0;
+    border-radius:16px;border:1px solid var(--glass-border,var(--line));background:var(--popover,var(--panel));
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 30px var(--shadow,transparent);
+    opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .2s,transform .2s}
+  .lesson-progress.is-visible{opacity:1;transform:none;pointer-events:auto}
+  .lesson-progress button{display:flex;align-items:baseline;gap:10px;width:100%;min-height:32px;padding:0;border:0;background:none;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+  .lesson-progress-count{flex:0 0 auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent-ink,var(--accent))}
+  .lesson-progress-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600}
+  .lesson-progress .lesson-meter{margin:6px 0 8px;height:3px}
+}
+
+/* ---- "Вы остановились здесь" ---- */
+.resume-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin:0 0 24px;padding:16px 20px;
+  border-radius:var(--radius-card,16px);border:1px solid var(--accent-line,var(--accent));background:var(--accent-soft,var(--panel))}
+.resume-banner p{display:grid;gap:2px;margin:0;min-width:0}
+.resume-banner .eyebrow{margin:0}
+.resume-banner strong{font-size:16px;line-height:1.35}
+.resume-banner .actions{margin:0}
+
+/* ---- Finish panel ---- */
+.finish h2{display:flex;align-items:center;gap:10px}
+.finish-checks{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:8px}
+.finish-checks li{display:flex;gap:10px;align-items:baseline;color:var(--muted)}
+.finish-checks li:before{content:'';flex:0 0 14px;height:14px;border-radius:50%;border:2px solid var(--line-strong,var(--line));transform:translateY(2px)}
+.finish-checks li.is-done{color:var(--text)}
+.finish-checks li.is-done:before{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 2px var(--panel,#fff)}
+.finish-tick{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--on-accent,#fff);font-size:16px}
+.finish.is-done .link-button{padding-left:0}
+
+/* ---- Finish moment ---- */
+.finish-dialog{width:min(540px,calc(100% - 32px));max-height:calc(100dvh - 48px);overflow:auto;padding:32px 32px 24px;color:var(--text);
+  border:1px solid var(--glass-border,var(--line));border-radius:calc(var(--radius-card,20px) + 6px);
+  background:var(--popover,var(--panel));box-shadow:0 1px 0 var(--glass-highlight,transparent) inset,0 40px 120px var(--shadow,rgba(0,0,0,.4))}
+.finish-dialog::backdrop{background:rgba(10,8,6,.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.finish-dialog[open]{animation:finish-in .42s cubic-bezier(.2,.8,.2,1)}
+@keyframes finish-in{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.finish-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:0;background:var(--soft-fill,transparent);color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
+.finish-close:hover{color:var(--text)}
+.finish-mark{width:56px;height:56px;margin:0 0 12px;fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.finish-mark circle{stroke-dasharray:145;stroke-dashoffset:145;animation:finish-draw .6s .1s ease-out forwards}
+.finish-mark path{stroke-dasharray:36;stroke-dashoffset:36;animation:finish-draw .35s .55s ease-out forwards}
+@keyframes finish-draw{to{stroke-dashoffset:0}}
+.finish-dialog .eyebrow{margin:0 0 4px}
+.finish-dialog h2{font-size:26px;line-height:1.2;margin:0 0 10px;padding-right:32px}
+.finish-what{color:var(--muted);margin:0 0 18px}
+.finish-course{margin:0 0 22px}
+.finish-course p{display:flex;justify-content:space-between;gap:12px;margin:0 0 8px;font-size:14px}
+.finish-course p span:last-child{color:var(--muted);white-space:nowrap}
+.finish-course .lesson-meter{height:6px;margin:0}
+.finish-course .lesson-meter>span{transition-duration:1.1s}
+.finish-next{padding:18px 20px;margin:0 0 16px;border-radius:var(--radius-card,16px);background:var(--soft-fill,var(--panel));border:1px solid var(--glass-border,var(--line))}
+.finish-next h3{font-size:19px;line-height:1.3;margin:2px 0 6px}
+.finish-next p{margin:0 0 10px}
+.finish-next .small{margin:0 0 14px}
+.finish-plan{padding-top:16px;border-top:1px solid var(--line)}
+.finish-plan h3{font-size:17px;margin:0 0 4px}
+.finish-plan p{margin:0}
+
+/* ---- Plan ---- */
+.plan-days{border:0;margin:0 0 16px;padding:0;min-width:0}
+.plan-days legend{padding:0;margin:0 0 8px;font-size:14px;font-weight:600}
+.plan-day-row{display:flex;flex-wrap:wrap;gap:8px}
+.plan-day{min-width:46px;height:var(--control-sm,36px);padding:0 12px;border-radius:999px;border:1px solid var(--glass-border,var(--line));background:var(--well,transparent);
+  color:var(--text);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s}
+.plan-day:hover{border-color:var(--line-strong,var(--line))}
+.plan-day[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff)}
+.plan-editor .select-field{max-width:220px}
+.plan-summary{color:var(--muted);font-size:14px;margin:-6px 0 14px}
+.plan-editor .notice{margin:14px 0 0}
+.calendar-links{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 0}
+.calendar-links .small{flex-basis:100%;margin:0}
+.calendar-links .button{min-height:var(--control-sm,36px);padding:0 14px;font-size:14px}
+/* In the finish dialog: days and time on one row, so "Закрепить план" stays in view. */
+.plan-editor.is-compact{display:grid;grid-template-columns:minmax(0,1fr) 112px;column-gap:12px;align-items:end}
+.plan-editor.is-compact>:not(.plan-days):not(.select-field){grid-column:1/-1}
+.plan-editor.is-compact .plan-days,.plan-editor.is-compact .select-field{margin-bottom:12px}
+.plan-editor.is-compact .plan-day-row{gap:6px}
+.plan-editor.is-compact .plan-day{min-width:40px;padding:0 8px}
+.plan-editor.is-compact .plan-summary{margin:0 0 12px}
+@media(max-width:520px){.plan-editor.is-compact{grid-template-columns:1fr}}
+.me-panel .calendar-links{margin:12px 0}
+.settings-plan{margin-bottom:20px}
+.settings-plan h2{font-size:20px;margin:0 0 6px}
+
+/* ---- Return briefing ---- */
+.return-briefing h2{font-size:22px;line-height:1.25;margin:2px 0 10px}
+.return-briefing .eyebrow{margin:0;color:var(--accent-ink,var(--accent))}
+.briefing-lesson{display:grid;gap:2px;margin:0 0 12px}
+.briefing-lesson strong{font-size:17px;line-height:1.35;color:var(--text)}
+.briefing-lesson span{font-size:13px;color:var(--muted)}
+.briefing-recap{list-style:none;margin:0 0 16px;padding:0 0 0 2px;display:grid;gap:4px;font-size:14px}
+.briefing-recap li{display:flex;gap:8px;align-items:baseline;color:var(--muted)}
+.briefing-recap li:before{flex:0 0 14px;text-align:center;font-weight:700}
+.briefing-recap li.is-done:before{content:'✓';color:var(--accent-ink,var(--accent))}
+.briefing-recap li.is-current{color:var(--text);font-weight:600}
+.briefing-recap li.is-current:before{content:'→';color:var(--accent)}
+.briefing-recap li.is-current em{font-style:normal;font-weight:500;color:var(--muted);white-space:nowrap}
+.briefing-recap li.is-left:before{content:'·'}
+.briefing-draft{margin:0 0 16px;padding:10px 14px;border-left:3px solid var(--accent);background:var(--soft-fill,transparent);border-radius:0 10px 10px 0;
+  font-size:14px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.briefing-draft .small{display:block;margin-bottom:4px}
+.return-briefing .actions{margin:0}
+
+/* On the map: floating over the canvas, above the legend (the legend's own offsets, ui.css). */
+.map-briefing{position:absolute;z-index:3;width:min(400px,calc(100% - 32px));padding:20px 22px;
+  left:calc(16px - var(--sheet-pad,0px) - var(--spill,0px));bottom:calc(72px - var(--spill-bottom,0px));
+  border-radius:var(--radius-card,20px);border:1px solid var(--glass-border,var(--line));background:var(--glass-strong,var(--panel));
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 24px 60px var(--shadow,rgba(0,0,0,.3));animation:briefing-in .4s cubic-bezier(.2,.8,.2,1)}
+@keyframes briefing-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(max-width:800px){.map-briefing{left:12px;right:12px;width:auto;bottom:calc(96px - var(--spill-bottom,0px));padding:16px 18px;max-height:60dvh;overflow:auto}}
+/* In Моё обучение: in place of "Продолжить урок". */
+.me-briefing{margin:0 0 36px;padding:24px;border-radius:var(--radius-card,20px);border:1px solid var(--accent-line,var(--line));background:var(--accent-soft,var(--panel))}
+
+@media (prefers-reduced-motion:reduce){
+  .finish-dialog[open],.map-briefing{animation:none}
+  .finish-mark circle,.finish-mark path{animation:none;stroke-dashoffset:0}
+  .lesson-meter>span,.lesson-progress{transition:none}
+}
+
+/* The lesson sidebar sticks below the sticky header, not under it. */
+@media(min-width:1101px){
+  .learner-surface .lesson-sidebar{top:calc(var(--header-h,64px) + 16px);max-height:calc(100vh - var(--header-h,64px) - 32px)}
+}
+.plan-editor.is-compact>p[role=status]{margin:0}
+.plan-error{color:var(--danger,#d9534f)}

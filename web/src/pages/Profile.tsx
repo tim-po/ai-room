@@ -1,6 +1,9 @@
 import {useLoaderData} from 'react-router';
 import {getJson} from '../api';
+import {ReturnBriefing, stepLabel} from '../components/Briefing';
+import {CalendarLinks} from '../components/PlanEditor';
 import {humanTime, plural} from '../format';
+import {formatDays, formatSession, nextSession} from '../plan';
 import {AppLink} from '../Shell';
 import type {CourseProgress, ProfileData} from '../types';
 import {useTitle} from '../useTitle';
@@ -39,8 +42,9 @@ function CourseRow({course, entitlement}: {course: CourseProgress; entitlement: 
 export default function Profile() {
   const data = useLoaderData() as ProfileData;
   useTitle('Моё обучение');
-  const {user} = data;
+  const {user, briefing, plan} = data;
   const unfinished = data.continuation.unfinished;
+  const next = nextSession(plan);
   return (
     <div className="me">
       <header className="me-head">
@@ -49,9 +53,11 @@ export default function Profile() {
       </header>
       <div className="me-grid">
         <div className="me-main">
-          {unfinished ? (
-            <AppLink className="me-continue" to={unfinished.url + (unfinished.status === 'draft' ? '#practice' : '')} aria-label={`Продолжить: ${unfinished.title}`}>
-              <span className="me-continue-label">{unfinished.status === 'draft' ? 'Черновик ждёт вас' : 'Продолжить урок'}</span>
+          {briefing?.returning ? (
+            <ReturnBriefing briefing={briefing} className="me-briefing" />
+          ) : unfinished ? (
+            <AppLink className="me-continue" to={briefing?.url ?? unfinished.url + (unfinished.status === 'draft' ? '#practice' : '')} aria-label={`Продолжить: ${unfinished.title}`}>
+              <span className="me-continue-label">{unfinished.status === 'draft' ? 'Черновик ждёт вас' : 'Продолжить урок'}{stepLabel(briefing) && ` · ${stepLabel(briefing)}`}</span>
               <strong>{unfinished.title}</strong>
               <span className="me-continue-action">Продолжить →</span>
             </AppLink>
@@ -91,9 +97,21 @@ export default function Profile() {
         </div>
 
         <aside className="me-side">
-          <section className="me-panel" aria-labelledby="pace-title">
-            <h2 id="pace-title">Темп</h2>
+          <section className="me-panel" aria-labelledby="pace-title" id="plan">
+            <h2 id="pace-title">План</h2>
+            {next ? (
+              <div className="weekly-goal">
+                <p><strong>{formatDays(plan.days)} в {plan.time}</strong></p>
+                <p>Следующее занятие — {formatSession(next)}.</p>
+                <p className="small">За последние 7 дней: {data.weekly} из {plan.days.length} {plural(plan.days.length, 'занятия', 'занятий', 'занятий')}.</p>
+                <progress aria-label="Занятия за неделю" value={Math.min(data.weekly, plan.days.length)} max={plan.days.length} />
+                <CalendarLinks plan={plan} />
+                <AppLink to="/preferences#plan">Изменить план →</AppLink>
+              </div>
+            ) : (
             <div className="weekly-goal">
+              <p>Выберите дни занятий — добавим их в ваш календарь, чтобы возвращаться было проще.</p>
+              <AppLink className="button secondary" to="/preferences#plan">Выбрать дни →</AppLink>
               {user.weekly_goal ? (
                 <>
                   <p><strong>Недельная цель: {data.weekly} из {user.weekly_goal}</strong></p>
@@ -102,8 +120,8 @@ export default function Profile() {
                 </>
               ) : <p><strong>Недельная цель на паузе.</strong> Возвращайтесь, когда удобно.</p>}
               <p className="small">Пройдено за последние 7 дней: {data.weekly} {plural(data.weekly, 'урок', 'урока', 'уроков')}.</p>
-              <AppLink to="/preferences">Изменить цель и темп →</AppLink>
             </div>
+            )}
           </section>
           <section className="me-panel" aria-labelledby="access-title">
             <h2 id="access-title">Доступ</h2>

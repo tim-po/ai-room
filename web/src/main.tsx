@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from 'react-router';
 import './app.css';
+import './loop.css';
 import {NotFound, RouteError} from './ErrorPage';
 import Catalogue, {catalogueLoader} from './pages/Catalogue';
 import Course, {courseLoader} from './pages/Course';

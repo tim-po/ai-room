@@ -64,7 +64,8 @@ def create_app(config=None):
         return (rows[0] if rows else None) if one else rows
 
     def event(name, lesson_id=None):
-        allowed = {'lesson_started', 'lesson_completed', 'practice_saved', 'practice_submitted', 'help_requested', 'onboarding_completed', 'course_started', 'meaningful_return'}
+        allowed = {'lesson_started', 'lesson_completed', 'practice_saved', 'practice_submitted', 'help_requested', 'onboarding_completed', 'course_started', 'meaningful_return',
+                   'plan_saved', 'plan_calendar'}
         if name not in allowed:
             raise ValueError('Unsupported event')
         if g.user['role'] != 'learner':
@@ -165,6 +166,9 @@ def create_app(config=None):
             abort(403, 'Этот урок доступен участникам клуба. Можно вернуться к бесплатным урокам или обратиться за помощью по доступу.')
         return row
 
+    from .learning_loop import register_learning_loop
+    loop = register_learning_loop(app, db, query, require_user, get_lesson, event)
+
     def cards():
         from .tree import catalog_index
         index = catalog_index()
@@ -240,8 +244,16 @@ def create_app(config=None):
         tree = build_tree(query, g.user, can_access, unfinished['lesson_id'] if unfinished else None)
         free_lessons = [dict(l, course=c['title'], topic=t['title']) for t in tree['topics'] for c in t['courses']
                         for m in c['modules'] for l in m['lessons'] if l['state'] == 'open'][:3] if not g.user else []
-        return dict(tree=tree, continuation=continuation, free_lessons=free_lessons,
+        return dict(tree=tree, continuation=continuation, free_lessons=free_lessons, briefing=loop['briefing'](unfinished),
                     next=dict(id=next_lesson['id'], title=next_lesson['title'], url='/lessons/' + next_lesson['id']) if next_lesson else None)
+
+    @app.get('/continue')
+    @require_user
+    def continue_learning():
+        # Calendar events and reminders link here: the next thing to do, resolved when the learner arrives.
+        data = home_data()
+        target = data['briefing']['url'] if data['briefing'] else data['next']['url'] if data['next'] else '/'
+        return redirect(target)
 
     @app.get('/')
     def home():
@@ -348,7 +360,11 @@ def create_app(config=None):
             progress = query('SELECT completed,video_seconds FROM progress WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
             practice = query('SELECT body,status,updated_at FROM practice WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
         index = next(i for i, l in enumerate(lessons) if l['id'] == lesson_id)
-        neighbour = lambda l: dict(id=l['id'], title=l['title'], locked=not can_access(l)) if l else None
+        def neighbour(l):
+            if not l:
+                return None
+            row = query('SELECT objective FROM lessons WHERE id=?', (l['id'],), True)
+            return dict(id=l['id'], title=l['title'], locked=not can_access(l), minutes=l['minutes'], objective=row['objective'])
         video = None
         if lesson['video']:
             video = dict(url=url_for('media', lesson_id=lesson_id), type='video/mp4' if lesson['video'].endswith('.mp4') else 'video/webm',
@@ -361,8 +377,10 @@ def create_app(config=None):
                      paragraphs=None if blocks else lesson['body'].split('\n\n'),
                      prompt=lesson['prompt'], task=lesson['task'],
                      checklist=lesson['checklist'].split('\n') if lesson['checklist'] else [], video=video)
+        from .learning_loop import checkpoints
         return dict(locked=False, lesson=info, course=course, outline=outline, resources=resources,
                     progress=dict(progress) if progress else None, practice=dict(practice) if practice else None,
+                    checkpoints=checkpoints(lesson), step_progress=loop['step_progress'](lesson_id), plan=loop['plan'](),
                     previous=neighbour(lessons[index - 1] if index else None),
                     following=neighbour(lessons[index + 1] if index + 1 < len(lessons) else None))
 
@@ -507,7 +525,7 @@ def create_app(config=None):
     def preferences():
         if request.method == 'POST':
             data = {k: str(v) for k, v in payload().items()}
-            if data.get('goal') not in GOALS or data.get('experience') not in ('beginner', 'experienced') or data.get('weekly_goal') not in ('0', '1', '2', '3', '5'):
+            if data.get('goal') not in GOALS or data.get('experience') not in ('beginner', 'experienced') or data.get('weekly_goal') not in ('0', '1', '2', '3', '4', '5', '6', '7'):
                 abort(400)
             with db():
                 db().execute('UPDATE users SET goal=?,experience=?,weekly_goal=?,onboarding_done=1 WHERE id=?', (data['goal'], data['experience'], int(data['weekly_goal']), g.user['id']))
@@ -525,7 +543,7 @@ def create_app(config=None):
     @app.get('/api/app/preferences')
     @require_user
     def preferences_api():
-        return jsonify(goal=g.user['goal'], experience=g.user['experience'], weekly_goal=g.user['weekly_goal'])
+        return jsonify(goal=g.user['goal'], experience=g.user['experience'], weekly_goal=g.user['weekly_goal'], plan=loop['plan']())
 
     @app.post('/preferences/skip')
     @require_user
@@ -556,8 +574,10 @@ def create_app(config=None):
         completed = [c for c in learning if c['total'] and c['done'] == c['total']]
         material_favourites = query('''SELECT m.id,m.title FROM material_favourites f JOIN materials m ON m.id=f.material_id WHERE f.user_id=? AND m.status='published' ''', (g.user['id'],))
         user = g.user
+        continuation = continuation_context()
         return dict(user=dict(name=user['name'], email=user['email'], entitlement=user['entitlement'], weekly_goal=user['weekly_goal']),
-                    continuation=continuation_context(), weekly=weekly_completed(),
+                    continuation=continuation, briefing=loop['briefing'](continuation['unfinished']), plan=loop['plan'](),
+                    weekly=weekly_completed(),
                     practices=[dict(p) for p in practices], active_courses=[c for c in learning if c not in completed],
                     completed_courses=completed, favourites=[dict(f) for f in favourites],
                     material_favourites=[dict(m) for m in material_favourites])

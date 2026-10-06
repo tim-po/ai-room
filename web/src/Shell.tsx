@@ -114,8 +114,28 @@ export function ShellFallback() {
   );
 }
 
+// React Router keys every full page load "default", so a fresh load (a link from a server page, a
+// calendar reminder via /continue) would restore whatever scroll was last saved under that key.
+// Fresh loads start at the top (or their #section); only a reload restores its position.
+const loadType = (performance.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined)?.type;
+const firstLoadKey = loadType === 'reload' ? `reload:${window.location.pathname}${window.location.search}` : `load:${Date.now()}`;
+const scrollKey = (location: {key: string}) => (location.key === 'default' ? firstLoadKey : location.key);
+
+/** --header-h: the sticky header's height, so sticky bars and anchors can sit just below it. */
+function useHeaderHeight() {
+  useEffect(() => {
+    const header = document.querySelector<HTMLElement>('.club-header');
+    if (!header || !('ResizeObserver' in window)) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => root.style.setProperty('--header-h', `${header.offsetHeight}px`));
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+}
+
 export default function Shell() {
   useLinkInterception();
+  useHeaderHeight();
   const location = useLocation();
   const navigation = useNavigation();
   const {notices, error} = usePageMessages();
@@ -137,7 +157,7 @@ export default function Shell() {
         </main>
       </div>
       <InstantPageScroll />
-      <ScrollRestoration />
+      <ScrollRestoration getKey={scrollKey} />
     </>
   );
 }

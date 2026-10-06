@@ -79,7 +79,8 @@ def test_flashed_notices_reach_the_app_once(app):
     assert bootstrap(client.get('/profile'))['notices'] == [{'kind': 'success', 'text': 'Настройки сохранены.'}]
     assert bootstrap(client.get('/profile'))['notices'] == []
     assert post(client, '/preferences', {'goal': 'work', 'experience': 'experienced', 'weekly_goal': 5}, csrf).json == {'ok': True}
-    assert client.get('/api/app/preferences').json == {'goal': 'work', 'experience': 'experienced', 'weekly_goal': 5}
+    assert client.get('/api/app/preferences').json == {'goal': 'work', 'experience': 'experienced', 'weekly_goal': 5,
+                                                       'plan': {'days': [], 'time': '19:00', 'minutes': 20}}
     assert post(client, '/preferences', {'goal': 'work', 'experience': 'expert', 'weekly_goal': 5}, csrf).status_code == 400
 
 

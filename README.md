@@ -44,6 +44,16 @@ server itself does not need Node. Deployments must run the build before restarti
 learner pages show a "frontend not built" notice. Styles are the shared stylesheets in `club/static`
 (included through `templates/_styles.html`), so React and server pages look the same.
 
+## Learning loop
+
+Around each lesson (`club/learning_loop.py`, `web/src/pages/lesson/FinishLine.tsx`):
+- **Progress through the lesson.** Sections reached are saved per learner, and continue links open the section where the learner stopped.
+- **A finish moment.** It leads into the next lesson.
+- **A plan.** The learner chooses days and a time, which also sets the weekly goal. They can download it as an `.ics` file or add it to Google Calendar; each event links to `/continue`, which opens their next step.
+- **A return briefing.** It appears on the map and in Моё обучение after 3 or more days away.
+
+The two tables (`lesson_steps`, `learning_plans`) are additive and created on first use, so no migration is needed.
+
 ## Setup
 
 Python 3.12+; `uv` or a working Python venv/pip installation.

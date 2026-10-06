@@ -52,9 +52,32 @@ export interface Continuation {
   last_result: (Unfinished & {status: 'submitted' | 'completed'}) | null;
 }
 
+/** The learner's chosen days (ISO weekday 1 = Monday) and time; no days = no plan. */
+export interface Plan {
+  days: number[];
+  time: string;
+  minutes: number;
+}
+
+/** Where the learner stopped (club/learning_loop.py briefing); `returning` after a break of 3+ days. */
+export interface Briefing {
+  lesson_id: string;
+  title: string;
+  course: string;
+  status: 'draft' | 'in_progress';
+  url: string;
+  step: {index: number; total: number; title: string} | null;
+  steps: string[];
+  minutes: number;
+  away_days: number | null;
+  returning: boolean;
+  practice: {excerpt: string; status: 'draft' | 'submitted'; updated_at: string} | null;
+}
+
 export interface HomeData {
   tree: {topics: TreeTopic[]};
   continuation: Continuation;
+  briefing: Briefing | null;
   next: {id: string; title: string; url: string} | null;
   free_lessons: (TreeLesson & {course: string; topic: string})[];
 }
@@ -78,6 +101,8 @@ export interface Neighbour {
   id: string;
   title: string;
   locked: boolean;
+  minutes: number;
+  objective: string;
 }
 
 export interface Practice {
@@ -97,6 +122,10 @@ export interface LessonData {
   practice?: Practice | null;
   previous?: Neighbour | null;
   following?: Neighbour | null;
+  /** Section titles (the lesson's h2 steps) plus "Практика" when there is a task. */
+  checkpoints?: string[];
+  step_progress?: {furthest: number; last: number; updated_at: string} | null;
+  plan?: Plan | null;
   // locked lessons
   entitlement?: string | null;
   free_lesson?: {id: string; title: string} | null;
@@ -114,6 +143,8 @@ export interface CourseProgress {
 export interface ProfileData {
   user: {name: string; email: string; entitlement: string; weekly_goal: number};
   continuation: Continuation;
+  briefing: Briefing | null;
+  plan: Plan;
   weekly: number;
   practices: (Practice & {lesson_id: string; title: string; course_id: string})[];
   active_courses: CourseProgress[];
@@ -230,6 +261,7 @@ export interface PreferencesData {
   goal: string;
   experience: 'beginner' | 'experienced';
   weekly_goal: number;
+  plan: Plan;
 }
 
 export interface HelpTicket {
