@@ -1,6 +1,7 @@
-import {useEffect, useRef, useState, type FormEvent} from 'react';
+import {useEffect, useState, type FormEvent} from 'react';
 import {useBlocker, useLoaderData, useLocation, useRevalidator, type LoaderFunctionArgs} from 'react-router';
 import {ApiError, bootstrap, getJson, postJson} from '../api';
+import {copyText, PromptPanel, Resources, Video} from '../components/Media';
 import Outline from '../components/Outline';
 import {humanTime, plural} from '../format';
 import {AppLink} from '../Shell';
@@ -45,54 +46,6 @@ function Steps({steps, practice, active}: {steps: string[]; practice: boolean; a
       {practice && <li><a href="#practice" aria-current={active === 'practice' ? 'true' : undefined}>Практика</a></li>}
     </ol>
   );
-}
-
-function Video({lessonId, video, resume}: {lessonId: string; video: NonNullable<LessonData['lesson']['video']>; resume: number}) {
-  const ref = useRef<HTMLVideoElement>(null);
-  const [failed, setFailed] = useState(false);
-  const [status, setStatus] = useState('');
-  const lastSave = useRef(0);
-  async function save(force = false) {
-    const element = ref.current;
-    if (!element || !bootstrap.user || (!force && Date.now() - lastSave.current < 5000)) return;
-    lastSave.current = Date.now();
-    try {
-      await postJson(`/api/lessons/${encodeURIComponent(lessonId)}/video`, {seconds: element.currentTime});
-      setStatus('Позиция просмотра сохранена.');
-    } catch {
-      setStatus('Позиция не сохранена. Проверьте подключение.');
-    }
-  }
-  return (
-    <div className="video-wrap">
-      <video ref={ref} controls preload="metadata" playsInline
-        onLoadedMetadata={event => { setFailed(false); const v = event.currentTarget; if (resume > 0 && resume < v.duration - 1) v.currentTime = resume; }}
-        onError={() => setFailed(true)} onTimeUpdate={() => save()} onPause={() => save(true)} onEnded={() => save(true)}>
-        <source src={video.url} type={video.type} onError={() => setFailed(true)} />
-        Видео не поддерживается. Прочитайте текст урока ниже.
-      </video>
-      {video.fixture && <p className="small">Короткий синтетический видеопример для проверки воспроизведения. Без звука. Содержание доступно текстом ниже.</p>}
-      {failed && (
-        <div className="notice">
-          <p role="status">Видео недоступно. Можно повторить загрузку или продолжить по тексту.</p>
-          <div className="actions">
-            <button type="button" className="button secondary" onClick={() => { setFailed(false); ref.current?.load(); }}>Повторить загрузку видео</button>
-            <a href="#lesson-reading">Перейти к тексту урока ↓</a>
-          </div>
-        </div>
-      )}
-      <p className="small" role="status">{status}</p>
-    </div>
-  );
-}
-
-async function copyText(text: string, report: (message: string) => void) {
-  try {
-    await navigator.clipboard.writeText(text);
-    report('Скопировано.');
-  } catch {
-    report('Не удалось скопировать автоматически. Выделите текст и скопируйте его.');
-  }
 }
 
 function Body({lesson}: {lesson: LessonData['lesson']}) {
@@ -197,7 +150,7 @@ function PracticePanel({data}: {data: LessonData}) {
       ) : (
         <>
           <p>Войдите, чтобы сохранить практику и продолжить на другом устройстве.</p>
-          <a className="button" href={`/login?next=/lessons/${lesson.id}`}>Войти и сохранить</a>
+          <AppLink className="button" to={`/login?next=/lessons/${lesson.id}`}>Войти и сохранить</AppLink>
         </>
       )}
     </section>
@@ -227,7 +180,7 @@ function CompletionPanel({data}: {data: LessonData}) {
       <p>{completed ? 'Урок отмечен пройденным на карте.' : 'Отметьте урок пройденным — он отметится на карте. Практика сохраняется отдельно.'}</p>
       {bootstrap.user
         ? <button type="button" className="button" onClick={toggle} disabled={busy}>{completed ? 'Вернуть в работу' : 'Отметить завершённым'}</button>
-        : <a href={`/login?next=/lessons/${data.lesson.id}`}>Войти, чтобы сохранять прогресс</a>}
+        : <AppLink to={`/login?next=/lessons/${data.lesson.id}`}>Войти, чтобы сохранять прогресс</AppLink>}
       {error && <p className="small" role="alert">{error}</p>}
     </section>
   );
@@ -269,15 +222,15 @@ function Paywall({data}: {data: LessonData}) {
             <>
               <h2 id="paywall-title">Доступ к клубу приостановлен</h2>
               <p>Материалы клуба для этого аккаунта сейчас закрыты. Напишите нам — разберёмся.</p>
-              <div className="actions"><a className="button" href="/help">Написать в поддержку</a></div>
+              <div className="actions"><AppLink className="button" to="/help">Написать в поддержку</AppLink></div>
             </>
           ) : (
             <>
               <h2 id="paywall-title">{expired ? 'Доступ к клубу закончился' : 'Этот урок — для участников клуба'}</h2>
               <p>{expired ? 'Продлите участие, чтобы продолжить с того же места. Сохранённые работы никуда не делись.' : 'В клубе открыты все уроки курсов, практика с сохранением и новые материалы каждую неделю.'}</p>
               <div className="actions">
-                <a className="button" href={`/membership?next=${pathname}`}>{expired ? 'Продлить доступ' : 'Открыть доступ'}</a>
-                {!bootstrap.user && <a className="button secondary" href={`/login?next=${pathname}`}>Я уже в клубе — войти</a>}
+                <AppLink className="button" to={`/membership?next=${pathname}`}>{expired ? 'Продлить доступ' : 'Открыть доступ'}</AppLink>
+                {!bootstrap.user && <AppLink className="button secondary" to={`/login?next=${pathname}`}>Я уже в клубе — войти</AppLink>}
               </div>
             </>
           )}
@@ -304,19 +257,10 @@ function OpenLesson({data}: {data: LessonData}) {
             <Steps steps={lesson.steps} practice={!!lesson.task} active={active} />
           </details>
         )}
-        {lesson.video && <Video lessonId={lesson.id} video={lesson.video} resume={data.progress?.video_seconds ?? 0} />}
+        {lesson.video && <Video video={lesson.video} resume={data.progress?.video_seconds ?? 0} saveUrl={`/api/lessons/${encodeURIComponent(lesson.id)}/video`} readingAnchor="lesson-reading" />}
         <Body lesson={lesson} />
         {lesson.prompt && <PromptPanel prompt={lesson.prompt} />}
-        {(data.resources?.length ?? 0) > 0 && (
-          <section className="materials">
-            <h2>Материалы</h2>
-            {data.resources!.map(resource => (
-              <a key={resource.id} className="resource" href={resource.url}>
-                {resource.id === 'checklist' ? '↓ ' : ''}{resource.title}<small>{resource.kind === 'text' ? 'TXT · скачать' : 'Внешний источник ↗'}</small>
-              </a>
-            ))}
-          </section>
-        )}
+        <Resources resources={data.resources ?? []} title="Материалы" />
         {lesson.task && <PracticePanel data={data} />}
         <CompletionPanel data={data} />
         <nav className="lesson-nav" aria-label="Соседние уроки курса">
@@ -325,22 +269,10 @@ function OpenLesson({data}: {data: LessonData}) {
             ? <AppLink to={`/lessons/${data.following.id}`}>Следующий урок курса {data.following.locked ? '· клуб ' : ''}→</AppLink>
             : <AppLink to="/profile">К моим результатам →</AppLink>}
         </nav>
-        <p><a href={`/help?lesson=${lesson.id}`}>Нужна помощь с этим уроком?</a></p>
+        <p><AppLink to={`/help?lesson=${lesson.id}`}>Нужна помощь с этим уроком?</AppLink></p>
       </article>
       <Sidebar data={data} active={active} />
     </div>
-  );
-}
-
-function PromptPanel({prompt}: {prompt: string}) {
-  const [status, setStatus] = useState('');
-  return (
-    <section className="panel">
-      <h2>Запрос для первого шага</h2>
-      <p className="preserve">{prompt}</p>
-      <button type="button" className="button secondary" onClick={() => copyText(prompt, message => setStatus(message === 'Скопировано.' ? 'Запрос скопирован.' : message))}>Скопировать запрос</button>
-      <span className="copy-status" role="status">{status}</span>
-    </section>
   );
 }
 
@@ -355,7 +287,7 @@ export default function LessonPage() {
   }, [hash, data.lesson.id]);
   return (
     <>
-      <a className="breadcrumb" href={`/courses/${data.course.id}`}>← {data.course.title}</a>
+      <AppLink className="breadcrumb" to={`/courses/${data.course.id}`}>← {data.course.title}</AppLink>
       {data.locked ? <Paywall data={data} /> : <OpenLesson key={data.lesson.id} data={data} />}
     </>
   );

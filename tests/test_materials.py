@@ -11,6 +11,10 @@ GUIDE = 'guide-check-answer'
 WORKSHOP = 'workshop-prompt-lab'
 
 
+def ids(catalogue):
+    return {item['id'] for item in catalogue['courses'] + catalogue['materials']}
+
+
 def fields(**changes):
     return dict(title='Проверяем самостоятельный материал', description='Описание в каталоге', outcome='Проверенный результат',
                 format='workshop',goal='work',level='Начальный',tools='Текстовый AI',prerequisites='Без опыта',author='Редактор',
@@ -46,13 +50,13 @@ def test_material_lifecycle_access_resources_and_conflicts(app):
     assert member.get(resource_path).text=='Секретный ресурс'
     assert member.post(public+'/favourite',data={'csrf':member_csrf,'saved':'1'}).status_code==302
     assert identity in [m['id'] for m in member.get('/api/app/profile').json['material_favourites']]
-    assert identity not in anon.get('/catalogue?format=guide').text
+    assert identity not in ids(anon.get('/api/app/catalogue?format=guide').json)
     for status in ['draft','archived']:
         assert form(editor,path,csrf,**fields(status=status)).status_code==302
         assert member.get(public).status_code==404
         assert member.get(resource_path).status_code==404
         assert identity not in [m['id'] for m in member.get('/api/app/profile').json['material_favourites']]
-        assert identity not in member.get('/catalogue').text
+        assert identity not in ids(member.get('/api/app/catalogue').json)
     assert form(editor,path,csrf,**fields(status='published')).status_code==302
     assert identity in [m['id'] for m in member.get('/api/app/profile').json['material_favourites']]
     assert db.execute('SELECT count(*) FROM material_favourites WHERE material_id=?',(identity,)).fetchone()[0]==1
@@ -69,12 +73,12 @@ def test_material_lifecycle_access_resources_and_conflicts(app):
 
 def test_material_filter_metadata_validation_and_roles(app):
     c=app.test_client()
-    page=c.get('/catalogue?format=workshop&goal=work&level=Начальный&tool=текстовый&q=мастерская')
-    assert page.status_code==200 and WORKSHOP in page.text and GUIDE not in page.text
-    assert 'Неизвестные данные оставьте пустыми' not in page.text
-    assert 'Ничего не найдено' in c.get('/catalogue?format=guide&goal=agents').text
-    assert GUIDE in c.get('/catalogue?format=guide&tool=AI').text
-    assert GUIDE not in c.get('/catalogue?format=course').text
+    assert c.get('/catalogue?format=workshop&goal=work').status_code==200
+    found=ids(c.get('/api/app/catalogue?format=workshop&goal=work&level=Начальный&tool=текстовый&q=мастерская').json)
+    assert WORKSHOP in found and GUIDE not in found
+    assert ids(c.get('/api/app/catalogue?format=guide&goal=agents').json)==set()   # "Ничего не найдено"
+    assert GUIDE in ids(c.get('/api/app/catalogue?format=guide&tool=AI').json)
+    assert GUIDE not in ids(c.get('/api/app/catalogue?format=course').json)
     assert c.get('/admin/materials').status_code==401
     assert c.get('/admin/materials/resources/worksheet-'+GUIDE+'/preview').status_code==401
     csrf=login(c)
@@ -104,11 +108,11 @@ def test_material_media_resume_restart_isolation_and_seed(app,tmp_path):
     assert c.post(path+'/favourite',data={'csrf':csrf,'saved':'1'}).status_code==302
     restart=create_app({'TESTING':True,'DATABASE':app.config['DATABASE'],'SECRET_KEY':'restart'})
     second=restart.test_client();login(second,'member')
-    assert 'data-resume="3.5"' in second.get(path).text
-    assert 'Убрать из избранного' in second.get(path).text
+    data=second.get('/api/app/materials/'+WORKSHOP).json
+    assert data['seconds']==3.5 and data['favourite']
     other=app.test_client();login(other,'editor')
-    assert 'data-resume="0"' in other.get(path).text
-    assert 'Убрать из избранного' not in other.get(path).text
+    data=other.get('/api/app/materials/'+WORKSHOP).json
+    assert data['seconds']==0 and not data['favourite']
     (media/'fixture.webm').unlink()
     assert c.get(path).status_code==200 and c.get(path+'/media').status_code==404
     with sqlite3.connect(app.config['DATABASE']) as db:

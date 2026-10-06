@@ -18,7 +18,7 @@ function CourseRow({course, entitlement}: {course: CourseProgress; entitlement: 
   return (
     <div className={'me-course' + (remaining ? '' : ' is-complete')}>
       <div className="me-course-main">
-        <a className="me-course-title" href={`/courses/${course.id}`}>{course.title}</a>
+        <AppLink className="me-course-title" to={`/courses/${course.id}`}>{course.title}</AppLink>
         {remaining && <progress className="me-progress" value={course.done} max={course.total || 1} aria-label={`Пройдено ${course.done} из ${course.total}`} />}
         <p className="me-course-meta">
           Пройдено {course.done} / {course.total} {plural(course.total, 'урок', 'урока', 'уроков')}
@@ -30,8 +30,8 @@ function CourseRow({course, entitlement}: {course: CourseProgress; entitlement: 
       {remaining && (course.next
         ? <AppLink className="button secondary" to={`/lessons/${course.next.id}`}>Продолжить</AppLink>
         : course.next_locked && entitlement !== 'revoked'
-          ? <a className="button secondary" href={`/membership?next=/lessons/${course.next_locked.id}`}>Открыть доступ</a>
-          : <a className="button secondary" href={`/courses/${course.id}`}>Открыть курс</a>)}
+          ? <AppLink className="button secondary" to={`/membership?next=/lessons/${course.next_locked.id}`}>Открыть доступ</AppLink>
+          : <AppLink className="button secondary" to={`/courses/${course.id}`}>Открыть курс</AppLink>)}
     </div>
   );
 }
@@ -45,7 +45,7 @@ export default function Profile() {
     <div className="me">
       <header className="me-head">
         <div><p className="eyebrow">Моё обучение</p><h1>{user.name}</h1></div>
-        <p className="me-head-links"><a href="/onboarding">Интересы и темп</a><a href="/membership">{ACCESS_LABEL[user.entitlement]}</a></p>
+        <p className="me-head-links"><AppLink to="/onboarding">Интересы и темп</AppLink><AppLink to="/membership">{ACCESS_LABEL[user.entitlement]}</AppLink></p>
       </header>
       <div className="me-grid">
         <div className="me-main">
@@ -102,20 +102,20 @@ export default function Profile() {
                 </>
               ) : <p><strong>Недельная цель на паузе.</strong> Возвращайтесь, когда удобно.</p>}
               <p className="small">Пройдено за последние 7 дней: {data.weekly} {plural(data.weekly, 'урок', 'урока', 'уроков')}.</p>
-              <a href="/preferences">Изменить цель и темп →</a>
+              <AppLink to="/preferences">Изменить цель и темп →</AppLink>
             </div>
           </section>
           <section className="me-panel" aria-labelledby="access-title">
             <h2 id="access-title">Доступ</h2>
             <p>{ACCESS_TEXT[user.entitlement]}</p>
             <p className="me-note">{user.email}</p>
-            {user.entitlement !== 'member' ? <a href="/membership">Подробнее о клубе →</a> : <a href="/help">Вопрос по доступу →</a>}
+            {user.entitlement !== 'member' ? <AppLink to="/membership">Подробнее о клубе →</AppLink> : <AppLink to="/help">Вопрос по доступу →</AppLink>}
           </section>
           {(data.favourites.length > 0 || data.material_favourites.length > 0) && (
             <section className="me-panel" aria-labelledby="fav-title">
               <h2 id="fav-title">Избранное</h2>
-              {data.material_favourites.map(m => <p key={m.id}><a href={`/materials/${m.id}`}>{m.title}</a></p>)}
-              {data.favourites.map(c => <p key={c.id}><a href={`/courses/${c.id}`}>{c.title}</a></p>)}
+              {data.material_favourites.map(m => <p key={m.id}><AppLink to={`/materials/${m.id}`}>{m.title}</AppLink></p>)}
+              {data.favourites.map(c => <p key={c.id}><AppLink to={`/courses/${c.id}`}>{c.title}</AppLink></p>)}
             </section>
           )}
         </aside>

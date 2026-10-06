@@ -10,6 +10,13 @@
 .route-progress.is-loading{opacity:1;animation:route-progress 1.2s ease-in-out infinite}
 @keyframes route-progress{0%{transform:translateX(-60%) scaleX(.3)}100%{transform:translateX(100%) scaleX(.6)}}
 
-.error-page{max-width:640px;padding:24px 0}
 
 @media (prefers-reduced-motion:reduce){.page{animation:none}.route-progress.is-loading{animation:none}}
+
+/* Select (components/Select.tsx) sits where a <label><select></label> used to: same field layout. */
+.select-field{display:grid;gap:8px;font-size:14px;font-weight:600;margin-bottom:20px;color:var(--text)}
+.select-field .select-label{display:block}
+
+/* Flashed notices above the page (after sign-in redirects, saved settings, …). */
+.notices{display:grid;gap:8px;margin-bottom:20px}
+.notices .notice{margin:0}

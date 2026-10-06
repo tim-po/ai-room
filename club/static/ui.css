@@ -21,9 +21,8 @@
 :root[data-glass] .theme-toggle{width:var(--control-sm);height:var(--control-sm)}
 :root[data-glass] .theme-toggle svg{width:18px;height:18px}
 /* Narrow pages get a narrower sheet instead of an empty right half */
-:root[data-glass] .learner-surface .shell main:has(> :is(.settings,.membership)),
-:root[data-glass] .learner-surface .shell main:has(> section > .login-form){--sheet-w:min(820px,calc(100% - 48px))}
-:root[data-glass] .learner-surface .shell main:has(> .settings) .settings,:root[data-glass] .learner-surface .shell main:has(> .membership) .membership{max-width:none;margin:0}
+:root[data-glass] .learner-surface .shell main:has(> :is(.settings,.membership), > .page > :is(.settings,.membership)){--sheet-w:min(820px,calc(100% - 48px))}
+:root[data-glass] .learner-surface .shell main :is(.settings,.membership){max-width:none;margin:0}
 @media(max-width:800px){
   :root[data-glass] .learner-surface .shell main{padding:28px var(--sheet-pad) 28px}
   :root[data-glass] .learner-surface .club-header{padding:10px 18px;min-height:56px}

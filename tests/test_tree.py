@@ -39,11 +39,15 @@ def test_tree_reflects_progress_and_current_lesson(legacy):
 
 def test_course_page_and_library_match_the_map(legacy):
     c = legacy.test_client()
-    course = c.get('/courses/claude-basics').text
-    assert 'Открыто 3 из 37 уроков' in course and 'Синтетическая' not in course
-    assert 'Инструкции проекта' in course and '/?view=map#course-claude-basics' in course
-    library = c.get('/catalogue').text
-    assert 'Скоро в AI Room' in library and 'ChatGPT с 0 до PRO' in library and 'открыто 3 из 37 уроков' in library
+    assert c.get('/courses/claude-basics').status_code == 200
+    course = c.get('/api/app/courses/claude-basics').json
+    outline = course['outline']
+    assert (outline['available'], outline['total']) == (3, 37) and 'Синтетическая' not in str(course)   # "Открыто 3 из 37 уроков"
+    assert 'Инструкции проекта' in [l['title'] for m in outline['modules'] for l in m['lessons']]
+    library = c.get('/api/app/catalogue').json
+    assert 'ChatGPT с 0 до PRO' in [c['title'] for c in library['coming']]   # "Скоро в AI Room"
+    card = next(c for c in library['courses'] if c['id'] == 'claude-basics')
+    assert (card['total'], card['catalog_total']) == (3, 37)   # "открыто 3 из 37 уроков"
 
 
 def test_retired_pages_redirect_and_settings_page_is_simple(legacy):
@@ -51,5 +55,5 @@ def test_retired_pages_redirect_and_settings_page_is_simple(legacy):
     for path, target in [('/practice', '/profile#practice'), ('/challenges', '/'), ('/diagnostic', '/'), ('/routes', '/')]:
         response = c.get(path)
         assert response.status_code == 302 and response.headers['Location'].endswith(target)
-    settings = c.get('/preferences').text
-    assert 'Настройки обучения' in settings and 'name="weekly_goal"' in settings and '/diagnostic' not in settings
+    assert c.get('/preferences').status_code == 200
+    assert set(c.get('/api/app/preferences').json) == {'goal', 'experience', 'weekly_goal'}

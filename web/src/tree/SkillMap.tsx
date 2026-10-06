@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import {AppLink} from '../Shell';
 import type {HomeData} from '../types';
 // The canvas engine is imperative DOM code (layout, pan/zoom, level-of-detail tweens); React owns
 // the surrounding markup and mounts it once per data set.
@@ -38,7 +39,7 @@ export default function SkillMap({data}: {data: HomeData}) {
       {resume && (
         <section className="resume-strip" aria-label={resume.aria}>
           <div><p>{resume.label}</p><h2>{resume.title}</h2></div>
-          <a className="button" href={resume.url}>{resume.action}</a>
+          <AppLink className="button" to={resume.url}>{resume.action}</AppLink>
         </section>
       )}
       <p className="tree-status" role="status" data-tree-status />

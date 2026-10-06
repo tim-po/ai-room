@@ -79,7 +79,7 @@ def test_paywall_shows_outline_and_offer_without_content(legacy):
 def test_demo_checkout_is_off_unless_configured(legacy):
     c = legacy.test_client(); csrf = login(c)
     assert form(c, '/membership/demo', {'next': '/lessons/'+MEMBER}, csrf).status_code == 404
-    assert 'Оплата в этой версии пока не подключена' in c.get('/membership').text
+    assert c.get('/api/app/membership').json['demo'] is False   # "Оплата в этой версии пока не подключена"
 
 
 def test_demo_checkout_switches_access_both_ways(legacy):
@@ -91,6 +91,9 @@ def test_demo_checkout_switches_access_both_ways(legacy):
     response = form(c, '/membership/demo/cancel', {'next': 'https://evil.example/'}, csrf)
     assert response.headers['Location'].endswith('/membership')
     assert c.get('/lessons/'+MEMBER).status_code == 403
+    switched = post(c, '/membership/demo', {'next': '/lessons/'+MEMBER}, csrf).json   # the app switches with JSON
+    assert switched['entitlement'] == 'member' and switched['next'] == '/lessons/'+MEMBER and 'Оплата не списывалась' in switched['message']
+    assert post(c, '/membership/demo/cancel', {}, csrf).json['next'] == '/membership'
     with sqlite3.connect(app.config['DATABASE']) as db:
         db.execute("UPDATE users SET onboarding_done=1 WHERE id='user-revoked'")
     revoked = app.test_client(); csrf = login(revoked, 'revoked')

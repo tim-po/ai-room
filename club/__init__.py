@@ -181,20 +181,26 @@ def create_app(config=None):
     @app.route('/login', methods=['GET', 'POST'])
     def login():
         if request.method == 'POST':
-            email = request.form.get('email', '').strip().lower()[:254]
+            # The app signs in with JSON (and then reloads, since the session and CSRF token change);
+            # a plain form post still works.
+            data = payload()
+            email = str(data.get('email', '')).strip().lower()[:254]
             attempt = query('SELECT * FROM login_attempts WHERE identity=?', (email,), True)
             now = int(time.time())
             if attempt and attempt['failures'] >= 10 and now - attempt['window_start'] < 900:
                 abort(429, 'Слишком много попыток. Попробуйте через 15 минут.')
             user = query('SELECT * FROM users WHERE email=?', (email,), True)
-            if not user or not check_password_hash(user['password_hash'], request.form.get('password', '')[:1024]):
+            if not user or not check_password_hash(user['password_hash'], str(data.get('password', ''))[:1024]):
                 with db():
                     if not attempt or now - attempt['window_start'] >= 900:
                         db().execute('INSERT OR REPLACE INTO login_attempts VALUES(?,1,?)', (email, now))
                     else:
                         db().execute('UPDATE login_attempts SET failures=failures+1 WHERE identity=?', (email,))
-                flash('Не удалось войти. Проверьте почту и пароль.', 'error')
-                return render_template('login.html'), 401
+                message = 'Не удалось войти. Проверьте почту и пароль.'
+                if request.is_json:
+                    return jsonify(error='Unauthorized', message=message), 401
+                flash(message, 'error')
+                return spa_shell(401)
             with db():
                 db().execute('DELETE FROM login_attempts WHERE identity=?', (email,))
             session.clear()
@@ -203,8 +209,9 @@ def create_app(config=None):
             destination = request.args.get('next', '/')
             if not destination.startswith('/') or destination.startswith('//') or '\\' in destination:
                 destination = '/'
-            return redirect(onboarding_destination(user, destination))
-        return render_template('login.html')
+            destination = onboarding_destination(user, destination)
+            return jsonify(next=destination) if request.is_json else redirect(destination)
+        return spa_shell()
 
     @app.post('/logout')
     def logout():
@@ -244,8 +251,8 @@ def create_app(config=None):
     def home_api():
         return jsonify(home_data())
 
-    @app.get('/catalogue')
-    def catalogue():
+    def catalogue_data():
+        from .materials import FORMATS
         q = request.args.get('q', '').strip()[:150].lower()
         goal = request.args.get('goal', '')
         level = request.args.get('level', '')
@@ -264,10 +271,20 @@ def create_app(config=None):
         published = {c['id'] for c in query("SELECT id FROM courses WHERE status='published'")}
         coming = [dict(id=i, **c) for i, c in catalog_index().items() if i not in published and c['title']
                   and (not q or q in c['title'].lower()) and not (goal or level or tool) and content_format in ('', 'course')]
-        return render_template('catalogue.html', courses=courses, materials=materials, coming=coming)
+        card = ('id', 'title', 'description', 'goal', 'level', 'topic', 'total', 'catalog_total', 'minutes', 'free', 'done')
+        return dict(courses=[{k: c[k] for k in card} for c in courses], materials=[dict(m) for m in materials], coming=coming,
+                    filters=dict(goals=list(GOALS.items()), levels=['Начальный', 'Продвинутый'],
+                                 formats=[('course', 'Курс'), *FORMATS.items()]))
 
-    @app.get('/courses/<course_id>')
-    def course(course_id):
+    @app.get('/catalogue')
+    def catalogue():
+        return spa_shell()
+
+    @app.get('/api/app/catalogue')
+    def catalogue_api():
+        return jsonify(catalogue_data())
+
+    def course_data(course_id):
         c = get_course(course_id)
         lessons = lesson_list(course_id)
         first = next((l for l in lessons if not l['completed'] and can_access(l)), None)
@@ -277,7 +294,25 @@ def create_app(config=None):
             JOIN modules m ON m.id=l.module_id WHERE r.user_id=? AND m.course_id=?''', (g.user['id'], course_id) * 2, True))
         from .tree import course_outline
         outline = course_outline(query, g.user, can_access, course_id)
-        return render_template('course.html', course=c, lessons=lessons, first=first, favourite=favourite, started=started, outline=outline)
+        info = {k: c[k] for k in ('id', 'title', 'outcome', 'level', 'goal', 'prerequisites', 'tools', 'author', 'updated_at')}
+        return dict(course=info | dict(topic=outline['topic'] if outline else GOALS.get(c['goal'])),
+                    # Courses outside the catalogue (synthetic fixtures) have no outline: the page lists lessons instead.
+                    lessons=[dict(id=l['id'], title=l['title'], minutes=l['minutes'], access=l['access'], video=bool(l['video']),
+                                  module_id=l['module_id'], module_title=l['module_title'], completed=bool(l['completed']),
+                                  locked=not can_access(l)) for l in lessons],
+                    first=dict(id=first['id'], title=first['title']) if first else None, started=started,
+                    favourite=bool(favourite), outline=outline,
+                    done=outline['done'] if outline else sum(l['completed'] for l in lessons),
+                    minutes=sum(l['minutes'] for l in lessons))
+
+    @app.get('/courses/<course_id>')
+    def course(course_id):
+        get_course(course_id)
+        return spa_shell()
+
+    @app.get('/api/app/courses/<course_id>')
+    def course_api(course_id):
+        return jsonify(course_data(course_id))
 
     def record_visit(lesson_id):
         with db():
@@ -459,18 +494,19 @@ def create_app(config=None):
     @require_user
     def favourite(course_id):
         get_course(course_id)
+        saved = payload().get('saved') in ('1', True)
         with db():
-            if request.form.get('saved') == '1':
+            if saved:
                 db().execute('INSERT OR IGNORE INTO favourites VALUES(?,?)', (g.user['id'], course_id))
             else:
                 db().execute('DELETE FROM favourites WHERE user_id=? AND course_id=?', (g.user['id'], course_id))
-        return redirect(url_for('course', course_id=course_id))
+        return jsonify(favourite=saved) if request.is_json else redirect(url_for('course', course_id=course_id))
 
     @app.route('/preferences', methods=['GET', 'POST'])
     @require_user
     def preferences():
         if request.method == 'POST':
-            data = request.form
+            data = {k: str(v) for k, v in payload().items()}
             if data.get('goal') not in GOALS or data.get('experience') not in ('beginner', 'experienced') or data.get('weekly_goal') not in ('0', '1', '2', '3', '5'):
                 abort(400)
             with db():
@@ -480,9 +516,16 @@ def create_app(config=None):
                 event('onboarding_completed')
             if data['goal'] != g.user['goal'] or data['experience'] != g.user['experience']:
                 choose_route_goal(data['goal'])
+            if request.is_json:
+                return jsonify(ok=True)
             flash('Настройки сохранены.', 'success')
             return redirect(url_for('profile'))
-        return render_template('preferences.html')
+        return spa_shell()
+
+    @app.get('/api/app/preferences')
+    @require_user
+    def preferences_api():
+        return jsonify(goal=g.user['goal'], experience=g.user['experience'], weekly_goal=g.user['weekly_goal'])
 
     @app.post('/preferences/skip')
     @require_user
@@ -529,8 +572,7 @@ def create_app(config=None):
     def profile_api():
         return jsonify(profile_data())
 
-    @app.route('/help', methods=['GET', 'POST'])
-    def help_page():
+    def help_lesson():
         lesson_id = request.args.get('lesson') or None
         # Access recovery needs public context, never the protected lesson payload.
         lesson = query('''SELECT l.id,l.title FROM lessons l
@@ -539,19 +581,38 @@ def create_app(config=None):
             (lesson_id,), True) if lesson_id else None
         if lesson_id and not lesson:
             abort(404)
+        return lesson
+
+    @app.route('/help', methods=['GET', 'POST'])
+    def help_page():
+        lesson = help_lesson()
         if request.method == 'POST':
             if not g.user:
                 abort(401)
-            body = request.form.get('body', '').strip()
+            body = payload().get('body', '')
+            body = body.strip() if isinstance(body, str) else ''
             if not body or len(body) > 4000:
                 abort(400)
             with db():
-                db().execute('INSERT INTO help_requests(user_id,lesson_id,body) VALUES(?,?,?)', (g.user['id'], lesson_id, body))
-                event('help_requested', lesson_id)
+                db().execute('INSERT INTO help_requests(user_id,lesson_id,body) VALUES(?,?,?)', (g.user['id'], lesson['id'] if lesson else None, body))
+                event('help_requested', lesson['id'] if lesson else None)
+            if request.is_json:
+                return jsonify(ok=True)
             flash('Вопрос сохранён для администратора. Срок ответа пока не установлен.', 'success')
             return redirect(url_for('help_page'))
-        tickets = query('SELECT * FROM help_requests WHERE user_id=? ORDER BY id DESC', (g.user['id'],)) if g.user else []
-        return render_template('help.html', lesson=lesson, tickets=tickets)
+        return spa_shell()
+
+    @app.get('/api/app/help')
+    def help_api():
+        lesson = help_lesson()
+        tickets = []
+        if g.user:
+            # Answers live in support_responses once `flask init-support` has run.
+            answered = query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='support_responses'", one=True)
+            for t in query('SELECT id,body,created_at,status FROM help_requests WHERE user_id=? ORDER BY id DESC', (g.user['id'],)):
+                reply = answered and query('SELECT response,handled_at FROM support_responses WHERE ticket_id=? ORDER BY revision DESC LIMIT 1', (t['id'],), True)
+                tickets.append(dict(t) | dict(response=reply['response'] if reply else None, handled_at=reply['handled_at'] if reply else None))
+        return jsonify(lesson=dict(lesson) if lesson else None, tickets=tickets)
 
     @app.get('/admin')
     @require_user
@@ -587,9 +648,9 @@ def create_app(config=None):
     @app.errorhandler(413)
     @app.errorhandler(429)
     def error(err):
-        if request.path.startswith('/api/'):
+        if request.path.startswith('/api/') or request.is_json:
             return jsonify(error=err.name, message=err.description), err.code
-        return render_template('error.html', error=err), err.code
+        return spa_shell(err.code, err)
 
     @app.cli.command('init-db')
     def init_db():
@@ -620,7 +681,7 @@ def create_app(config=None):
     register_legacy_content(app, db)
 
     from .membership import register_membership
-    register_membership(app, db, query, require_user)
+    register_membership(app, db, query, require_user, spa_shell)
 
     from .routes import register_routes
     selected_route, choose_route_goal = register_routes(app, db, query, can_access, require_user, GOALS)
@@ -629,7 +690,7 @@ def create_app(config=None):
     register_authoring(app, db, query, GOALS)
 
     from .materials import register_materials
-    register_materials(app, db, query, can_access, require_user, GOALS)
+    register_materials(app, db, query, can_access, require_user, GOALS, spa_shell)
 
     from .skills import register_skills
     register_skills(app, db, query, require_user)
@@ -641,7 +702,7 @@ def create_app(config=None):
     register_teaching(app, db, query)
 
     from .onboarding import register_onboarding
-    onboarding_destination = register_onboarding(app, db, query, require_user)
+    onboarding_destination = register_onboarding(app, db, query, require_user, spa_shell)
 
     from .support_admin import register_support
     register_support(app, db, query, require_user)

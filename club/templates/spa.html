@@ -4,5 +4,5 @@
 {% if assets %}{% for href in assets.css %}<link rel="stylesheet" href="{{ href }}">{% endfor %}<script type="module" src="{{ assets.js }}"></script>{% endif %}
 </head><body class="learner-surface">{% include '_sky.html' %}
 <script type="application/json" id="bootstrap">{{ bootstrap|tojson }}</script>
-<div id="root">{% if not assets %}<div class="shell"><main id="main"><h1>Интерфейс не собран</h1><p>Соберите фронтенд: <code>cd web &amp;&amp; npm ci &amp;&amp; npm run build</code>.</p></main></div>{% endif %}</div>
+<div id="root">{% if not assets %}<div class="shell"><main id="main">{% if bootstrap.error %}<p class="eyebrow">{{ bootstrap.error.code }}</p><h1>{{ bootstrap.error.description }}</h1>{% else %}<h1>Интерфейс не собран</h1><p>Соберите фронтенд: <code>cd web &amp;&amp; npm ci &amp;&amp; npm run build</code>.</p>{% endif %}</main></div>{% endif %}</div>
 </body></html>

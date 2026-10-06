@@ -107,7 +107,7 @@ def test_rendered_learning_journey(app):
     assert 'Меньше рутины' in c.get('/routes/path-work').text
     assert c.post('/courses/ai-foundations/favourite',data={'csrf':csrf,'saved':'1'}).status_code == 302
     assert c.post('/help?lesson='+FREE,data={'csrf':csrf,'body':'Нужна помощь с примером'}).status_code == 302
-    assert 'Нужна помощь с примером' in c.get('/help').text
+    assert c.get('/api/app/help').json['tickets'][0]['body'] == 'Нужна помощь с примером'
     assert c.get('/profile').status_code == 200
     db = sqlite3.connect(app.config['DATABASE'])
     assert db.execute('SELECT COUNT(*) FROM lessons l JOIN modules m ON l.module_id=m.id WHERE m.course_id=?',('ai-foundations',)).fetchone()[0] == 37

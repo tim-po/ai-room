@@ -25,11 +25,14 @@ Protected course/module/lesson authoring, draft preview, publish/unpublish/archi
 
 ## Learner frontend (React)
 
-Learner pages that have been migrated (the map at `/`, `/lessons/<id>`, `/profile`) are a React +
-TypeScript app in `web/` (Vite, React Router). Flask still owns these URLs: it handles login,
+Every learner page (the map at `/`, library, course, lesson, material, Моё обучение, settings, Клуб,
+help, login, onboarding and error pages) is a React + TypeScript app in `web/` (Vite, React Router), so
+moving between them never reloads the page. Flask still owns these URLs: it handles sessions,
 onboarding redirects and status codes (403 for a locked lesson, 404 for a missing one), then serves
-`templates/spa.html`, which loads the bundle. Page data comes from `/api/app/*`. Other pages are still
-server-rendered and load normally; links between the two work in both directions.
+`templates/spa.html`, which loads the bundle. Page data comes from `/api/app/*` (and `/api/onboarding`);
+forms post JSON to the same endpoints that still accept plain form posts. Messages flashed by a server
+redirect and the error of an error response reach the app through the bootstrap JSON in `spa.html`.
+Editor, authoring, route and assessment pages remain server-rendered Jinja (`templates/base.html`).
 
 ```sh
 cd web && npm ci && npm run build   # writes club/static/app/ (not committed)
@@ -38,7 +41,7 @@ cd web && npm run dev               # rebuilds on every change; reload the page
 
 Node 20+ is needed only to build. The built files are plain static assets served by Flask, so the
 server itself does not need Node. Deployments must run the build before restarting the app: without it,
-migrated pages show a "frontend not built" notice. Styles are the shared stylesheets in `club/static`
+learner pages show a "frontend not built" notice. Styles are the shared stylesheets in `club/static`
 (included through `templates/_styles.html`), so React and server pages look the same.
 
 ## Setup

@@ -121,3 +121,150 @@ export interface ProfileData {
   favourites: {id: string; title: string}[];
   material_favourites: {id: string; title: string}[];
 }
+
+// Library (/api/app/catalogue)
+export interface CourseCard {
+  id: string;
+  title: string;
+  description: string;
+  goal: string;
+  level: string;
+  topic: string;
+  total: number;
+  catalog_total: number;
+  minutes: number;
+  free: number;
+  done: number;
+}
+
+export interface MaterialCard {
+  id: string;
+  title: string;
+  description: string;
+  outcome: string;
+  format: string;
+  goal: string;
+  level: string;
+  tools: string;
+  minutes: number;
+  access: 'free' | 'member';
+}
+
+export interface ComingCourse {
+  id: string;
+  title: string;
+  topic: string;
+  level: string;
+  modules: number;
+  total: number | null;
+}
+
+export interface CatalogueData {
+  courses: CourseCard[];
+  materials: MaterialCard[];
+  coming: ComingCourse[];
+  filters: {goals: [string, string][]; levels: string[]; formats: [string, string][]};
+}
+
+// Course page (/api/app/courses/<id>)
+export interface CourseLesson {
+  id: string;
+  title: string;
+  minutes: number;
+  access: 'free' | 'member';
+  video: boolean;
+  module_id: string;
+  module_title: string;
+  completed: boolean;
+  locked: boolean;
+}
+
+export interface CourseData {
+  course: {id: string; title: string; outcome: string; level: string; goal: string; topic: string;
+    prerequisites: string; tools: string; author: string; updated_at: string};
+  lessons: CourseLesson[];
+  first: {id: string; title: string} | null;
+  started: boolean;
+  favourite: boolean;
+  outline: TreeCourse | null;
+  done: number;
+  minutes: number;
+}
+
+// Material page (/api/app/materials/<id>)
+export interface MaterialInfo {
+  id: string;
+  title: string;
+  description: string;
+  outcome: string;
+  format: string;
+  format_label: string;
+  level: string;
+  minutes: number;
+  access: 'free' | 'member';
+  tools: string;
+  prerequisites: string;
+  author: string;
+  updated_at: string;
+  paragraphs?: string[];
+  prompt?: string | null;
+  video?: {url: string; type: string; fixture: boolean} | null;
+}
+
+export interface MaterialData {
+  locked: boolean;
+  item: MaterialInfo;
+  resources?: {id: string; title: string; kind: 'text' | 'link'; url: string}[];
+  favourite?: boolean;
+  seconds?: number;
+}
+
+export interface MembershipData {
+  member_lessons: number;
+  free_lessons: number;
+  demo: boolean;
+  return_to: string;
+}
+
+export interface PreferencesData {
+  goal: string;
+  experience: 'beginner' | 'experienced';
+  weekly_goal: number;
+}
+
+export interface HelpTicket {
+  id: number;
+  body: string;
+  created_at: string;
+  status: 'open' | 'handled' | string;
+  response: string | null;
+  handled_at: string | null;
+}
+
+export interface HelpData {
+  lesson: {id: string; title: string} | null;
+  tickets: HelpTicket[];
+}
+
+// Onboarding (/api/onboarding, club/onboarding.py)
+export type OnboardingStep = 'welcome' | 'interests' | 'pace' | 'start';
+
+export interface OnboardingPrefs {
+  interests: string[];
+  experience: 'beginner' | 'experienced' | null;
+  available_minutes: 5 | 10 | 20 | null;
+  diagnostic_choice: 'unset' | 'skip' | 'start';
+}
+
+export interface OnboardingState {
+  status: 'not_started' | 'in_progress' | 'completed' | 'skipped';
+  step: OnboardingStep;
+  draft: OnboardingPrefs;
+  committed_preferences: OnboardingPrefs;
+  revision: number;
+  return_to: string;
+  editing: boolean;
+  next_url: string | null;
+  recommendation: {lesson_id: string; title: string; url: string; minutes: number; branch: string | null; reasons: string[]} | null;
+  diagnostic: {available: boolean; start_url: string | null};
+}

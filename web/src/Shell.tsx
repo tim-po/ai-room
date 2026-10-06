@@ -1,17 +1,10 @@
-import {useEffect, type ReactNode} from 'react';
-import {Link, Outlet, ScrollRestoration, useLocation, useNavigate, useNavigation} from 'react-router';
-import {bootstrap} from './api';
+import {useEffect, useLayoutEffect, useState, type ReactNode} from 'react';
+import {Outlet, ScrollRestoration, useLocation, useNavigate, useNavigation} from 'react-router';
+import {bootstrap, type Notice} from './api';
+import ErrorPage from './ErrorPage';
+import {AppLink, isSpaPath} from './links';
 
-// Paths the React app renders. Anything else is a server page and loads normally.
-const SPA_PATHS = [/^\/$/, /^\/profile$/, /^\/lessons\/[^/]+$/];
-export const isSpaPath = (path: string) => SPA_PATHS.some(pattern => pattern.test(path));
-
-/** Link that navigates inside the app for migrated pages and loads the page otherwise. */
-export function AppLink({to, children, ...rest}: {to: string; children: ReactNode} & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>) {
-  const path = to.split(/[?#]/)[0];
-  if (isSpaPath(path)) return <Link to={to} {...rest}>{children}</Link>;
-  return <a href={to} {...rest}>{children}</a>;
-}
+export {AppLink, isSpaPath};
 
 /** Plain <a> elements (lesson bodies, the skill map) also navigate inside the app when they can. */
 function useLinkInterception() {
@@ -58,14 +51,14 @@ function Header() {
       <AppLink className="brand" to="/">AI ROOM</AppLink>
       <nav aria-label="Главная навигация">
         <NavLink to="/?view=map" active={onMap}>Карта навыков</NavLink>
-        <NavLink to="/catalogue" active={pathname.startsWith('/lessons/')}>Библиотека</NavLink>
-        <NavLink to="/profile" active={pathname === '/profile'}>Моё обучение</NavLink>
-        <NavLink to="/membership" active={false}>Клуб</NavLink>
+        <NavLink to="/catalogue" active={/^\/(catalogue|courses\/|lessons\/|materials\/)/.test(pathname)}>Библиотека</NavLink>
+        <NavLink to="/profile" active={pathname === '/profile' || pathname === '/preferences'}>Моё обучение</NavLink>
+        <NavLink to="/membership" active={pathname === '/membership'}>Клуб</NavLink>
         {user && user.role !== 'learner' && <a href="/admin">Мастерская</a>}
       </nav>
       <div className="header-account">
         <ThemeToggle />
-        <a href={user ? '/help' : '/login'}>{user ? 'Помощь' : 'Войти'}</a>
+        <AppLink to={user ? '/help' : '/login'} aria-current={pathname === '/help' ? 'page' : undefined}>{user ? 'Помощь' : 'Войти'}</AppLink>
         {user && (
           <form className="session-exit" method="post" action="/logout">
             <input type="hidden" name="csrf" value={bootstrap.csrf} />
@@ -81,10 +74,51 @@ export function Footer() {
   return <footer><div>AI Room Club · Независимая учебная среда<br />Контент и аккаунты этой версии — тестовые. Оплаты нет.</div></footer>;
 }
 
+/**
+ * The first page shows what the server put in the bootstrap (an error status, flashed notices);
+ * later pages show a notice passed in navigation state, e.g. navigate('/profile', {state: {notice}}).
+ */
+function usePageMessages() {
+  const location = useLocation();
+  const [first] = useState(location.key);
+  const isFirst = location.key === first;
+  const state = location.state as {notice?: string} | null;
+  const notices: Notice[] = isFirst ? bootstrap.notices : state?.notice ? [{kind: 'success', text: state.notice}] : [];
+  return {notices, error: isFirst ? bootstrap.error : null};
+}
+
+/**
+ * html{scroll-behavior:smooth} is for in-page anchors. A new page should start at the top at once,
+ * not slide up from the previous page's position: switch it off while ScrollRestoration (rendered
+ * right after this, so its layout effect runs next) resets the scroll. Hash-only changes stay smooth.
+ */
+function InstantPageScroll() {
+  const {pathname, search} = useLocation();
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.style.scrollBehavior = 'auto';
+    void getComputedStyle(root).scrollBehavior;   // apply now: scrollTo doesn't recalculate styles first
+    const frame = requestAnimationFrame(() => { root.style.scrollBehavior = ''; });
+    return () => { cancelAnimationFrame(frame); root.style.scrollBehavior = ''; };
+  }, [pathname, search]);
+  return null;
+}
+
+/** While the first page's data loads: the header and an empty sheet, so nothing jumps. */
+export function ShellFallback() {
+  return (
+    <>
+      <Header />
+      <div className="shell"><main id="main" /></div>
+    </>
+  );
+}
+
 export default function Shell() {
   useLinkInterception();
   const location = useLocation();
   const navigation = useNavigation();
+  const {notices, error} = usePageMessages();
   return (
     <>
       <a className="skip" href="#main">К содержимому</a>
@@ -94,11 +128,15 @@ export default function Shell() {
         <main id="main">
           {/* keyed by path, so each page fades in; the sky and header stay put */}
           <div className="page" key={location.pathname}>
-            <Outlet />
+            {notices.length > 0 && (
+              <div className="notices">{notices.map((n, i) => <div key={i} className={`notice ${n.kind}`} role="status">{n.text}</div>)}</div>
+            )}
+            {error ? <ErrorPage code={error.code} message={error.description} /> : <Outlet />}
           </div>
           <Footer />
         </main>
       </div>
+      <InstantPageScroll />
       <ScrollRestoration />
     </>
   );

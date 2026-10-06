@@ -14,7 +14,7 @@ from .authoring import STATUSES
 FORMATS = {'guide': 'Гайд', 'use_case': 'Кейс', 'workshop': 'Воркшоп'}
 
 
-def register_materials(app, db, query, can_access, require_user, goals):
+def register_materials(app, db, query, can_access, require_user, goals, shell):
     bp = Blueprint('materials', __name__)
 
     def get(identity, preview=False):
@@ -37,18 +37,40 @@ def register_materials(app, db, query, can_access, require_user, goals):
     def formats():
         return {'material_formats': FORMATS}
 
-    def show(identity, preview=False):
-        item = get(identity, preview)
-        saved = position = None
-        if g.user and not preview:
-            saved = query('SELECT 1 FROM material_favourites WHERE user_id=? AND material_id=?', (g.user['id'], identity), True)
-            position = query('SELECT seconds FROM material_video_positions WHERE user_id=? AND material_id=?', (g.user['id'], identity), True)
+    def show(identity):
+        # Editor preview only; learners get the app page (/materials/<id>, data from page_api).
+        item = get(identity, True)
         resources = query("SELECT id,title,kind FROM material_resources WHERE material_id=? AND status='published' ORDER BY id", (identity,))
-        return render_template('materials/detail.html', item=item, resources=resources, preview=preview, favourite=saved, seconds=position['seconds'] if position else 0)
+        return render_template('materials/detail.html', item=item, resources=resources, preview=True)
 
     @bp.get('/materials/<identity>')
     def detail(identity):
-        return show(identity)
+        item = get(identity, True)
+        if item['status'] != 'published':
+            abort(404)
+        return shell(200 if can_access(item) else 403)
+
+    @bp.get('/api/app/materials/<identity>')
+    def page_api(identity):
+        item = get(identity, True)
+        if item['status'] != 'published':
+            abort(404)
+        # Locked materials expose only what the catalogue already shows.
+        public = {k: item[k] for k in ('id', 'title', 'description', 'outcome', 'format', 'level', 'minutes', 'access',
+                                       'tools', 'prerequisites', 'author', 'updated_at')}
+        public['format_label'] = FORMATS[item['format']]
+        if not can_access(item):
+            return jsonify(locked=True, item=public)
+        saved = position = None
+        if g.user:
+            saved = query('SELECT 1 FROM material_favourites WHERE user_id=? AND material_id=?', (g.user['id'], identity), True)
+            position = query('SELECT seconds FROM material_video_positions WHERE user_id=? AND material_id=?', (g.user['id'], identity), True)
+        video = dict(url=f'/materials/{identity}/media', type='video/mp4' if item['video'].endswith('.mp4') else 'video/webm',
+                     fixture=item['video'] == 'fixture.webm') if item['video'] else None
+        resources = [dict(id=r['id'], title=r['title'], kind=r['kind'], url=f'/material-resources/{r["id"]}') for r in
+                     query("SELECT id,title,kind FROM material_resources WHERE material_id=? AND status='published' ORDER BY id", (identity,))]
+        return jsonify(locked=False, item=public | dict(paragraphs=item['body'].split('\n\n'), prompt=item['prompt'], video=video),
+                       resources=resources, favourite=bool(saved), seconds=position['seconds'] if position else 0)
 
     @bp.get('/api/materials/<identity>')
     def api(identity):
@@ -56,7 +78,7 @@ def register_materials(app, db, query, can_access, require_user, goals):
 
     @bp.get('/admin/materials/<identity>/preview')
     def preview(identity):
-        return show(identity, True)
+        return show(identity)
 
     def media_names():
         return sorted(p.name for p in (Path(app.instance_path) / 'media').glob('*') if p.is_file() and re.fullmatch(r'[A-Za-z0-9_.-]+\.(mp4|webm)', p.name))
@@ -88,15 +110,17 @@ def register_materials(app, db, query, can_access, require_user, goals):
     @require_user
     def favourite(identity):
         get(identity)
-        value = request.form.get('saved')
-        if value not in ('0', '1'):
+        data = request.get_json(silent=True) if request.is_json else request.form
+        value = data.get('saved') if hasattr(data, 'get') else None
+        if value not in ('0', '1', True, False):
             abort(400)
+        saved = value in ('1', True)
         with db():
-            if value == '1':
+            if saved:
                 db().execute('INSERT OR IGNORE INTO material_favourites VALUES(?,?)', (g.user['id'], identity))
             else:
                 db().execute('DELETE FROM material_favourites WHERE user_id=? AND material_id=?', (g.user['id'], identity))
-        return redirect(url_for('materials.detail', identity=identity))
+        return jsonify(favourite=saved) if request.is_json else redirect(url_for('materials.detail', identity=identity))
 
     @bp.get('/material-resources/<identity>')
     @bp.get('/admin/materials/resources/<identity>/preview')

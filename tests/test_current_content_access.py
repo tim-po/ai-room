@@ -22,7 +22,7 @@ class Client:
         self.base = base
         self.http = build_opener(HTTPCookieProcessor())
         page = self.http.open(base + '/login').read().decode()
-        self.csrf = re.search(r'name="csrf" value="([^"]+)"', page)[1]
+        self.csrf = re.search(r'name="csrf-token" content="([^"]+)"', page)[1]
         with self.http.open(base + '/login', urlencode(dict(email=who+'@example.test', password=PASSWORD, csrf=self.csrf)).encode()) as response:
             page = response.read().decode()
         self.csrf = re.search(r'name="csrf-token" content="([^"]+)"', page)[1]

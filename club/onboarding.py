@@ -8,8 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import click
-from flask import abort, g, jsonify, redirect, render_template, request, url_for
-from jinja2 import TemplateNotFound
+from flask import abort, g, jsonify, redirect, request
 
 STEPS = ('welcome', 'interests', 'pace', 'start')
 FIELDS = {'interests', 'experience', 'available_minutes', 'diagnostic_choice'}
@@ -55,7 +54,7 @@ CREATE TABLE IF NOT EXISTS onboarding_events_v1 (
 '''
 
 
-def register_onboarding(app, db, query, require_user):
+def register_onboarding(app, db, query, require_user, shell):
     def installed():
         return bool(query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='onboarding_state'", one=True))
 
@@ -212,13 +211,18 @@ def register_onboarding(app, db, query, require_user):
                 persist(user, value)
         return '/onboarding'
 
+    # Learning pages, and the app data behind them, wait until onboarding is finished or skipped.
+    pages = {'home', 'catalogue', 'course', 'lesson', 'profile', 'preferences', 'skill_tree'}
+    page_data = {'home_api', 'catalogue_api', 'course_api', 'lesson_page_api', 'profile_api', 'preferences_api'}
+
     @app.before_request
     def learner_entry():
         if (request.method == 'GET' and g.user and g.user['role'] == 'learner'
-                and request.endpoint in {'home', 'catalogue', 'course', 'lesson', 'profile', 'preferences', 'skill_tree'}
-                and installed()):
+                and request.endpoint in pages | page_data and installed()):
             value = state(g.user)
             if value['status'] not in ('completed', 'skipped'):
+                if request.endpoint in page_data:
+                    return jsonify(error='onboarding', message='Сначала завершите или пропустите настройку.', redirect='/onboarding'), 409
                 return redirect(login_destination(g.user, request.path))
 
     def learner():
@@ -231,10 +235,7 @@ def register_onboarding(app, db, query, require_user):
     @require_user
     def onboarding():
         learner()
-        try:
-            return render_template('onboarding.html', onboarding=response(state(g.user)))
-        except TemplateNotFound:
-            abort(503, 'Onboarding screen is awaiting the UI integration.')
+        return shell()
 
     @app.route('/api/onboarding', methods=['GET', 'PUT'])
     @require_user

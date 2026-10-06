@@ -1,13 +1,14 @@
 """Serves the React learner app (web/, built into static/app/) for migrated routes.
 
 Flask keeps routing, authentication, redirects and status codes; the page itself is an empty shell
-that loads the bundle, plus a small bootstrap JSON (session user and CSRF token). Page data comes
-from /api/app/* endpoints. The manifest is read per request so a rebuild needs no restart.
+that loads the bundle, plus a small bootstrap JSON (session user, CSRF token, flashed notices and,
+for error responses, the error). Page data comes from /api/app/* endpoints. The manifest is read per
+request so a rebuild needs no restart.
 """
 import json
 from pathlib import Path
 
-from flask import g, render_template, session
+from flask import g, get_flashed_messages, render_template, session
 
 
 def register_spa(app):
@@ -26,16 +27,18 @@ def register_spa(app):
             css += manifest.get(name, {}).get('css', [])
         return dict(js='/static/app/' + entry['file'], css=['/static/app/' + c for c in css])
 
-    def bootstrap():
-        user = g.user
+    def bootstrap(error):
+        user = g.get('user')
         return dict(
             csrf=session.get('csrf'),
             demo_checkout=bool(app.config.get('DEMO_CHECKOUT')),
             user=dict(id=user['id'], name=user['name'], role=user['role'], entitlement=user['entitlement']) if user else None,
             recorded_visit=g.get('recorded_visit'),
+            notices=[dict(kind=kind, text=text) for kind, text in get_flashed_messages(with_categories=True)],
+            error=dict(code=error.code, description=error.description) if error else None,
         )
 
-    def shell(status=200):
-        return render_template('spa.html', assets=assets(), bootstrap=bootstrap()), status
+    def shell(status=200, error=None):
+        return render_template('spa.html', assets=assets(), bootstrap=bootstrap(error)), status
 
     return shell
