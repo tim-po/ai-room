@@ -15,6 +15,36 @@ for (const button of document.querySelectorAll('[data-copy]')) {
     } catch (_) { status.textContent = 'Не удалось скопировать автоматически. Выделите текст запроса и скопируйте его.'; }
   });
 }
+for (const button of document.querySelectorAll('[data-copy-block]')) {
+  button.addEventListener('click', async () => {
+    const status = button.parentElement.querySelector('.copy-status');
+    try {
+      await navigator.clipboard.writeText(button.parentElement.querySelector('pre').textContent);
+      status.textContent = 'Скопировано.';
+    } catch (_) { status.textContent = 'Не удалось скопировать автоматически. Выделите текст и скопируйте его.'; }
+  });
+}
+// Human, local dates: "сегодня в 14:05", "вчера в 09:30", "3 окт в 18:00".
+for (const node of document.querySelectorAll('time[data-local-time]')) {
+  const moment = new Date(node.getAttribute('datetime'));
+  if (Number.isNaN(moment.getTime())) continue;
+  const time = moment.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
+  const day = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((day(new Date()) - day(moment)) / 86400000);
+  const date = moment.toLocaleDateString('ru-RU', {day: 'numeric', month: 'short', year: moment.getFullYear() === new Date().getFullYear() ? undefined : 'numeric'});
+  node.textContent = diff === 0 ? `сегодня в ${time}` : diff === 1 ? `вчера в ${time}` : `${date.replace('.', '')} в ${time}`;
+}
+// "В этом уроке": highlight the step being read.
+const tocLinks = [...document.querySelectorAll('.lesson-toc a')];
+if (tocLinks.length && 'IntersectionObserver' in window) {
+  const targets = tocLinks.map(a => document.getElementById(a.hash.slice(1))).filter(Boolean);
+  const mark = id => tocLinks.forEach(a => a.toggleAttribute('aria-current', a.hash === '#' + id));
+  const seen = new IntersectionObserver(entries => {
+    const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+    if (visible) mark(visible.target.id);
+  }, {rootMargin: '0px 0px -70% 0px'});
+  targets.forEach(t => seen.observe(t));
+}
 let dirty = false;
 for (const form of document.querySelectorAll('[data-dirty-form]')) {
   form.addEventListener('input', () => {

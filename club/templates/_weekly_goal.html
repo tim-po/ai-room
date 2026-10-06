@@ -1,3 +1,3 @@
 <div class="weekly-goal">
 {% if user.weekly_goal %}<p><strong>Недельная цель: {{ weekly }} из {{ user.weekly_goal }}</strong></p><progress aria-label="Недельная цель" value="{{ [weekly,user.weekly_goal]|min }}" max="{{ user.weekly_goal }}">{{ weekly }} из {{ user.weekly_goal }}</progress>{% if weekly >= user.weekly_goal %}<p>Цель достигнута. Продолжайте в удобном темпе.</p>{% endif %}{% else %}<p><strong>Недельная цель на паузе.</strong> Возвращайтесь, когда удобно.</p>{% endif %}
-<p class="small">Впервые завершено за последние 7 дней: {{ weekly }} {{ weekly|plural_ru('урок','урока','уроков') }}. Повторные отметки не добавляют счёт. Это история первых завершений, даже если урок снова в работе.</p><a href="/preferences">Изменить цель и темп →</a></div>
+<p class="small">Пройдено за последние 7 дней: {{ weekly }} {{ weekly|plural_ru('урок','урока','уроков') }}.</p><a href="/preferences">Изменить цель и темп →</a></div>

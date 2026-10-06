@@ -1,0 +1,33 @@
+{% extends 'base.html' %}{% block title %}Клуб{% endblock %}{% block content %}
+{% set member = user and (user.entitlement == 'member' or user.role in ['editor', 'admin']) %}
+<section class="membership">
+<span class="eyebrow">AI Room Club</span>
+<h1>{{ 'Вы в клубе' if member else 'Учитесь дальше вместе с клубом' }}</h1>
+<p class="lead">Бесплатные уроки помогают начать. В клубе открыты полные курсы, практика с сохранением и новые материалы.</p>
+<ul class="membership-list">
+  <li><strong>{{ counts.member or 0 }}</strong> уроков клуба в дополнение к {{ counts.free or 0 }} бесплатным</li>
+  <li>Работы и прогресс сохраняются в одном месте</li>
+  <li>Отменить можно в любой момент — сохранённое останется</li>
+</ul>
+<div class="paywall-offer">
+{% if not user %}
+  <p>Войдите, чтобы открыть доступ к клубу.</p>
+  <div class="actions"><a class="button" href="/login?next=/membership">Войти</a></div>
+{% elif user.entitlement == 'revoked' %}
+  <p>Доступ этого аккаунта приостановлен. <a href="/help">Написать в поддержку</a></p>
+{% elif user.role != 'learner' %}
+  <p>У вашей роли уже есть доступ ко всем урокам.</p>
+{% elif demo %}
+  <p class="small">Тестовая версия: оплата не подключена, доступ переключается без списаний.</p>
+  {% if user.entitlement == 'member' %}
+  <form method="post" action="/membership/demo/cancel"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ return_to }}"><button class="button secondary">Выключить демо-доступ</button></form>
+  {% else %}
+  <form method="post" action="/membership/demo"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ return_to }}"><button class="button">Включить демо-доступ</button></form>
+  {% endif %}
+{% elif member %}
+  <p>Доступ активен. <a href="/catalogue">Перейти к урокам →</a></p>
+{% else %}
+  <p>Оплата в этой версии пока не подключена. Чтобы получить доступ, <a href="/help">напишите нам</a>.</p>
+{% endif %}
+</div>
+</section>{% endblock %}

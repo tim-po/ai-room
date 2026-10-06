@@ -109,13 +109,60 @@ def register_onboarding(app, db, query, require_user):
                 return target
         return '/'
 
+    def recommend(prefs):
+        """Rank permitted lessons by chosen interests, experience and time.
+        Lessons without a profile (synthetic fixtures) only win when nothing else fits."""
+        profiled = bool(query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='lesson_profiles'", one=True))
+        rows = query(f"""SELECT l.id,l.title,l.minutes,{'p.branch,p.level,p.demo' if profiled else 'NULL AS branch,NULL AS level,0 AS demo'}
+            FROM lessons l JOIN modules m ON m.id=l.module_id JOIN courses c ON c.id=m.course_id
+            {'LEFT JOIN lesson_profiles p ON p.lesson_id=l.id' if profiled else ''}
+            WHERE l.status='published' AND c.status='published' AND (l.access='free' OR ?='member')
+            ORDER BY c.id,m.position,l.position,l.id""", (g.user['entitlement'],))
+        interests, minutes = set(prefs.get('interests') or []), prefs.get('available_minutes')
+        experienced = prefs.get('experience') == 'experienced'
+
+        def score(row):
+            if row['demo']:
+                return -100, ()
+            reasons, value = [], 0
+            if row['branch'] is not None:
+                value += 1
+                if row['branch'] in interests:
+                    value += 4
+                    reasons.append('interest')
+                elif row['branch'] == 'basic-ai':
+                    value += 1 if interests else 4
+                    reasons.append('foundation')
+            if row['level'] == 'beginner' and not experienced:
+                value += 3
+                reasons.append('level')
+            elif row['level'] == 'beginner':
+                value -= 1
+            elif row['level'] in ('intermediate', 'advanced'):
+                value += 2 if experienced else -3
+            if minutes:
+                if row['minutes'] <= minutes:
+                    value += 2
+                    reasons.append('time')
+                elif row['minutes'] > 2 * minutes:
+                    value -= 1
+            return value, tuple(reasons)
+
+        best, reasons = None, ()
+        for row in rows:  # rows arrive in stable catalogue order; first maximum wins ties
+            value, why = score(row)
+            if best is None or value > best[0]:
+                best, reasons = (value, row), why
+        if not best:
+            return None
+        lesson = best[1]
+        return dict(lesson_id=lesson['id'], title=lesson['title'], url='/lessons/'+lesson['id'], minutes=lesson['minutes'],
+                    branch=lesson['branch'], reasons=list(reasons), reason='available_learning')
+
     def response(value):
         result = json.loads(json.dumps(value))
         result['return_to'] = permitted(value['return_to'], g.user)
-        lesson = query("""SELECT l.id,l.title,l.access FROM lessons l JOIN modules m ON m.id=l.module_id
-            JOIN courses c ON c.id=m.course_id WHERE l.status='published' AND c.status='published'
-            AND (l.access='free' OR ?='member') ORDER BY c.id,m.position,l.position,l.id LIMIT 1""", (g.user['entitlement'],), True)
-        result['recommendation'] = dict(lesson_id=lesson['id'], title=lesson['title'], url='/lessons/'+lesson['id'], reason='available_learning') if lesson else None
+        result['recommendation'] = recommend(value.get('draft') or value['committed_preferences'])
         from .release_bindings import available_forms
         from .transfer_sources import form_content_access
         from .form_lifecycle import lifecycle

@@ -34,7 +34,9 @@ def learning_continuation(query, user):
             results.append((row['progress_updated_at'], row['visit_order'], row['lesson_id'],
                             base | {'status': 'completed', 'updated_at': row['progress_updated_at']}))
     if unfinished:
-        result['unfinished'] = max(unfinished, key=lambda item: item[:3])[3]
+        # A saved draft comes first, then the most recently opened lesson.
+        # Opening a lesson does not touch progress timestamps, so visit order decides.
+        result['unfinished'] = max(unfinished, key=lambda item: (item[3]['status'] == 'draft', item[1], item[0], item[2]))[3]
     if results:
         result['last_result'] = max(results, key=lambda item: item[:3])[3]
     return result

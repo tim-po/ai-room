@@ -1,0 +1,137 @@
+/* Skill tree: toolbar, canvas frame, nodes and three levels of detail.
+   tree.js positions nodes (fixed columns) and sets data-lod (titles, switched at once so their
+   size transitions run with the row tween) and data-detail (module contents, swapped behind a fade). */
+.tree{margin:0 0 24px}
+.learner-surface .shell main:has(> .tree){padding-top:20px}
+.tree-bar-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;margin:0 0 12px}
+.tree-bar-top h1{font-size:28px;line-height:1.1;letter-spacing:-.8px;margin:0}.tree-bar-top p{display:none}
+.tree-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tree-tools input{min-height:42px;width:240px;padding:8px 14px;border:1px solid var(--line-strong);border-radius:12px;background:var(--panel);color:var(--text);font:inherit;font-size:15px}
+.tree-tools button{min-height:42px;padding:8px 16px;border:1px solid var(--line-strong);border-radius:12px;background:var(--panel);color:var(--text);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.tree-tools button:hover{border-color:var(--accent)}
+.tree-tools .tree-zoom{display:inline-flex;align-items:center}.tree-tools .tree-zoom button{border-radius:0;min-width:42px;padding:8px 0}
+.tree-tools .tree-zoom button:first-child{border-radius:12px 0 0 12px}.tree-tools .tree-zoom button:last-child{border-radius:0 12px 12px 0}
+.tree-tools [data-zoom-level]{display:inline-block;min-width:54px;text-align:center;font-size:13px;color:var(--muted);border-top:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong);line-height:40px;background:var(--panel);font-variant-numeric:tabular-nums}
+.tree-status{min-height:20px;margin:0 0 8px;font-size:14px;color:var(--muted)}
+.tree .resume-strip{margin:0 0 12px;padding:8px 10px 8px 18px;gap:16px;border-radius:16px}
+.tree .resume-strip>div{display:flex;align-items:baseline;flex-wrap:wrap}.tree .resume-strip .resume-symbol{display:none}
+.tree .resume-strip p{display:inline;margin:0 10px 0 0;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.tree .resume-strip h2{display:inline;font-size:16px}.tree .resume-strip .button{min-height:36px;padding:6px 16px}
+
+/* Canvas frame */
+.tree-viewport{position:relative;height:calc(100vh - 300px);min-height:440px;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:var(--canvas) radial-gradient(circle,var(--grid) 1px,transparent 1.2px) 0 0/24px 24px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.tree-viewport.is-dragging{cursor:grabbing}.tree:not(.is-ready) .tree-canvas{visibility:hidden}
+.tree-canvas{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.tree-edges{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.tree-edges path{fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.tree-edges .trunk{stroke:var(--edge-strong);stroke-width:2.5}.tree-edges .branch{stroke:var(--edge-strong);stroke-width:2}
+.tree-edges .path{stroke:var(--edge);stroke-width:1.75}.tree-edges .path.is-done{stroke:var(--accent)}
+.tree-edges .path.is-coming{stroke:var(--edge-faint);stroke-dasharray:2 6}
+
+/* Nodes: absolutely placed by tree.js (transform + height); widths are fixed per column */
+.tree-node{position:absolute;left:0;top:0;box-sizing:border-box;will-change:transform}
+.tree-canvas.is-measuring,.tree-canvas.is-measuring *{transition:none!important}
+.tree-root,.tree-topic,.tree-course{--ease:cubic-bezier(.33,1,.68,1)}
+.tree-root strong,.tree-root span,.tree-topic strong,.tree-topic span,.tree-topic em,.tree-course strong,.tree-level,.tree-course-meta,.tree-bar{transition:font-size .42s var(--ease),line-height .42s var(--ease),height .42s var(--ease),opacity .3s ease,max-height .42s var(--ease),margin .42s var(--ease),padding .42s var(--ease)}
+
+.tree-root{padding:18px 22px;border-radius:28px;background:var(--accent);color:var(--on-accent);text-align:left;box-shadow:0 2px 0 var(--accent-shadow)}
+.tree-root strong{display:block;font-size:24px;line-height:1.1}.tree-root span{display:block;margin-top:6px;font-size:13px;line-height:1.35;color:var(--on-accent-muted)}
+
+.tree-topic{padding:16px 20px;border:2px solid var(--accent);border-radius:22px;background:var(--panel)}
+.tree-topic strong{display:block;font-size:26px;line-height:1.1;color:var(--text)}
+.tree-topic span{display:block;max-height:6em;overflow:hidden;margin-top:6px;font-size:14px;line-height:1.35;color:var(--muted)}
+.tree-topic em{position:absolute;top:-12px;right:16px;padding:3px 10px;border-radius:99px;background:var(--gold);color:var(--on-accent);font-style:normal;font-size:12px;font-weight:700;white-space:nowrap}
+.tree-topic.is-interest{box-shadow:0 0 0 4px var(--gold-soft)}
+
+.tree-course{display:block;padding:14px 16px;border-radius:18px;background:var(--panel);border:1px solid var(--line);color:var(--text);text-decoration:none}
+a.tree-course:hover{border-color:var(--accent)}.tree-course.is-current{border:1.5px solid var(--cta)}
+.tree-level{display:block;max-height:3em;overflow:hidden;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.tree-course strong{display:block;margin:4px 0 10px;font-size:20px;line-height:1.2}
+.tree-bar{display:block;height:6px;border-radius:99px;background:var(--track);overflow:hidden}.tree-bar span{display:block;height:100%;background:var(--accent);border-radius:99px}
+.tree-course-meta{display:block;max-height:3em;overflow:hidden;margin-top:8px;font-size:13px;color:var(--muted)}
+
+.tree-module{overflow:hidden;border:1px solid var(--line);border-radius:18px;background:var(--panel)}
+.tree-module.is-coming{background:var(--panel);border:1.5px dashed var(--line-strong)}
+.tree-module.is-done{border-color:var(--accent)}
+.tree-module>*{transition:opacity .2s ease}
+.tree-canvas.lod-fade .tree-module>*{opacity:0;transition-duration:.1s}
+.tree-module h3{display:flex;gap:10px;align-items:flex-start;margin:0;padding:12px 14px;font-size:15px;line-height:1.3;color:var(--text);border-bottom:1px solid var(--line-soft)}
+.tree-module.is-coming h3{color:var(--muted)}
+.tree-module-index{flex:0 0 22px;height:22px;border-radius:50%;background:var(--surface);font-size:12px;display:grid;place-items:center;color:var(--muted)}
+.tree-module-title{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tree-module ul{list-style:none;margin:0;padding:6px 0}
+.tree-lesson{display:flex;align-items:flex-start;gap:10px;padding:7px 14px;min-height:30px;font-size:14.5px;line-height:1.35;color:var(--text);text-decoration:none}
+a.tree-lesson:hover,a.tree-lesson:focus-visible{background:var(--hover)}a.tree-lesson:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tree-lesson .tree-dot{margin-top:2px}
+.tree-title{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tree-tag{flex:0 0 auto;margin-top:1px;font-size:12px;color:var(--muted)}
+.tree-lesson.is-locked .tree-tag{color:var(--gold-ink);font-weight:600}
+.tree-lesson.is-coming{color:var(--muted)}
+.tree-lesson.is-current{background:var(--cta-soft);font-weight:600}
+
+/* Lesson state dots (also used by the course outline) */
+.tree-dot{flex:0 0 14px;width:14px;height:14px;box-sizing:border-box;border-radius:50%;border:2px solid var(--accent);background:var(--panel);position:relative}
+:is(.tree-lesson,.outline-lesson).is-done .tree-dot{background:var(--accent)}
+:is(.tree-lesson,.outline-lesson).is-done .tree-dot:after{content:'';position:absolute;left:3px;top:0;width:4px;height:7px;border:solid var(--on-accent);border-width:0 2px 2px 0;transform:rotate(45deg)}
+:is(.tree-lesson,.outline-lesson).is-progress .tree-dot{background:linear-gradient(90deg,var(--accent) 50%,var(--panel) 50%)}
+:is(.tree-lesson,.outline-lesson).is-locked .tree-dot{border-color:var(--gold);border-radius:3px;width:12px;height:10px;flex-basis:12px;margin-top:5px}
+:is(.tree-lesson,.outline-lesson).is-locked .tree-dot:before{content:'';position:absolute;left:1px;top:-7px;width:6px;height:6px;border:2px solid var(--gold);border-bottom:0;border-radius:5px 5px 0 0}
+:is(.tree-lesson,.outline-lesson).is-coming .tree-dot{border:2px solid var(--line-strong);background:var(--surface)}
+:is(.tree-lesson,.outline-lesson).is-current .tree-dot{border-color:var(--cta)}
+
+/* ---- mid: module names + lesson dots; larger titles ---- */
+.tree-canvas[data-lod="mid"] .tree-root strong{font-size:34px}.tree-canvas[data-lod="mid"] .tree-root span{font-size:16px}
+.tree-canvas[data-lod="mid"] .tree-topic strong{font-size:38px}.tree-canvas[data-lod="mid"] .tree-topic span{font-size:18px}.tree-canvas[data-lod="mid"] .tree-topic em{font-size:15px}
+.tree-canvas[data-lod="mid"] .tree-course strong{font-size:28px;line-height:1.15}
+.tree-canvas[data-lod="mid"] .tree-level,.tree-canvas[data-lod="mid"] .tree-course-meta{font-size:15px}
+.tree-canvas[data-lod="mid"] .tree-bar{height:8px}
+.tree-canvas[data-detail="mid"] .tree-module h3{font-size:22px;line-height:1.22;border-bottom:0;padding:16px 16px 10px}
+.tree-canvas[data-detail="mid"] .tree-module-index{flex-basis:28px;height:28px;font-size:14px;margin-top:-1px}
+.tree-canvas[data-detail="mid"] .tree-module ul{display:flex;flex-wrap:wrap;gap:9px;padding:2px 16px 16px}
+.tree-canvas[data-detail="mid"] .tree-lesson{padding:0;min-height:0}
+.tree-canvas[data-detail="mid"] :is(.tree-title,.tree-tag){display:none}
+.tree-canvas[data-detail="mid"] .tree-dot{flex-basis:20px;width:20px;height:20px;border-width:3px;margin:0}
+.tree-canvas[data-detail="mid"] .tree-lesson.is-locked .tree-dot{width:18px;height:15px;flex-basis:18px;margin-top:5px}
+.tree-canvas[data-detail="mid"] .tree-lesson.is-current{background:none}
+.tree-canvas[data-detail="mid"] .tree-lesson.is-current .tree-dot{box-shadow:0 0 0 4px var(--cta-ring)}
+
+/* ---- far: topic and course names large; modules become dot pills ---- */
+.tree-canvas[data-lod="far"] .tree-root strong{font-size:56px}.tree-canvas[data-lod="far"] .tree-root span{font-size:24px}
+.tree-canvas[data-lod="far"] .tree-topic strong{font-size:64px;line-height:1.02}.tree-canvas[data-lod="far"] .tree-topic span{max-height:0;margin:0;opacity:0}
+.tree-canvas[data-lod="far"] .tree-topic em{font-size:19px;top:-17px;padding:4px 14px}
+.tree-canvas[data-lod="far"] .tree-course strong{font-size:46px;line-height:1.06;margin:0 0 12px}
+.tree-canvas[data-lod="far"] :is(.tree-level,.tree-course-meta){max-height:0;margin:0;opacity:0}
+.tree-canvas[data-lod="far"] .tree-bar{height:10px}
+.tree-canvas[data-detail="far"] .tree-module h3{display:none}
+.tree-canvas[data-detail="far"] .tree-module{border-width:2px}
+.tree-canvas[data-detail="far"] .tree-module ul{display:flex;flex-wrap:wrap;gap:10px;padding:14px 16px}
+.tree-canvas[data-detail="far"] .tree-lesson{padding:0;min-height:0}
+.tree-canvas[data-detail="far"] :is(.tree-title,.tree-tag){display:none}
+.tree-canvas[data-detail="far"] .tree-dot{flex-basis:28px;width:28px;height:28px;border-width:4px;margin:0}
+.tree-canvas[data-detail="far"] .tree-lesson.is-locked .tree-dot{width:24px;height:19px;flex-basis:24px;margin-top:7px}
+.tree-canvas[data-detail="far"] .tree-lesson.is-current{background:none}
+.tree-canvas[data-detail="far"] .tree-lesson.is-current .tree-dot{box-shadow:0 0 0 5px var(--cta-ring)}
+
+/* Zoomed out, a click flies in */
+.tree-canvas:not([data-lod="near"]) :is(.tree-module,.tree-course,.tree-topic){cursor:zoom-in}
+.tree-canvas:not([data-lod="near"]) :is(.tree-module,.tree-course):hover{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+
+/* Search */
+.tree-canvas.has-search :is(.tree-lesson,.tree-course){opacity:.35}
+.tree-canvas.has-search .is-match{opacity:1;background:var(--gold-soft);outline:2px solid var(--gold)}
+
+.tree-legend{display:flex;flex-wrap:wrap;gap:18px;margin:12px 0 0;padding:0;list-style:none;font-size:14px;color:var(--muted)}
+.tree-legend li{display:flex;align-items:center;gap:8px}.tree-legend .tree-lesson{padding:0;min-height:0;color:inherit}
+
+@media (prefers-reduced-motion:reduce){.tree-node *{transition:none!important}}
+@media (max-width:700px){
+  .tree-bar-top{margin:0 0 10px;gap:10px}.tree-bar-top h1{font-size:26px}
+  .tree-tools{width:100%;gap:6px}.tree-tools input{flex-basis:100%;width:auto;min-height:40px}
+  .tree-tools button{min-height:40px;padding:6px 12px}.tree-tools [data-zoom-level]{display:none}
+  .tree-viewport{min-height:380px;border-radius:16px}
+  .tree .resume-strip{flex-wrap:nowrap;align-items:center;padding:8px 8px 8px 14px;margin:0 0 10px}
+  .tree .resume-strip>div{min-width:0}.tree .resume-strip p{display:none}
+  .tree .resume-strip h2{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tree .resume-strip .button{width:auto;flex:0 0 auto;min-height:36px;padding:6px 12px;font-size:14px}
+  .tree-legend{gap:10px;font-size:13px}
+}

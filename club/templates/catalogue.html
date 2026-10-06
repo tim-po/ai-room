@@ -13,14 +13,14 @@
         <label>Цель<select name="goal" aria-label="Цель"><option value="">Все цели</option>{% for value,label in goals.items() %}<option value="{{ value }}" {% if request.args.get('goal')==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
         <label>Уровень<select name="level" aria-label="Уровень"><option value="">Любой</option>{% for level in ['Начальный','Продвинутый'] %}<option {% if request.args.get('level')==level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></label>
         <label>Формат<select name="format" aria-label="Формат"><option value="">Все форматы</option>{% for v,label in [('course','Курс')] + material_formats.items()|list %}<option value="{{ v }}" {% if request.args.get('format')==v %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-        <label>Инструмент<input type="search" name="tool" value="{{ request.args.get('tool','') }}" maxlength="150" placeholder="Например, текстовый AI"></label>
+        <label>Инструмент<input type="search" name="tool" value="{{ request.args.get('tool','') }}" maxlength="150" placeholder="Например, ChatGPT"></label>
       </div>
       <button class="button secondary">Применить фильтры</button>
     </details>
     {% if active.count or request.args.get('q') %}<a class="library-reset" href="/catalogue">Сбросить всё</a>{% endif %}
   </form>
   <p class="metadata library-count" role="status">Найдено: {{ courses|length + materials|length }} · курсов: {{ courses|length }} · материалов: {{ materials|length }}</p>
-  {% if courses %}<h2>Курсы</h2>{% include '_cards.html' %}{% endif %}
+  {% if courses %}<h2>Курсы</h2>{% include '_cards.html' %}{% endif %}{% if coming %}<section class="coming" aria-labelledby="coming-title"><h2 id="coming-title">Скоро в AI Room</h2><p>Эти курсы уже есть на карте навыков. Уроки появятся здесь по мере переноса.</p><div class="coming-grid">{% for c in coming %}<a class="coming-card" href="/?view=map#course-{{ c.id }}"><span class="coming-topic">{{ c.topic }} · {{ c.level }}</span><strong>{{ c.title }}</strong><span class="coming-meta">{{ c.modules }} {{ c.modules|plural_ru('модуль','модуля','модулей') }} · {{ c.total }} {{ c.total|plural_ru('урок','урока','уроков') }}</span><span class="coming-link">Посмотреть на карте →</span></a>{% endfor %}</div></section>{% endif %}
   {% if materials %}<h2>Гайды, кейсы и воркшопы</h2>{% include 'materials/cards.html' %}{% endif %}
   {% if not courses and not materials %}<section class="panel"><h2>Ничего не найдено</h2><p>Попробуйте другой запрос или уберите фильтры.</p><a href="/catalogue">Сбросить фильтры</a></section>{% endif %}
 </section>

@@ -71,8 +71,11 @@ def test_latest_timestamps_ties_and_completed_lesson_draft(app):
     with sqlite3.connect(app.config['DATABASE']) as db:
         db.execute("UPDATE progress SET updated_at='2026-10-01 12:00:00'")
     assert context(app, client)['continuation']['unfinished']['lesson_id'] == AGENT
+    # A newer progress write elsewhere does not outrank the lesson opened last.
     with sqlite3.connect(app.config['DATABASE']) as db:
         db.execute("UPDATE progress SET updated_at='2026-10-02 12:00:00' WHERE lesson_id=?", (FREE,))
+    assert context(app, client)['continuation']['unfinished']['lesson_id'] == AGENT
+    client.get('/lessons/'+FREE)
     assert context(app, client)['continuation']['unfinished']['lesson_id'] == FREE
     post(client, '/api/lessons/'+AGENT+'/completion', {'completed': True}, csrf)
     post(client, '/api/lessons/'+AGENT+'/practice', {'body': 'revised draft', 'status': 'draft'}, csrf)

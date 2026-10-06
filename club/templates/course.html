@@ -1,1 +1,17 @@
-{% extends 'base.html' %}{% block title %}{{ course.title }}{% endblock %}{% block content %}<a class="breadcrumb" href="/catalogue">← Каталог</a><section class="course-intro"><div><span class="chip">{{ goals[course.goal] }} · {{ course.level }}</span><h1>{{ course.title }}</h1><p class="lead">{{ course.outcome }}</p><p>{{ lessons|length }} уроков · {{ lessons|sum(attribute='minutes') }} минут · {{ lessons|sum(attribute='completed') }} завершено</p>{% if first %}<a class="button" href="/lessons/{{ first.id }}">{{ 'Продолжить' if lessons|sum(attribute='completed') else 'Начать курс' }} →</a>{% else %}<p class="notice">Все доступные уроки завершены. Можно вернуться к любому уроку ниже.</p>{% endif %}{% if user %}<form class="inline" method="post" action="/courses/{{ course.id }}/favourite"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="saved" value="{{ '0' if favourite else '1' }}"><button class="button secondary">{{ 'Убрать из избранного' if favourite else 'В избранное' }}</button></form>{% endif %}</div><aside class="panel warm"><h2>Перед началом</h2><p><strong>Что уже нужно знать</strong><br>{{ course.prerequisites }}</p><p><strong>Инструменты и расходы</strong><br>{{ course.tools }}</p><p class="small">{{ course.author }}<br>Обновлено {{ course.updated_at }}<br>Синтетическая учебная программа</p></aside></section><h2>Программа курса</h2><p>Бесплатные уроки открыты всем. Уроки клуба требуют доступа участника.</p>{% include '_curriculum.html' %}{% endblock %}
+{% extends 'base.html' %}{% block title %}{{ course.title }}{% endblock %}{% block content %}
+{% set done = outline.done if outline else lessons|sum(attribute='completed') %}
+<a class="breadcrumb" href="/catalogue">← Библиотека</a>
+<section class="course-intro"><div>
+<span class="chip">{{ outline.topic if outline else goals[course.goal] }} · {{ course.level }}</span>
+<h1>{{ course.title }}</h1>
+<p class="lead">{{ course.outcome }}</p>
+<p class="course-meta">{% if outline and outline.total > outline.available %}Открыто {{ outline.available }} из {{ outline.total }} {{ outline.total|plural_ru('урока','уроков','уроков') }} · остальные скоро{% else %}{{ lessons|length }} {{ lessons|length|plural_ru('урок','урока','уроков') }} · {{ lessons|sum(attribute='minutes') }} минут{% endif %} · {{ done }} пройдено</p>
+<div class="actions">{% if first %}<a class="button" href="/lessons/{{ first.id }}">{{ 'Продолжить' if started or done else 'Начать курс' }} →</a>{% else %}<p class="notice">Все доступные уроки пройдены. Можно вернуться к любому уроку ниже.</p>{% endif %}
+{% if user %}<form class="inline" method="post" action="/courses/{{ course.id }}/favourite"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="saved" value="{{ '0' if favourite else '1' }}"><button class="button secondary">{{ 'Убрать из избранного' if favourite else 'В избранное' }}</button></form>{% endif %}
+{% if outline %}<a class="course-map-link" href="/?view=map#course-{{ course.id }}">Показать на карте →</a>{% endif %}</div>
+</div>
+<aside class="panel warm"><h2>Перед началом</h2><p><strong>Что уже нужно знать</strong><br>{{ course.prerequisites }}</p><p><strong>Инструменты и расходы</strong><br>{{ course.tools }}</p><p class="small">{{ course.author }} · обновлено {{ course.updated_at }}</p></aside></section>
+<h2>Программа курса</h2>
+<p>Бесплатные уроки открыты всем. Уроки клуба требуют доступа участника{% if outline and outline.total > outline.available %}; уроки с пометкой «Скоро» появятся позже{% endif %}.</p>
+{% if outline %}{% set current = none %}{% include '_outline.html' %}{% else %}{% include '_curriculum.html' %}{% endif %}
+{% endblock %}

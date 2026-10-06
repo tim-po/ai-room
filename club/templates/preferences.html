@@ -1,14 +1,22 @@
-{% extends 'base.html' %}{% block title %}Ваши интересы{% endblock %}{% block content %}
-<section class="development onboarding" data-development="interests">
-  <div class="development-intro"><span class="eyebrow">Ваша карта, ваш темп</span><h1>Что хочется попробовать?</h1><p>Можно изучать несколько направлений сразу. Интересы помогают найти начало — вся карта остаётся открытой.</p></div>
-  <form method="post" action="/preferences/skip" class="skip-onboarding"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">Пропустить и исследовать карту →</button></form>
-  <form method="post" id="interest-form">
+{% extends 'base.html' %}{% block title %}Настройки обучения{% endblock %}{% block content %}
+<section class="settings">
+  <p class="eyebrow">Моё обучение</p>
+  <h1>Настройки обучения</h1>
+  <p class="lead">Темп и опыт помогают подобрать уроки. Пропущенная неделя ничего не обнуляет.</p>
+  <form method="post" class="settings-form">
     <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="goal" value="{{ user.goal }}">
-    <fieldset id="interest-step"><legend tabindex="-1">Выберите интересные направления — или ни одного</legend><div id="interest-options" class="interest-options"></div><p id="development-status" role="status">Загружаем направления…</p><button type="button" id="interest-next" disabled>Сохранить интересы и продолжить →</button></fieldset>
-    <fieldset id="pace-step" hidden><legend tabindex="-1">Как вам удобно учиться?</legend><p>Ответы не оценивают ваши знания. Их можно изменить позже.</p><label>Опыт с AI<select name="experience"><option value="beginner" {% if user.experience=='beginner' %}selected{% endif %}>Только начинаю</option><option value="experienced" {% if user.experience=='experienced' %}selected{% endif %}>Уже использую AI</option></select></label><label>Комфортный темп<select name="weekly_goal">{% for value,label in [(0,'Без недельной цели'),(1,'1 урок в неделю'),(2,'2 урока в неделю'),(3,'3 урока в неделю'),(5,'5 уроков в неделю')] %}<option value="{{ value }}" {% if user.weekly_goal==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><p class="small">Урок занимает примерно 6–15 минут. Пропущенная неделя ничего не обнуляет.</p><p id="interest-save-status" role="status"></p><div class="development-actions"><button type="button" id="interest-back" class="secondary">← Интересы</button><button type="submit" id="interest-save">Сохранить и открыть карту</button></div></fieldset>
+    <label>Опыт с ИИ
+      <select name="experience"><option value="beginner" {% if user.experience=='beginner' %}selected{% endif %}>Начинаю разбираться</option><option value="experienced" {% if user.experience=='experienced' %}selected{% endif %}>Уже использую в работе</option></select>
+    </label>
+    <label>Недельная цель
+      <select name="weekly_goal">{% for value,label in [(0,'Без цели — учусь, когда удобно'),(1,'1 урок в неделю'),(2,'2 урока в неделю'),(3,'3 урока в неделю'),(5,'5 уроков в неделю')] %}<option value="{{ value }}" {% if user.weekly_goal==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </label>
+    <div class="actions"><button class="button">Сохранить</button><a class="button secondary" href="/profile">Отмена</a></div>
   </form>
-
-  <p>Уже знакомы с AI? <a href="/diagnostic">Необязательная проверка знаний →</a></p>
-  <noscript><p>Для выбора нескольких интересов нужен JavaScript. Можно сразу открыть карту и пользоваться списком учебных материалов.</p></noscript>
-</section><script defer src="{{ url_for('static',filename='development.js') }}"></script>
+  <div class="settings-more">
+    <h2>Интересы</h2>
+    <p>Направления, с которых удобно начинать. Вся карта всё равно открыта.</p>
+    <a href="/onboarding">Изменить интересы →</a>
+  </div>
+</section>
 {% endblock %}

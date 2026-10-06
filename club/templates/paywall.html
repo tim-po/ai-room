@@ -1,0 +1,25 @@
+{% extends 'base.html' %}{% block title %}{{ lesson.title }}{% endblock %}{% block content %}
+{% set free_lesson = lessons|selectattr('access', 'equalto', 'free')|first %}
+{% set parts = lesson.body|lesson_outline if lesson.body_format == 'blocks' else [] %}
+<a class="breadcrumb" href="{{ url_for('course', course_id=lesson.course_id) }}">← {{ lesson.course_title }}</a>
+<div class="lesson-layout"><article class="lesson-content paywall">
+<span class="eyebrow">{{ lesson.minutes }} минут · Урок клуба</span>
+<h1>{{ lesson.title }}</h1>
+<p class="lead">{{ lesson.objective }}</p>
+{% if parts %}<section class="paywall-outline"><h2>Что внутри</h2><ol>{% for part in parts %}<li>{{ part }}</li>{% endfor %}</ol></section>{% endif %}
+<section class="paywall-offer" aria-labelledby="paywall-title">
+{% if user and user.entitlement == 'revoked' %}
+  <h2 id="paywall-title">Доступ к клубу приостановлен</h2>
+  <p>Материалы клуба для этого аккаунта сейчас закрыты. Напишите нам — разберёмся.</p>
+  <div class="actions"><a class="button" href="/help">Написать в поддержку</a></div>
+{% else %}
+  <h2 id="paywall-title">{{ 'Доступ к клубу закончился' if user and user.entitlement == 'expired' else 'Этот урок — для участников клуба' }}</h2>
+  <p>{{ 'Продлите участие, чтобы продолжить с того же места. Сохранённые работы никуда не делись.' if user and user.entitlement == 'expired' else 'В клубе открыты все уроки курсов, практика с сохранением и новые материалы каждую неделю.' }}</p>
+  <div class="actions">
+    <a class="button" href="/membership?next={{ request.path }}">{{ 'Продлить доступ' if user and user.entitlement == 'expired' else 'Открыть доступ' }}</a>
+    {% if not user %}<a class="button secondary" href="/login?next={{ request.path }}">Я уже в клубе — войти</a>{% endif %}
+  </div>
+{% endif %}
+{% if free_lesson %}<p class="paywall-free">Пока можно пройти бесплатный урок этого курса: <a href="{{ url_for('lesson', lesson_id=free_lesson.id) }}">{{ free_lesson.title }} →</a></p>{% endif %}
+</section>
+</article><aside class="lesson-sidebar"><details class="lesson-outline" open><summary>Программа курса</summary>{% if outline %}{% set current = lesson.id %}{% include '_outline.html' %}{% else %}{% include '_curriculum.html' %}{% endif %}</details></aside></div>{% endblock %}

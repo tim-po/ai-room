@@ -1,0 +1,182 @@
+/* Alignment and sizing system for the Сумерки/Рассвет themes. Loaded last; scoped to [data-glass].
+   Controls: 44px (default) and 36px (compact). Type: 40 page title / 24 section / 18 card title /
+   16 body / 14 small / 12 eyebrow. Spacing on an 8px grid. The header lines up with the content
+   column of the frosted sheet. */
+:root[data-glass]{
+  --sheet-w:min(1240px,calc(100% - 160px));--sheet-pad:48px;
+  --control:44px;--control-sm:36px;--control-font:15px;--radius-control:12px;--radius-card:20px;--radius-inner:14px;
+}
+@media(max-width:1100px){:root[data-glass]{--sheet-w:calc(100% - 64px)}}
+@media(max-width:800px){:root[data-glass]{--sheet-pad:22px;--sheet-w:calc(100% - 16px)}}
+
+/* ---- Frame: sheet and header share one content column ---- */
+:root[data-glass] .learner-surface .shell main{max-width:var(--sheet-w);padding:44px var(--sheet-pad) 36px}
+:root[data-glass] .learner-surface .club-header{padding:14px calc((100% - var(--sheet-w)) / 2 + var(--sheet-pad));min-height:68px;align-items:center;gap:28px}
+:root[data-glass] .learner-surface .brand{font-size:21px;letter-spacing:-.6px}
+:root[data-glass] .learner-surface .club-header nav{gap:24px;font-size:15px}
+:root[data-glass] .learner-surface .club-header nav a{padding:6px 0}
+:root[data-glass] .learner-surface .header-account{gap:18px}
+:root[data-glass] .learner-surface .header-account>a,:root[data-glass] .learner-surface .header-account .session-exit button{font-size:15px;font-weight:500;min-height:var(--control-sm);display:inline-flex;align-items:center}
+:root[data-glass] .learner-surface .header-account .session-exit button{color:var(--muted)}
+:root[data-glass] .theme-toggle{width:var(--control-sm);height:var(--control-sm)}
+:root[data-glass] .theme-toggle svg{width:18px;height:18px}
+/* Narrow pages get a narrower sheet instead of an empty right half */
+:root[data-glass] .learner-surface .shell main:has(> :is(.settings,.membership)),
+:root[data-glass] .learner-surface .shell main:has(> section > .login-form){--sheet-w:min(820px,calc(100% - 48px))}
+:root[data-glass] .learner-surface .shell main:has(> .settings) .settings,:root[data-glass] .learner-surface .shell main:has(> .membership) .membership{max-width:none;margin:0}
+@media(max-width:800px){
+  :root[data-glass] .learner-surface .shell main{padding:28px var(--sheet-pad) 28px}
+  :root[data-glass] .learner-surface .club-header{padding:10px 18px;min-height:56px}
+  :root[data-glass] .learner-surface .brand{font-size:19px}
+}
+
+/* ---- Type scale ---- */
+:root[data-glass] .learner-surface main :is(.eyebrow,.me-head .eyebrow,.lesson-content>.eyebrow){font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+:root[data-glass] .learner-surface main :is(.me-head h1,.settings h1,.library .page-intro h1,.course-intro h1,.help-heading h1,.membership h1,.lesson-content h1,.paywall h1,.onboarding h1,.work-home h1){font-size:40px;line-height:1.1;letter-spacing:-1px;margin:0 0 12px;max-width:22ch}
+:root[data-glass] .learner-surface main :is(.lesson-content h1,.paywall h1){max-width:26ch}
+:root[data-glass] .learner-surface main :is(.lead,.welcome-lead,.page-intro p,.course-intro .lead,.settings .lead,.membership .lead){font-size:18px;line-height:1.55;color:var(--muted);margin:0 0 24px;max-width:62ch}
+:root[data-glass] .learner-surface main h2{letter-spacing:-.3px}
+:root[data-glass] .learner-surface main :is(.me-section>h2,.course-intro~h2,.library>h2,.coming>h2,.welcome-free h2,.help-section h2){font-size:24px;line-height:1.25;margin:0 0 16px}
+:root[data-glass] .learner-surface .welcome-hero h1{font-size:clamp(44px,5vw,68px);line-height:1.04;letter-spacing:-2px;margin:12px 0 20px}
+:root[data-glass] .learner-surface .login-layout h1{font-size:clamp(40px,4.4vw,60px);line-height:1.05;letter-spacing:-1.6px}
+@media(max-width:800px){
+  :root[data-glass] .learner-surface main :is(.me-head h1,.settings h1,.library .page-intro h1,.course-intro h1,.help-heading h1,.membership h1,.lesson-content h1,.paywall h1,.onboarding h1,.work-home h1){font-size:30px;letter-spacing:-.6px}
+  :root[data-glass] .learner-surface main :is(.lead,.welcome-lead){font-size:16px}
+  :root[data-glass] .learner-surface main :is(.me-section>h2,.course-intro~h2,.library>h2,.coming>h2,.welcome-free h2){font-size:21px}
+  :root[data-glass] .learner-surface .welcome-hero h1{font-size:42px;letter-spacing:-1.2px}
+  :root[data-glass] .learner-surface .login-layout h1{font-size:38px}
+}
+
+/* ---- Controls ---- */
+:root[data-glass] .learner-surface :is(.button,.development button,.link-button){
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box;
+  min-height:var(--control);height:auto;padding:0 20px;font-size:var(--control-font);line-height:1.2;font-weight:650;white-space:nowrap;text-decoration:none;
+}
+:root[data-glass] .learner-surface .link-button{padding:0 8px}
+/* compact contexts */
+:root[data-glass] .learner-surface :is(.me-course .button,.tree .resume-strip .button,.lesson-prompt .button,.paywall-offer .button,.coming-card .button,.me-continue-action,.completion.is-secondary .button,.tree-tools button){min-height:var(--control-sm);padding:0 16px;font-size:14px}
+:root[data-glass] .learner-surface .me-continue-action{display:inline-flex;align-items:center;border-radius:999px}
+:root[data-glass] .learner-surface :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,.select-button){
+  box-sizing:border-box;height:var(--control);padding:0 14px;font-size:var(--control-font);line-height:1.2;border-radius:var(--radius-control)
+}
+:root[data-glass] .learner-surface textarea{box-sizing:border-box;min-height:132px;padding:12px 14px;font-size:var(--control-font);line-height:1.5;border-radius:var(--radius-control)}
+:root[data-glass] .learner-surface main label{font-size:14px;font-weight:600;color:var(--text)}
+:root[data-glass] .learner-surface main label:has(> :is(input,select,textarea)){display:grid;gap:8px}
+:root[data-glass] .learner-surface main :is(.actions,.welcome-actions,.course-intro .actions,.settings-form .actions){display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+:root[data-glass] .learner-surface .chip{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;font-size:13px;font-weight:600;border-radius:999px}
+
+/* ---- Cards ---- */
+:root[data-glass] :is(.learner-surface .panel,.me-work,.me-panel,.settings-form,.welcome-topic,.welcome-lesson,.paywall-outline,.paywall-offer,.coming-card,.onb-pick){border-radius:var(--radius-card)}
+:root[data-glass] .learner-surface :is(.panel,.me-panel,.settings-form,.paywall-outline,.paywall-offer){padding:24px}
+:root[data-glass] .learner-surface .card{border-radius:var(--radius-card);overflow:hidden}
+:root[data-glass] .learner-surface .card .card-body{padding:20px 22px 22px}
+:root[data-glass] .learner-surface .card h3{font-size:20px;line-height:1.25;margin:8px 0 8px}
+:root[data-glass] .learner-surface :is(.outline-module,.lesson-toc-mobile,.lesson-example,.lesson-note,.lesson-prompt,.resource){border-radius:var(--radius-inner)}
+:root[data-glass] .learner-surface .panel.warm h2,:root[data-glass] .learner-surface .course-intro aside h2{color:var(--text);font-size:18px;margin:0 0 14px}
+
+/* ---- Page fixes found in the audit ---- */
+/* Library: search field and button on one 44px line */
+:root[data-glass] .learner-surface .library-query{align-items:end;gap:12px}
+:root[data-glass] .learner-surface .library-query input{width:100%}
+:root[data-glass] .learner-surface .library-filters summary{min-height:var(--control-sm);display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer;list-style:none}
+:root[data-glass] .learner-surface .library-filters summary::-webkit-details-marker{display:none}
+:root[data-glass] .learner-surface .library-filters summary:before{content:'';width:7px;height:7px;border:solid var(--muted);border-width:0 2px 2px 0;transform:rotate(-45deg);transition:transform .15s}
+:root[data-glass] .learner-surface .library-filters[open] summary:before{transform:rotate(45deg)}
+:root[data-glass] .learner-surface .library-count{font-size:14px;color:var(--muted)}
+/* Моё обучение: links line up with the title baseline */
+:root[data-glass] .me-head{align-items:baseline;margin:0 0 28px}
+:root[data-glass] .learner-surface .me-head-links{gap:20px;font-size:15px}
+:root[data-glass] .me-grid{gap:32px}
+:root[data-glass] .me-continue{padding:22px 24px;margin:0 0 36px}
+:root[data-glass] .me-course{padding:18px 0;gap:24px}
+/* Course page: hero and aside share a top line */
+:root[data-glass] .learner-surface .course-intro{align-items:start;gap:40px}
+:root[data-glass] .learner-surface .course-intro .chip{margin:0 0 14px}
+:root[data-glass] .learner-surface .course-meta{font-size:15px;margin:0 0 24px}
+/* Onboarding: the sticky footer had a solid bar */
+:root[data-glass] .learner-surface .onboarding-footer{background:transparent;border-top:1px solid var(--line);padding:16px 0 0}
+:root[data-glass] .learner-surface #onboarding-actions,:root[data-glass] .learner-surface .development-actions{gap:12px;align-items:center;background:transparent}
+:root[data-glass] .learner-surface #onboarding-actions>a{font-size:15px;font-weight:600;padding:0 8px;min-height:var(--control);display:inline-flex;align-items:center}
+:root[data-glass] .learner-surface .onboarding-choice{min-height:52px;padding:0 16px;gap:12px;display:flex;align-items:center;font-size:16px}
+/* Help: quick answers without native triangles */
+:root[data-glass] .learner-surface main details>summary{cursor:pointer}
+:root[data-glass] .learner-surface .help-faq summary,:root[data-glass] .learner-surface .panel details>summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:var(--control-sm);font-weight:600}
+:root[data-glass] .learner-surface :is(.help-faq,.panel details)>summary::-webkit-details-marker{display:none}
+:root[data-glass] .learner-surface :is(.help-faq,.panel details)>summary:before{content:'';flex:0 0 7px;height:7px;border:solid var(--muted);border-width:0 2px 2px 0;transform:rotate(-45deg);transition:transform .15s}
+:root[data-glass] .learner-surface :is(.help-faq,.panel details)[open]>summary:before{transform:rotate(45deg)}
+/* Footer */
+:root[data-glass] .learner-surface footer{margin-top:40px;padding-top:20px;font-size:13px;line-height:1.6}
+
+/* ---- Skill map: stacked cards ----
+   The page card keeps the same width and margins as every other page; the map card sits on top of
+   it and spills past its sides and bottom edge. tree.js sizes it down to the window's bottom. */
+:root[data-glass] .learner-surface .shell main:has(> .tree){--spill:32px;--spill-bottom:40px;padding-bottom:0;margin-bottom:calc(var(--spill-bottom) + 16px)}
+:root[data-glass] .learner-surface main:has(> .tree) footer{display:none}
+:root[data-glass] .tree{margin:0;position:relative}
+:root[data-glass] .tree-bar-top{margin:0 0 16px}
+:root[data-glass] .tree-tools{gap:8px}
+:root[data-glass] .tree-tools :is(button,[data-zoom-level]){height:var(--control-sm);min-height:var(--control-sm);line-height:calc(var(--control-sm) - 2px)}
+:root[data-glass] .tree .resume-strip{margin:0 0 16px;min-height:52px;box-sizing:border-box}
+:root[data-glass] .tree-viewport{
+  margin:0 calc(-1 * (var(--sheet-pad) + var(--spill))) calc(-1 * var(--spill-bottom));border-radius:26px;
+  box-shadow:0 1px 0 var(--glass-highlight) inset,0 0 0 1px var(--glass-border),0 30px 80px var(--shadow),0 8px 24px var(--shadow);
+}
+:root[data-glass] .tree-legend{position:absolute;left:calc(16px - var(--sheet-pad) - var(--spill));bottom:calc(16px - var(--spill-bottom));z-index:2;margin:0;padding:8px 14px;gap:14px;font-size:13px;border-radius:999px;background:var(--glass-strong);border:1px solid var(--glass-border);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+@media(max-width:800px){
+  :root[data-glass] .learner-surface .shell main:has(> .tree){--spill:4px;--spill-bottom:24px}
+  :root[data-glass] .tree-tools input{width:auto}
+  :root[data-glass] .tree-legend{left:12px;right:12px;justify-content:center;border-radius:16px}
+}
+
+/* ---- Custom select (select.js) ---- */
+.select{position:relative;display:block}
+.select-native{position:absolute!important;inset:0;width:100%!important;height:100%!important;opacity:0;pointer-events:none}
+.select-button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;cursor:pointer;font:inherit;color:var(--text);background:var(--well);border:1px solid var(--glass-border)}
+.select-button:hover{border-color:var(--line-strong)}
+.select-button[aria-expanded="true"]{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.select-value{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.select-button:after{content:'';flex:0 0 8px;height:8px;margin-top:-4px;border:solid var(--muted);border-width:0 2px 2px 0;transform:rotate(45deg);transition:transform .15s}
+.select-button[aria-expanded="true"]:after{transform:rotate(-135deg);margin-top:4px}
+.select-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;margin:0;padding:6px;list-style:none;max-height:288px;overflow:auto;
+  background:var(--popover,var(--panel));border:1px solid var(--glass-border);border-radius:var(--radius-inner);box-shadow:0 1px 0 var(--glass-highlight) inset,0 18px 50px var(--shadow);opacity:0;transform:translateY(-4px);transition:opacity .14s,transform .14s;pointer-events:none}
+.select-list.is-up{top:auto;bottom:calc(100% + 6px);transform:translateY(4px)}
+.select.is-open .select-list{opacity:1;transform:none;pointer-events:auto}
+.select-list[hidden]{display:block!important;visibility:hidden}
+.select.is-open .select-list[hidden]{visibility:visible}
+.select-option{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;border-radius:10px;font-size:15px;font-weight:500;color:var(--text);cursor:pointer}
+.select-option[aria-selected="true"]{font-weight:650}
+.select-option[aria-selected="true"]:after{content:'';margin-left:auto;width:5px;height:10px;border:solid var(--accent-ink);border-width:0 2px 2px 0;transform:rotate(45deg) translate(-2px,-1px)}
+.select-option.is-active{background:var(--hover)}
+.select-option[aria-disabled="true"]{opacity:.45;cursor:default}
+:root:not([data-glass]) .select-button{background:var(--panel);border-color:var(--line-strong)}
+:root:not([data-glass]) .select-list{background:var(--panel)}
+@media (prefers-reduced-motion:reduce){.select-list,.select-button:after{transition:none}}
+/* Map header: title · continue · tools on one row (wide screens), so the card gets the height */
+:root[data-glass] .learner-surface .tree .tree-tools input[type=search]:not([type=hidden]){height:var(--control-sm);min-height:0;width:220px;font-size:14px}
+@media(min-width:1180px){
+  :root[data-glass] .tree{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:20px;align-items:center}
+  :root[data-glass] .tree-bar-top{display:contents}
+  :root[data-glass] .tree-bar-top>div:first-child{grid-column:1;grid-row:1}
+  :root[data-glass] .tree-tools{grid-column:3;grid-row:1}
+  :root[data-glass] .tree .resume-strip{grid-column:2;grid-row:1;margin:0;min-height:44px;padding:4px 4px 4px 18px;border-radius:999px;justify-self:center;max-width:560px;width:100%}
+  :root[data-glass] .tree .resume-strip>div{flex-wrap:nowrap;min-width:0}
+  :root[data-glass] .tree .resume-strip p{display:none}
+  :root[data-glass] .tree .resume-strip h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+  :root[data-glass] .tree-status{grid-column:1/-1;margin:6px 0 8px;min-height:0}
+  :root[data-glass] .tree-status:empty{margin:0 0 14px}
+  :root[data-glass] .tree-viewport{grid-column:1/-1}
+}
+/* Audit round 2 */
+:root[data-glass] .me-head{align-items:flex-end}
+:root[data-glass] .learner-surface .me-head-links{padding-bottom:10px}
+:root[data-glass] .learner-surface .onboarding .onboarding-copy>.eyebrow{display:none}
+:root[data-glass] .learner-surface #onboarding-progress{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+:root[data-glass] .learner-surface main .panel>h2{font-size:20px;line-height:1.3;margin:0 0 14px}
+
+/* Phones: the bottom navigation always fits on one row */
+@media(max-width:800px){
+  :root[data-glass] .learner-surface .club-header nav{display:flex;flex-wrap:nowrap;justify-content:space-around;gap:4px;padding:6px 6px max(6px,env(safe-area-inset-bottom));font-size:13px}
+  :root[data-glass] .learner-surface .club-header nav a{display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 4px;white-space:nowrap}
+  :root[data-glass] .tree-legend{flex-wrap:wrap;gap:6px 12px;font-size:12px;padding:8px 12px}
+  :root[data-glass] .learner-surface .club-header nav a[aria-current="page"]{text-underline-offset:6px}
+}

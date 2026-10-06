@@ -36,7 +36,7 @@ def test_home_resumes_most_recently_reopened_text_lesson(fresh):
         db.execute("UPDATE progress SET updated_at='2000-01-02 00:00:00' WHERE lesson_id=?",(second,))
     assert client.get('/lessons/'+first).status_code == 200
     home = client.get('/').text
-    hero = re.search(r'<a class="atlas-continue"(.*?)</a>',home,re.S).group(1)
+    hero = re.search(r'aria-label="Продолжить обучение">(.*?)</section>',home,re.S).group(1)
     actual = re.search(r'href="(/lessons/[^"]+)"',hero).group(1)
     assert actual == '/lessons/'+first
 
@@ -50,7 +50,7 @@ def test_first_completed_preferences_after_skip_emits_completion_event(fresh):
 
 
 def hero_target(client):
-    hero = re.search(r'<a class="atlas-continue"(.*?)</a>', client.get('/').text, re.S).group(1)
+    hero = re.search(r'aria-label="Продолжить обучение">(.*?)</section>', client.get('/').text, re.S).group(1)
     return re.search(r'href="(/lessons/[^"]+)"', hero).group(1)
 
 

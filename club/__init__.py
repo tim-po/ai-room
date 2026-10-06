@@ -5,15 +5,18 @@ import os
 import secrets
 import sqlite3
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 
 import click
 from flask import Flask, abort, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
+from markupsafe import Markup
 from werkzeug.security import check_password_hash
 
-GOALS = {'essentials': 'Основы AI', 'work': 'AI для работы', 'agents': 'Агенты и автоматизация', 'build': 'Создание с AI'}
+from .legacy_content import FRAME_SOURCES, IMAGE_SOURCES
+
+GOALS = {'essentials': 'Основы ИИ', 'work': 'ИИ для работы', 'agents': 'Агенты и автоматизация', 'build': 'Создание с ИИ'}
 
 
 def create_app(config=None):
@@ -25,6 +28,8 @@ def create_app(config=None):
         SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax',
         SESSION_COOKIE_SECURE=os.environ.get('CLUB_SECURE_COOKIE') == '1',
         PERMANENT_SESSION_LIFETIME=timedelta(days=7), MAX_CONTENT_LENGTH=64 * 1024,
+        # Staging/demo only: lets a learner switch membership on and off without billing.
+        DEMO_CHECKOUT=os.environ.get('CLUB_DEMO_CHECKOUT') == '1',
     )
     if config:
         app.config.update(config)
@@ -76,6 +81,14 @@ def create_app(config=None):
             return fn(*args, **kwargs)
         return wrapped
 
+    # Learner pages from earlier iterations that now dead-end; their APIs stay available.
+    retired_pages = {'/practice': '/profile#practice', '/challenges': '/', '/diagnostic': '/', '/routes': '/'}
+
+    @app.before_request
+    def retire_pages():
+        if request.method == 'GET' and request.path in retired_pages:
+            return redirect(retired_pages[request.path])
+
     @app.before_request
     def load_user():
         # Increase the limit only for teaching uploads, before form parsing.
@@ -93,7 +106,7 @@ def create_app(config=None):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Referrer-Policy'] = 'same-origin'
-        response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; media-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+        response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data: " + IMAGE_SOURCES + "; media-src 'self'; frame-src " + FRAME_SOURCES + "; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
         if request.endpoint == 'prototypes':
             response.headers['Content-Security-Policy'] = response.headers['Content-Security-Policy'].replace("style-src 'self'", "style-src 'self' 'unsafe-inline'")
         if not request.path.startswith('/static/'):
@@ -104,6 +117,16 @@ def create_app(config=None):
     def plural_ru(value, one, few, many):
         number = abs(int(value))
         return many if 11 <= number % 100 <= 14 else one if number % 10 == 1 else few if 2 <= number % 10 <= 4 else many
+
+    @app.template_filter('human_time')
+    def human_time(value):
+        # Stored times are UTC; app.js rewrites the text into the viewer's local "сегодня в 14:05".
+        try:
+            moment = datetime.strptime(str(value)[:19], '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+        except ValueError:
+            return value
+        month = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'][moment.month - 1]
+        return Markup('<time datetime="{}" data-local-time>{} {} {}</time>').format(moment.isoformat(), moment.day, month, moment.year)
 
     def weekly_completed():
         # First-completion history is immutable: retries and re-completion never add credit.
@@ -140,11 +163,16 @@ def create_app(config=None):
         return row
 
     def cards():
+        from .tree import catalog_index
+        index = catalog_index()
         results = []
         for c in query("SELECT * FROM courses WHERE status='published' ORDER BY id"):
             lessons = lesson_list(c['id'])
+            known = index.get(c['id'], {})
+            # topic/catalog_total keep library cards consistent with the map (same names, honest size).
             results.append(dict(c) | dict(total=len(lessons), done=sum(l['completed'] for l in lessons),
-                minutes=sum(l['minutes'] for l in lessons), free=sum(l['access'] == 'free' for l in lessons)))
+                minutes=sum(l['minutes'] for l in lessons), free=sum(l['access'] == 'free' for l in lessons),
+                topic=known.get('topic') or GOALS.get(c['goal']), catalog_total=known.get('total') or len(lessons)))
         return results
 
     @app.route('/login', methods=['GET', 'POST'])
@@ -205,7 +233,11 @@ def create_app(config=None):
                 course = next(c for c in courses if c['id'] == next_lesson['course_id'])
         started = bool(unfinished)
         saved = query('SELECT COUNT(*) n FROM practice WHERE user_id=?', (g.user['id'],), True)['n'] if g.user else 0
-        return render_template('home.html', continuation=continuation, courses=courses, course=course, next_lesson=next_lesson, saved=saved, route=route, started=started, weekly=weekly_completed())
+        from .tree import build_tree
+        tree = build_tree(query, g.user, can_access, unfinished['lesson_id'] if unfinished else None)
+        free_lessons = [dict(l, course=c['title'], topic=t['title']) for t in tree['topics'] for c in t['courses']
+                        for m in c['modules'] for l in m['lessons'] if l['state'] == 'open'][:3] if not g.user else []
+        return render_template('home.html', free_lessons=free_lessons, continuation=continuation, courses=courses, course=course, next_lesson=next_lesson, saved=saved, route=route, started=started, weekly=weekly_completed(), tree=tree)
 
     @app.get('/catalogue')
     def catalogue():
@@ -223,7 +255,11 @@ def create_app(config=None):
         materials = [m for m in query("""SELECT id,title,description,outcome,format,goal,level,tools,minutes,access
             FROM materials WHERE status='published' ORDER BY updated_at DESC,id""")
             if matches(m) and (not content_format or m['format'] == content_format)]
-        return render_template('catalogue.html', courses=courses, materials=materials)
+        from .tree import catalog_index
+        published = {c['id'] for c in query("SELECT id FROM courses WHERE status='published'")}
+        coming = [dict(id=i, **c) for i, c in catalog_index().items() if i not in published and c['title']
+                  and (not q or q in c['title'].lower()) and not (goal or level or tool) and content_format in ('', 'course')]
+        return render_template('catalogue.html', courses=courses, materials=materials, coming=coming)
 
     @app.get('/courses/<course_id>')
     def course(course_id):
@@ -231,11 +267,20 @@ def create_app(config=None):
         lessons = lesson_list(course_id)
         first = next((l for l in lessons if not l['completed'] and can_access(l)), None)
         favourite = g.user and query('SELECT 1 FROM favourites WHERE user_id=? AND course_id=?', (g.user['id'], course_id), True)
-        return render_template('course.html', course=c, lessons=lessons, first=first, favourite=favourite)
+        started = bool(g.user and query('''SELECT 1 FROM progress p JOIN lessons l ON l.id=p.lesson_id JOIN modules m ON m.id=l.module_id
+            WHERE p.user_id=? AND m.course_id=? UNION SELECT 1 FROM practice r JOIN lessons l ON l.id=r.lesson_id
+            JOIN modules m ON m.id=l.module_id WHERE r.user_id=? AND m.course_id=?''', (g.user['id'], course_id) * 2, True))
+        from .tree import course_outline
+        outline = course_outline(query, g.user, can_access, course_id)
+        return render_template('course.html', course=c, lessons=lessons, first=first, favourite=favourite, started=started, outline=outline)
 
     @app.get('/lessons/<lesson_id>')
     def lesson(lesson_id):
-        lesson = get_lesson(lesson_id)
+        lesson = get_lesson(lesson_id, enforce=False)
+        if not can_access(lesson):
+            from .tree import course_outline
+            return render_template('paywall.html', lesson=lesson, lessons=lesson_list(lesson['course_id']),
+                                   outline=course_outline(query, g.user, can_access, lesson['course_id'], lesson_id)), 403
         progress = practice = None
         if g.user:
             with db():
@@ -258,7 +303,9 @@ def create_app(config=None):
         if route_index is None:
             route = None
         route_following = route['steps'][route_index+1] if route and route_index+1 < len(route['steps']) else None
-        return render_template('lesson.html', lesson=lesson, lessons=lessons, progress=progress, practice=practice,
+        from .tree import course_outline
+        outline = course_outline(query, g.user, can_access, lesson['course_id'], lesson_id)
+        return render_template('lesson.html', lesson=lesson, lessons=lessons, progress=progress, practice=practice, outline=outline,
             route=route, route_index=route_index, route_following=route_following,
             previous=lessons[index-1] if index else None, following=lessons[index+1] if index+1 < len(lessons) else None,
             resources=query("SELECT id,title,kind FROM resources WHERE lesson_id=? AND status='published'", (lesson_id,)))
@@ -390,8 +437,8 @@ def create_app(config=None):
                 event('onboarding_completed')
             if data['goal'] != g.user['goal'] or data['experience'] != g.user['experience']:
                 choose_route_goal(data['goal'])
-            flash('Настройки сохранены. Исследуйте любые направления.', 'success')
-            return redirect(url_for('home'))
+            flash('Настройки сохранены.', 'success')
+            return redirect(url_for('profile'))
         return render_template('preferences.html')
 
     @app.post('/preferences/skip')
@@ -413,7 +460,13 @@ def create_app(config=None):
                 JOIN modules m ON m.id=l.module_id WHERE p.user_id=?
             UNION SELECT m.course_id FROM practice p JOIN lessons l ON l.id=p.lesson_id
                 JOIN modules m ON m.id=l.module_id WHERE p.user_id=?''', (g.user['id'],) * 3)}
-        learning = [c for c in cards() if c['id'] in started_ids]
+        learning = []
+        for c in cards():
+            if c['id'] in started_ids:
+                remaining = [l for l in lesson_list(c['id']) if not l['completed']]
+                # next_locked explains a course whose next step is a club lesson instead of showing a bare button.
+                learning.append(c | dict(next=next((l for l in remaining if can_access(l)), None),
+                                         next_locked=next((l for l in remaining if not can_access(l)), None)))
         completed_courses = [c for c in learning if c['total'] and c['done'] == c['total']]
         active_courses = [c for c in learning if c not in completed_courses]
         material_favourites = query('''SELECT m.id,m.title,m.format,m.access FROM material_favourites f JOIN materials m ON m.id=f.material_id WHERE f.user_id=? AND m.status='published' ''', (g.user['id'],))
@@ -505,6 +558,12 @@ def create_app(config=None):
         from .seed import seed_database
         seed_database(db())
         click.echo('Synthetic content and isolated accounts seeded. Existing learner data preserved.')
+
+    from .legacy_content import register_legacy_content
+    register_legacy_content(app, db)
+
+    from .membership import register_membership
+    register_membership(app, db, query, require_user)
 
     from .routes import register_routes
     selected_route, choose_route_goal = register_routes(app, db, query, can_access, require_user, GOALS)
