@@ -1,6 +1,7 @@
 import {useEffect, useState, type FormEvent} from 'react';
 import {useBlocker, useLoaderData, useLocation, type LoaderFunctionArgs} from 'react-router';
 import {ApiError, bootstrap, getJson, postJson} from '../api';
+import AssistantHandoff from '../components/AssistantHandoff';
 import {copyText, PromptPanel, Resources, Video} from '../components/Media';
 import Outline from '../components/Outline';
 import {humanTime, plural} from '../format';
@@ -100,6 +101,7 @@ function PracticePanel({data, onSaved}: {data: LessonData; onSaved: () => void})
       <h2>Небольшая практика</h2>
       <p>{lesson.task}</p>
       <ul>{(lesson.checklist || []).map((item, i) => <li key={i}>{item}</li>)}</ul>
+      <AssistantHandoff data={data} draft={body} />
       {bootstrap.user ? (
         <>
           <p className="chip">{chip}</p>
@@ -211,7 +213,9 @@ function OpenLesson({data}: {data: LessonData}) {
         <Body lesson={lesson} />
         {lesson.prompt && <PromptPanel prompt={lesson.prompt} />}
         <Resources resources={data.resources ?? []} title="Материалы" />
-        {lesson.task && <PracticePanel data={data} onSaved={() => setPracticeSaved(true)} />}
+        {lesson.task
+          ? <PracticePanel data={data} onSaved={() => setPracticeSaved(true)} />
+          : <AssistantHandoff data={data} section={points.titles[points.current - 1]} />}
         <FinishPanel data={data} points={points} practiceSaved={practiceSaved} />
         <nav className="lesson-nav" aria-label="Соседние уроки курса">
           {data.previous && <AppLink to={`/lessons/${data.previous.id}`}>← Предыдущий урок курса</AppLink>}
