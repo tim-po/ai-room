@@ -1,5 +1,3 @@
-import json
-import re
 
 from test_learning import app, login, post
 from test_skills import skills
@@ -8,8 +6,8 @@ from test_legacy_content import legacy, learner
 
 
 def tree(client):
-    html = client.get('/?view=map').text
-    return json.loads(re.search(r'<script type="application/json" id="tree-data">(.*?)</script>', html, re.S).group(1))
+    assert client.get('/?view=map').status_code == 200
+    return client.get('/api/app/home').json['tree']
 
 
 def lessons(data, course=None):

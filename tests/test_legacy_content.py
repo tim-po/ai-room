@@ -45,13 +45,15 @@ def test_install_is_repeatable_and_keeps_learner_work(legacy):
 
 
 def test_rich_lesson_renders_blocks_and_embeds(legacy):
-    page = legacy.test_client().get('/lessons/'+FIRST)
+    c = legacy.test_client()
+    page = c.get('/lessons/'+FIRST)
     assert page.status_code == 200
-    assert '<h2 id="step-1">Шаг 1. Достаём задачу (2 минуты)</h2>' in page.text
-    assert 'href="#step-1"' in page.text and 'href="#practice"' in page.text  # "В этом уроке" step list
-    assert 'class="lesson-example"' in page.text and 'https://kinescope.io/embed/' in page.text
     assert 'https://airoom-storage.s3.twcstorage.ru' in page.headers['Content-Security-Policy']
-    assert 'Разбираемся на примере' not in page.text
+    lesson = c.get('/api/app/lessons/'+FIRST).json['lesson']
+    assert '<h2 id="step-1">Шаг 1. Достаём задачу (2 минуты)</h2>' in lesson['body_html']
+    assert lesson['steps'][0] == 'Шаг 1. Достаём задачу (2 минуты)' and lesson['task']   # "В этом уроке" + Практика
+    assert 'class="lesson-example"' in lesson['body_html'] and 'https://kinescope.io/embed/' in lesson['body_html']
+    assert lesson['paragraphs'] is None   # no plain-text "Разбираемся на примере" section
 
 
 def test_renderer_escapes_and_drops_unlisted_sources():
@@ -64,11 +66,12 @@ def test_renderer_escapes_and_drops_unlisted_sources():
 
 
 def test_paywall_shows_outline_and_offer_without_content(legacy):
-    anonymous = legacy.test_client().get('/lessons/'+MEMBER)
-    assert anonymous.status_code == 403
-    assert 'Этот урок — для участников клуба' in anonymous.text and 'Четыре слоя контекста' in anonymous.text
-    assert 'Демонстрационный текст раздела' not in anonymous.text
-    assert 'Я уже в клубе — войти' in anonymous.text and '/lessons/'+FIRST in anonymous.text
+    anonymous = legacy.test_client()
+    assert anonymous.get('/lessons/'+MEMBER).status_code == 403
+    data = anonymous.get('/api/app/lessons/'+MEMBER).json
+    assert data['locked'] and 'Четыре слоя контекста' in data['lesson']['steps']
+    assert 'Демонстрационный текст раздела' not in str(data) and 'body_html' not in data['lesson']
+    assert data['entitlement'] is None and data['free_lesson']['id'] == FIRST   # "Я уже в клубе — войти" + free lesson link
     c = legacy.test_client(); login(c)
     assert c.get('/api/lessons/'+MEMBER).status_code == 403
 
@@ -92,7 +95,8 @@ def test_demo_checkout_switches_access_both_ways(legacy):
         db.execute("UPDATE users SET onboarding_done=1 WHERE id='user-revoked'")
     revoked = app.test_client(); csrf = login(revoked, 'revoked')
     assert form(revoked, '/membership/demo', {}, csrf).status_code == 403
-    assert 'Доступ к клубу приостановлен' in revoked.get('/lessons/'+MEMBER).text
+    locked = revoked.get('/api/app/lessons/'+MEMBER).json
+    assert locked['locked'] and locked['entitlement'] == 'revoked'   # "Доступ к клубу приостановлен"
 
 
 def recommendation(app, who, draft):

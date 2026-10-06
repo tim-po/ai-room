@@ -29,19 +29,18 @@
     window.addEventListener(type, event => { if (type !== 'pointermove' || event.buttons) hold(); }, {passive: true, capture: true});
   }
   document.addEventListener('tree:moving', hold);
-  document.addEventListener('DOMContentLoaded', () => {
+  function toggle() {
+    theme = theme === 'dawn' ? 'dusk' : 'dawn';
+    try { localStorage.setItem('airoom-theme', theme); } catch (_) { /* private mode: lasts for this page */ }
+    // Tokens are animatable (theme-motion.css), but only while .theme-shift is set: the sun rises
+    // or sets for this switch, and ordinary page loads never animate the theme.
+    root.classList.add('theme-shift');
     apply(theme);
-    const toggle = document.querySelector('[data-theme-toggle]');
-    if (!toggle) return;
-    toggle.addEventListener('click', () => {
-      theme = theme === 'dawn' ? 'dusk' : 'dawn';
-      try { localStorage.setItem('airoom-theme', theme); } catch (_) { /* private mode: lasts for this page */ }
-      // Tokens are animatable (theme-motion.css), but only while .theme-shift is set: the sun rises
-      // or sets for this switch, and ordinary page loads never animate the theme.
-      root.classList.add('theme-shift');
-      apply(theme);
-      clearTimeout(shiftTimer);
-      shiftTimer = setTimeout(() => root.classList.remove('theme-shift'), 3600);
-    });
-  });
+    clearTimeout(shiftTimer);
+    shiftTimer = setTimeout(() => root.classList.remove('theme-shift'), 3600);
+  }
+  // Delegated, so a toggle rendered later (the React app) works too.
+  document.addEventListener('click', event => { if (event.target.closest && event.target.closest('[data-theme-toggle]')) toggle(); });
+  document.addEventListener('DOMContentLoaded', () => apply(theme));
+  window.AIRoomTheme = {toggle, get: () => theme};
 })();

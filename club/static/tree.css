@@ -2,7 +2,7 @@
    tree.js positions nodes (fixed columns) and sets data-lod (titles, switched at once so their
    size transitions run with the row tween) and data-detail (module contents, swapped behind a fade). */
 .tree{margin:0 0 24px}
-.learner-surface .shell main:has(> .tree){padding-top:20px}
+.learner-surface .shell main:has(> .tree, > .page > .tree){padding-top:20px}
 .tree-bar-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;margin:0 0 12px}
 .tree-bar-top h1{font-size:28px;line-height:1.1;letter-spacing:-.8px;margin:0}.tree-bar-top p{display:none}
 .tree-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}

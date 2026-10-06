@@ -1,3 +1,0 @@
-{% if continuation.last_result %}{% set result = continuation.last_result %}
-<section class="last-result" aria-label="Последний результат"><p class="eyebrow">Последний результат</p><p><a href="{{ result.url }}{{ '#practice' if result.status == 'submitted' else '' }}">{{ result.title }} →</a><span>{{ 'Работа сохранена · без проверки' if result.status == 'submitted' else 'Урок завершён · без подтверждения навыка' }}</span></p></section>
-{% endif %}

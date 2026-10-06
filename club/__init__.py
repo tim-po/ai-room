@@ -44,6 +44,9 @@ def create_app(config=None):
                 pass
         app.config['SECRET_KEY'] = key_file.read_text()
 
+    from .spa import register_spa
+    spa_shell = register_spa(app)
+
     def db():
         if 'db' not in g:
             g.db = sqlite3.connect(app.config['DATABASE'], timeout=10)
@@ -212,8 +215,7 @@ def create_app(config=None):
         from .continuation import learning_continuation
         return learning_continuation(query, g.user)
 
-    @app.get('/')
-    def home():
+    def home_data():
         courses = cards()
         goal = g.user['goal'] if g.user else 'essentials'
         course = next((c for c in courses if c['goal'] == goal), courses[0] if courses else None)
@@ -227,17 +229,20 @@ def create_app(config=None):
                 next_lesson = candidate
         elif not next_lesson and course:
             next_lesson = next((l for l in lesson_list(course['id']) if not l['completed'] and can_access(l)), None)
-        if next_lesson:
-            # Course fallback rows do not carry course_id; retained work and route rows do.
-            if 'course_id' in next_lesson.keys():
-                course = next(c for c in courses if c['id'] == next_lesson['course_id'])
-        started = bool(unfinished)
-        saved = query('SELECT COUNT(*) n FROM practice WHERE user_id=?', (g.user['id'],), True)['n'] if g.user else 0
         from .tree import build_tree
         tree = build_tree(query, g.user, can_access, unfinished['lesson_id'] if unfinished else None)
         free_lessons = [dict(l, course=c['title'], topic=t['title']) for t in tree['topics'] for c in t['courses']
                         for m in c['modules'] for l in m['lessons'] if l['state'] == 'open'][:3] if not g.user else []
-        return render_template('home.html', free_lessons=free_lessons, continuation=continuation, courses=courses, course=course, next_lesson=next_lesson, saved=saved, route=route, started=started, weekly=weekly_completed(), tree=tree)
+        return dict(tree=tree, continuation=continuation, free_lessons=free_lessons,
+                    next=dict(id=next_lesson['id'], title=next_lesson['title'], url='/lessons/' + next_lesson['id']) if next_lesson else None)
+
+    @app.get('/')
+    def home():
+        return spa_shell()
+
+    @app.get('/api/app/home')
+    def home_api():
+        return jsonify(home_data())
 
     @app.get('/catalogue')
     def catalogue():
@@ -274,41 +279,79 @@ def create_app(config=None):
         outline = course_outline(query, g.user, can_access, course_id)
         return render_template('course.html', course=c, lessons=lessons, first=first, favourite=favourite, started=started, outline=outline)
 
+    def record_visit(lesson_id):
+        with db():
+            learning_activity(lesson_id)
+            inserted = db().execute('INSERT OR IGNORE INTO progress(user_id,lesson_id) VALUES(?,?)', (g.user['id'], lesson_id)).rowcount
+            # Navigation is independent of video polling, practice and completion writes.
+            # A per-user sequence preserves ordering even for visits in the same second.
+            db().execute('''INSERT INTO lesson_visits(user_id,lesson_id,visit_order)
+                VALUES(?,?,(SELECT COALESCE(MAX(visit_order),0)+1 FROM lesson_visits WHERE user_id=?))
+                ON CONFLICT(user_id,lesson_id) DO UPDATE SET visit_order=excluded.visit_order''',
+                (g.user['id'], lesson_id, g.user['id']))
+            if inserted:
+                event('lesson_started', lesson_id)
+
+    def lesson_data(lesson_id):
+        """Everything the lesson page shows. Locked lessons expose only their outline, never content."""
+        from .legacy_content import outline as body_outline, render_blocks
+        from .tree import course_outline
+        lesson = get_lesson(lesson_id, enforce=False)
+        blocks = lesson['body_format'] == 'blocks' if 'body_format' in lesson.keys() else False
+        info = dict(id=lesson['id'], title=lesson['title'], objective=lesson['objective'], minutes=lesson['minutes'],
+                    access=lesson['access'], steps=body_outline(lesson['body']) if blocks else [])
+        course = dict(id=lesson['course_id'], title=lesson['course_title'])
+        outline = course_outline(query, g.user, can_access, lesson['course_id'], lesson_id)
+        lessons = lesson_list(lesson['course_id'])
+        if not can_access(lesson):
+            free = next((l for l in lessons if l['access'] == 'free'), None)
+            return dict(locked=True, lesson=info, course=course, outline=outline,
+                        entitlement=g.user['entitlement'] if g.user else None,
+                        free_lesson=dict(id=free['id'], title=free['title']) if free else None)
+        progress = practice = None
+        if g.user:
+            progress = query('SELECT completed,video_seconds FROM progress WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
+            practice = query('SELECT body,status,updated_at FROM practice WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
+        index = next(i for i, l in enumerate(lessons) if l['id'] == lesson_id)
+        neighbour = lambda l: dict(id=l['id'], title=l['title'], locked=not can_access(l)) if l else None
+        video = None
+        if lesson['video']:
+            video = dict(url=url_for('media', lesson_id=lesson_id), type='video/mp4' if lesson['video'].endswith('.mp4') else 'video/webm',
+                         fixture=lesson['video'] == 'fixture.webm')
+        resources = [dict(id=r['id'], title=r['title'], kind=r['kind'], url=url_for('lesson_resource', resource_id=r['id']))
+                     for r in query("SELECT id,title,kind FROM resources WHERE lesson_id=? AND status='published'", (lesson_id,))]
+        if lesson['checklist'] and not blocks:
+            resources.insert(0, dict(id='checklist', title='Чек-лист проверки результата', kind='text', url=f'/lessons/{lesson_id}/resources/checklist.txt'))
+        info |= dict(body_html=str(render_blocks(lesson['body'])) if blocks else None,
+                     paragraphs=None if blocks else lesson['body'].split('\n\n'),
+                     prompt=lesson['prompt'], task=lesson['task'],
+                     checklist=lesson['checklist'].split('\n') if lesson['checklist'] else [], video=video)
+        return dict(locked=False, lesson=info, course=course, outline=outline, resources=resources,
+                    progress=dict(progress) if progress else None, practice=dict(practice) if practice else None,
+                    previous=neighbour(lessons[index - 1] if index else None),
+                    following=neighbour(lessons[index + 1] if index + 1 < len(lessons) else None))
+
     @app.get('/lessons/<lesson_id>')
     def lesson(lesson_id):
         lesson = get_lesson(lesson_id, enforce=False)
         if not can_access(lesson):
-            from .tree import course_outline
-            return render_template('paywall.html', lesson=lesson, lessons=lesson_list(lesson['course_id']),
-                                   outline=course_outline(query, g.user, can_access, lesson['course_id'], lesson_id)), 403
-        progress = practice = None
+            return spa_shell(403)
         if g.user:
-            with db():
-                learning_activity(lesson_id)
-                inserted = db().execute('INSERT OR IGNORE INTO progress(user_id,lesson_id) VALUES(?,?)', (g.user['id'], lesson_id)).rowcount
-                # Navigation is independent of video polling, practice and completion writes.
-                # A per-user sequence preserves ordering even for visits in the same second.
-                db().execute('''INSERT INTO lesson_visits(user_id,lesson_id,visit_order)
-                    VALUES(?,?,(SELECT COALESCE(MAX(visit_order),0)+1 FROM lesson_visits WHERE user_id=?))
-                    ON CONFLICT(user_id,lesson_id) DO UPDATE SET visit_order=excluded.visit_order''',
-                    (g.user['id'], lesson_id, g.user['id']))
-                if inserted:
-                    event('lesson_started', lesson_id)
-            progress = query('SELECT * FROM progress WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
-            practice = query('SELECT * FROM practice WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
-        lessons = lesson_list(lesson['course_id'])
-        index = next(i for i, l in enumerate(lessons) if l['id'] == lesson_id)
-        route = selected_route() if g.user else None
-        route_index = next((i for i, step in enumerate(route['steps']) if step['id'] == lesson_id), None) if route else None
-        if route_index is None:
-            route = None
-        route_following = route['steps'][route_index+1] if route and route_index+1 < len(route['steps']) else None
-        from .tree import course_outline
-        outline = course_outline(query, g.user, can_access, lesson['course_id'], lesson_id)
-        return render_template('lesson.html', lesson=lesson, lessons=lessons, progress=progress, practice=practice, outline=outline,
-            route=route, route_index=route_index, route_following=route_following,
-            previous=lessons[index-1] if index else None, following=lessons[index+1] if index+1 < len(lessons) else None,
-            resources=query("SELECT id,title,kind FROM resources WHERE lesson_id=? AND status='published'", (lesson_id,)))
+            record_visit(lesson_id)
+            g.recorded_visit = lesson_id   # the app skips its own visit call for this first load
+        return spa_shell()
+
+    @app.get('/api/app/lessons/<lesson_id>')
+    def lesson_page_api(lesson_id):
+        return jsonify(lesson_data(lesson_id))
+
+    @app.post('/api/app/lessons/<lesson_id>/visit')
+    @require_user
+    def lesson_visit_api(lesson_id):
+        if not can_access(get_lesson(lesson_id, enforce=False)):
+            abort(403)
+        record_visit(lesson_id)
+        return jsonify(ok=True)
 
     @app.get('/api/lessons/<lesson_id>')
     def lesson_api(lesson_id):
@@ -448,29 +491,43 @@ def create_app(config=None):
             db().execute('UPDATE users SET onboarding_done=1 WHERE id=?', (g.user['id'],))
         return redirect(url_for('home'))
 
-    @app.get('/profile')
-    @require_user
-    def profile():
-        practices = query('''SELECT p.*,l.title,m.course_id FROM practice p JOIN lessons l ON l.id=p.lesson_id
+    def profile_data():
+        practices = query('''SELECT p.lesson_id,p.body,p.status,p.updated_at,l.title,m.course_id FROM practice p JOIN lessons l ON l.id=p.lesson_id
             JOIN modules m ON m.id=l.module_id WHERE p.user_id=? ORDER BY p.updated_at DESC''', (g.user['id'],))
-        favourites = query('''SELECT c.* FROM favourites f JOIN courses c ON c.id=f.course_id
+        favourites = query('''SELECT c.id,c.title FROM favourites f JOIN courses c ON c.id=f.course_id
             WHERE f.user_id=? AND c.status='published' ''', (g.user['id'],))
         started_ids = {row['course_id'] for row in query('''SELECT course_id FROM course_starts WHERE user_id=?
             UNION SELECT m.course_id FROM progress p JOIN lessons l ON l.id=p.lesson_id
                 JOIN modules m ON m.id=l.module_id WHERE p.user_id=?
             UNION SELECT m.course_id FROM practice p JOIN lessons l ON l.id=p.lesson_id
                 JOIN modules m ON m.id=l.module_id WHERE p.user_id=?''', (g.user['id'],) * 3)}
+        brief = lambda l: dict(id=l['id'], title=l['title']) if l else None
         learning = []
         for c in cards():
             if c['id'] in started_ids:
                 remaining = [l for l in lesson_list(c['id']) if not l['completed']]
                 # next_locked explains a course whose next step is a club lesson instead of showing a bare button.
-                learning.append(c | dict(next=next((l for l in remaining if can_access(l)), None),
-                                         next_locked=next((l for l in remaining if not can_access(l)), None)))
-        completed_courses = [c for c in learning if c['total'] and c['done'] == c['total']]
-        active_courses = [c for c in learning if c not in completed_courses]
-        material_favourites = query('''SELECT m.id,m.title,m.format,m.access FROM material_favourites f JOIN materials m ON m.id=f.material_id WHERE f.user_id=? AND m.status='published' ''', (g.user['id'],))
-        return render_template('profile.html', continuation=continuation_context(), material_favourites=material_favourites, active_courses=active_courses, completed_courses=completed_courses, practices=practices, favourites=favourites, weekly=weekly_completed(), route=selected_route())
+                learning.append(dict(id=c['id'], title=c['title'], done=c['done'], total=c['total'],
+                                     next=brief(next((l for l in remaining if can_access(l)), None)),
+                                     next_locked=brief(next((l for l in remaining if not can_access(l)), None))))
+        completed = [c for c in learning if c['total'] and c['done'] == c['total']]
+        material_favourites = query('''SELECT m.id,m.title FROM material_favourites f JOIN materials m ON m.id=f.material_id WHERE f.user_id=? AND m.status='published' ''', (g.user['id'],))
+        user = g.user
+        return dict(user=dict(name=user['name'], email=user['email'], entitlement=user['entitlement'], weekly_goal=user['weekly_goal']),
+                    continuation=continuation_context(), weekly=weekly_completed(),
+                    practices=[dict(p) for p in practices], active_courses=[c for c in learning if c not in completed],
+                    completed_courses=completed, favourites=[dict(f) for f in favourites],
+                    material_favourites=[dict(m) for m in material_favourites])
+
+    @app.get('/profile')
+    @require_user
+    def profile():
+        return spa_shell()
+
+    @app.get('/api/app/profile')
+    @require_user
+    def profile_api():
+        return jsonify(profile_data())
 
     @app.route('/help', methods=['GET', 'POST'])
     def help_page():

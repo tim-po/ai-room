@@ -27,7 +27,7 @@
   max-width:min(1240px,calc(100vw - 160px));margin:36px auto 56px;background:var(--sheet);border:1px solid var(--glass-border);border-radius:32px;
   box-shadow:0 1px 0 var(--glass-highlight) inset,0 30px 80px var(--shadow);
 }
-:root[data-glass] .learner-surface .shell main:has(> .tree){padding-top:24px}
+:root[data-glass] .learner-surface .shell main:has(> .tree, > .page > .tree){padding-top:24px}
 @media(max-width:800px){:root[data-glass] .learner-surface .shell main{max-width:none;margin:10px 8px 90px;border-radius:24px}}
 
 /* Surfaces inside the sheet */

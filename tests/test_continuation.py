@@ -1,6 +1,5 @@
 """Cross-branch resume uses retained state and current authorization."""
 import sqlite3
-from flask import template_rendered
 from club import create_app
 from test_learning import app, login, post, FREE
 
@@ -8,12 +7,13 @@ AGENT = 'agent-api-basics'
 
 
 def context(app, client, path='/'):
-    captured = []
-    def receive(sender, template, context, **extra):
-        captured.append(context)
-    with template_rendered.connected_to(receive, app):
-        assert client.get(path).status_code == 200
-    return captured[-1]
+    """What the map ('/') or Моё обучение ('/profile') shows, read from the app API."""
+    response = client.get({'/': '/api/app/home', '/profile': '/api/app/profile'}[path])
+    assert response.status_code == 200
+    data = response.json
+    if path == '/':
+        return dict(continuation=data['continuation'], next_lesson=data['next'], started=bool(data['continuation']['unfinished']))
+    return data
 
 
 def test_cross_branch_draft_survives_preferences_login_and_restart(app):

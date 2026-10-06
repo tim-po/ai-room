@@ -45,16 +45,16 @@ def test_material_lifecycle_access_resources_and_conflicts(app):
     assert member.get(public).status_code==200
     assert member.get(resource_path).text=='Секретный ресурс'
     assert member.post(public+'/favourite',data={'csrf':member_csrf,'saved':'1'}).status_code==302
-    assert identity in member.get('/profile').text
+    assert identity in [m['id'] for m in member.get('/api/app/profile').json['material_favourites']]
     assert identity not in anon.get('/catalogue?format=guide').text
     for status in ['draft','archived']:
         assert form(editor,path,csrf,**fields(status=status)).status_code==302
         assert member.get(public).status_code==404
         assert member.get(resource_path).status_code==404
-        assert identity not in member.get('/profile').text
+        assert identity not in [m['id'] for m in member.get('/api/app/profile').json['material_favourites']]
         assert identity not in member.get('/catalogue').text
     assert form(editor,path,csrf,**fields(status='published')).status_code==302
-    assert identity in member.get('/profile').text
+    assert identity in [m['id'] for m in member.get('/api/app/profile').json['material_favourites']]
     assert db.execute('SELECT count(*) FROM material_favourites WHERE material_id=?',(identity,)).fetchone()[0]==1
     # Entitlements are loaded every request, so an existing session cannot retain revoked access.
     for entitlement in ['free','expired','revoked']:

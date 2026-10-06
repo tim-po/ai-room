@@ -23,6 +23,24 @@ Course and standalone material discovery with combined search/goal/level/tool/fo
 
 Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone guides, use cases and workshops have protected authoring/publication, resources, favourites and video resume. Accounts are operator-provisioned; self-service registration/recovery is not implemented. Ordered shared-lesson routes and protected route authoring are implemented. Content is explicitly synthetic. Independent release acceptance is recorded above; staging operations are documented below.
 
+## Learner frontend (React)
+
+Learner pages that have been migrated (the map at `/`, `/lessons/<id>`, `/profile`) are a React +
+TypeScript app in `web/` (Vite, React Router). Flask still owns these URLs: it handles login,
+onboarding redirects and status codes (403 for a locked lesson, 404 for a missing one), then serves
+`templates/spa.html`, which loads the bundle. Page data comes from `/api/app/*`. Other pages are still
+server-rendered and load normally; links between the two work in both directions.
+
+```sh
+cd web && npm ci && npm run build   # writes club/static/app/ (not committed)
+cd web && npm run dev               # rebuilds on every change; reload the page
+```
+
+Node 20+ is needed only to build. The built files are plain static assets served by Flask, so the
+server itself does not need Node. Deployments must run the build before restarting the app: without it,
+migrated pages show a "frontend not built" notice. Styles are the shared stylesheets in `club/static`
+(included through `templates/_styles.html`), so React and server pages look the same.
+
 ## Setup
 
 Python 3.12+; `uv` or a working Python venv/pip installation.

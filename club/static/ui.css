@@ -110,8 +110,8 @@
 /* ---- Skill map: stacked cards ----
    The page card keeps the same width and margins as every other page; the map card sits on top of
    it and spills past its sides and bottom edge. tree.js sizes it down to the window's bottom. */
-:root[data-glass] .learner-surface .shell main:has(> .tree){--spill:32px;--spill-bottom:40px;padding-bottom:0;margin-bottom:calc(var(--spill-bottom) + 16px)}
-:root[data-glass] .learner-surface main:has(> .tree) footer{display:none}
+:root[data-glass] .learner-surface .shell main:has(> .tree, > .page > .tree){--spill:32px;--spill-bottom:40px;padding-bottom:0;margin-bottom:calc(var(--spill-bottom) + 16px)}
+:root[data-glass] .learner-surface main:has(> .tree, > .page > .tree) footer{display:none}
 :root[data-glass] .tree{margin:0;position:relative}
 :root[data-glass] .tree-bar-top{margin:0 0 16px}
 :root[data-glass] .tree-tools{gap:8px}
@@ -123,7 +123,7 @@
 }
 :root[data-glass] .tree-legend{position:absolute;left:calc(16px - var(--sheet-pad) - var(--spill));bottom:calc(16px - var(--spill-bottom));z-index:2;margin:0;padding:8px 14px;gap:14px;font-size:13px;border-radius:999px;background:var(--glass-strong);border:1px solid var(--glass-border);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 @media(max-width:800px){
-  :root[data-glass] .learner-surface .shell main:has(> .tree){--spill:4px;--spill-bottom:24px}
+  :root[data-glass] .learner-surface .shell main:has(> .tree, > .page > .tree){--spill:4px;--spill-bottom:24px}
   :root[data-glass] .tree-tools input{width:auto}
   :root[data-glass] .tree-legend{left:12px;right:12px;justify-content:center;border-radius:16px}
 }

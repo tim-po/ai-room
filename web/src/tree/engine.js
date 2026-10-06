@@ -1,13 +1,14 @@
-'use strict';
 // Skill tree canvas: AI Room -> topics -> courses -> a left-to-right path of modules per course.
 //
 // Three levels of detail (far / mid / near). Columns are fixed, so a change of detail never moves a
 // node sideways: layouts for every level are measured up front, and rows tween between them while
 // the point under the cursor stays where it is. Camera moves (buttons, search, clicks) fly.
-(() => {
-  const root = document.querySelector('[data-tree]');
-  if (!root) return;
-  const data = JSON.parse(document.getElementById('tree-data').textContent);
+// Mounted by SkillMap.tsx into its own markup; returns a cleanup function.
+export function mountTree(root, data) {
+  let destroyed = false;
+  // Every listener is registered with this signal, so cleanup removes all of them.
+  const listeners = new AbortController();
+  const on = {signal: listeners.signal};
   const viewport = root.querySelector('.tree-viewport');
   const canvas = root.querySelector('.tree-canvas');
   const zoomLabel = root.querySelector('[data-zoom-level]');
@@ -278,7 +279,7 @@
     const box = viewport.getBoundingClientRect();
     if (event.ctrlKey || event.metaKey) zoomAt(view.k * Math.exp(-event.deltaY * 0.01), event.clientX - box.left, event.clientY - box.top);
     else panBy(-event.deltaX, -event.deltaY);
-  }, {passive: false});
+  }, {passive: false, signal: listeners.signal});
 
   const pointers = new Map(); let drag = null, pinch = null, moved = false;
   viewport.addEventListener('pointerdown', event => {
@@ -290,7 +291,7 @@
       const [a, b] = [...pointers.values()];
       pinch = {d: Math.hypot(a.x - b.x, a.y - b.y), k: view.k}; drag = null;
     }
-  });
+  }, on);
   viewport.addEventListener('pointermove', event => {
     if (!pointers.has(event.pointerId)) return;
     pointers.set(event.pointerId, {x: event.clientX, y: event.clientY});
@@ -305,16 +306,16 @@
       drag.x = event.clientX; drag.y = event.clientY;
       panBy(dx, dy);
     }
-  });
+  }, on);
   const release = event => {
     pointers.delete(event.pointerId);
     if (pointers.size < 2) pinch = null;
     if (!pointers.size) { drag = null; viewport.classList.remove('is-dragging'); }
   };
-  viewport.addEventListener('pointerup', release);
-  viewport.addEventListener('pointercancel', release);
+  viewport.addEventListener('pointerup', release, on);
+  viewport.addEventListener('pointercancel', release, on);
   // A drag that started on a link must not open it or fly anywhere.
-  viewport.addEventListener('click', event => { if (moved) { event.preventDefault(); event.stopPropagation(); moved = false; } }, true);
+  viewport.addEventListener('click', event => { if (moved) { event.preventDefault(); event.stopPropagation(); moved = false; } }, {capture: true, signal: listeners.signal});
 
   // Zoomed out, a click flies to what was clicked; zoomed in, links open as usual.
   canvas.addEventListener('click', event => {
@@ -325,7 +326,7 @@
     if (node.kind === 'module') flyTo(node, 0.95);
     else if (node.kind === 'course') flyToCourse(node, lod === 'far' ? 0.62 : 0.95);
     else flyToCourse(topics.find(t => t.node === node).lanes[0].card, 0.62);
-  });
+  }, on);
   // Keyboard focus brings the focused item into view.
   canvas.addEventListener('focusin', event => {
     if (!event.target.matches(':focus-visible')) return;
@@ -333,7 +334,7 @@
     if (r.left > v.left + m && r.right < v.right - m && r.top > v.top + m && r.bottom < v.bottom - m) return;
     const node = nodeOf.get(event.target.closest('.tree-node'));
     if (node) flyTo(node, Math.max(view.k, 0.85));
-  });
+  }, on);
 
   const centre = () => [viewport.clientWidth / 2, viewport.clientHeight / 2];
   // +/− keep whatever is at the centre of the frame in the centre.
@@ -342,13 +343,13 @@
     const fx = ((sx - view.x) / view.k - a.node.x) / a.node.w;
     flyTo(a.node, view.k * factor, {fx, fy: (anchorY(a) - p.y) / p.h, sx, sy});
   }
-  root.querySelector('[data-zoom-in]').addEventListener('click', () => zoomButton(1.35));
-  root.querySelector('[data-zoom-out]').addEventListener('click', () => zoomButton(1 / 1.35));
-  root.querySelector('[data-fit]').addEventListener('click', () => fit());
+  root.querySelector('[data-zoom-in]').addEventListener('click', () => zoomButton(1.35), on);
+  root.querySelector('[data-zoom-out]').addEventListener('click', () => zoomButton(1 / 1.35), on);
+  root.querySelector('[data-fit]').addEventListener('click', () => fit(), on);
   const here = canvas.querySelector('.tree-lesson.is-current') || canvas.querySelector('.tree-course.is-current');
   const hereNode = here && nodeOf.get(here.closest('.tree-node'));
   const hereButton = root.querySelector('[data-here]');
-  if (hereNode) hereButton.addEventListener('click', () => hereNode.kind === 'course' ? flyToCourse(hereNode, 0.95) : flyTo(hereNode, 1));
+  if (hereNode) hereButton.addEventListener('click', () => hereNode.kind === 'course' ? flyToCourse(hereNode, 0.95) : flyTo(hereNode, 1), on);
   else hereButton.hidden = true;
 
   // ---- search ------------------------------------------------------------
@@ -363,11 +364,11 @@
     matches.forEach(n => n.classList.add('is-match')); cursor = 0;
     status.textContent = q.length > 1 ? (matches.length ? `Найдено: ${matches.length}. Enter — к следующему.` : 'Ничего не нашлось') : '';
     if (matches.length) showMatch(matches[0]);
-  });
+  }, on);
   search.addEventListener('keydown', event => {
     if (event.key === 'Enter' && matches.length) { event.preventDefault(); cursor = (cursor + 1) % matches.length; showMatch(matches[cursor]); }
     if (event.key === 'Escape') { search.value = ''; search.dispatchEvent(new Event('input')); }
-  });
+  }, on);
 
   // ---- sizing and start ----------------------------------------------------
   // The canvas fills the rest of the window, so the page itself never needs to scroll past it.
@@ -406,7 +407,15 @@
     shown = copy(layouts.far); paint();
     fit(0);
   }
-  window.addEventListener('resize', () => { size(); remeasure(); });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
+  const onResize = () => { size(); remeasure(); };
+  window.addEventListener('resize', onResize, on);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (!destroyed) remeasure(); });
   root.classList.add('is-ready');
-})();
+  return () => {
+    destroyed = true;
+    listeners.abort();
+    canvas.replaceChildren();
+    if (frame) cancelAnimationFrame(frame);
+    clearTimeout(fadeTimer);
+  };
+}
