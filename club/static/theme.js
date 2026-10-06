@@ -19,7 +19,7 @@
   apply(theme);
   // The sky moves behind live frosted blur, which then has to be redrawn every frame. Hold the sky
   // still while the learner scrolls, drags or zooms, and let it drift again once they pause.
-  let stillTimer = 0;
+  let stillTimer = 0, shiftTimer = 0;
   const hold = () => {
     if (!root.classList.contains('sky-still')) root.classList.add('sky-still');
     clearTimeout(stillTimer);
@@ -36,9 +36,12 @@
     toggle.addEventListener('click', () => {
       theme = theme === 'dawn' ? 'dusk' : 'dawn';
       try { localStorage.setItem('airoom-theme', theme); } catch (_) { /* private mode: lasts for this page */ }
-      // No view transition: tokens are animatable (theme-motion.css), so the sun rises or sets and
-      // every frosted surface changes with it.
+      // Tokens are animatable (theme-motion.css), but only while .theme-shift is set: the sun rises
+      // or sets for this switch, and ordinary page loads never animate the theme.
+      root.classList.add('theme-shift');
       apply(theme);
+      clearTimeout(shiftTimer);
+      shiftTimer = setTimeout(() => root.classList.remove('theme-shift'), 3600);
     });
   });
 })();
