@@ -1,16 +1,18 @@
 import {useState} from 'react';
+import {ApiError, bootstrap, postJson} from '../api';
+import {AppLink} from '../links';
 import type {LessonData} from '../types';
 
-// "Продолжить в Claude / ChatGPT": the practice happens in the learner's own assistant, so hand it
-// the lesson context as a ready prompt. Nothing is sent anywhere until the learner clicks; the
-// prompt is copied, and a new chat opens (prefilled where the service supports it).
+// "Ссылка для ассистента": the practice happens in the learner's own assistant, so the learner pastes
+// a one-time link into Claude / ChatGPT / Claude Code. The assistant opens it, gets the lesson, the
+// task and a key to save the work back (club/attach.py). A plain prompt stays as a fallback for apps
+// that can't open links.
 
-const ASSISTANTS = [
-  {name: 'Claude', url: 'https://claude.ai/new', param: 'q'},
-  {name: 'ChatGPT', url: 'https://chatgpt.com/', param: 'q'},
-] as const;
-// Prefill only while the link stays short; the clipboard always has the full prompt.
-const MAX_LINK = 6000;
+export interface Link {
+  url: string;
+  expires_at: string;
+  minutes: number;
+}
 
 export function buildPrompt(data: LessonData, {section, draft}: {section?: string; draft?: string}): string {
   const {lesson, course} = data;
@@ -34,50 +36,90 @@ export function buildPrompt(data: LessonData, {section, draft}: {section?: strin
   return lines.join('\n');
 }
 
-export default function AssistantHandoff({data, section, draft}: {data: LessonData; section?: string; draft?: string}) {
-  const [withDraft, setWithDraft] = useState(true);
-  const [preview, setPreview] = useState(false);
-  const [status, setStatus] = useState('');
-  const hasDraft = !!draft?.trim();
-  const prompt = buildPrompt(data, {section, draft: hasDraft && withDraft ? draft : undefined});
-  const practice = !!data.lesson.task;
-
-  function copy(opened?: string) {
-    // Started inside the click, before the new tab takes focus (clipboard needs a focused page).
-    navigator.clipboard.writeText(prompt).then(
-      () => setStatus(opened ? `Запрос скопирован. Если в ${opened} он не появился сам — вставьте его в чат: ⌘V или Ctrl+V.` : 'Запрос скопирован.'),
-      () => setStatus('Не удалось скопировать автоматически. Откройте «Показать запрос» и скопируйте текст вручную.'),
-    );
+/** Copies text produced by an async step. Safari only allows that through a ClipboardItem promise. */
+export async function copyAsync(produce: () => Promise<string>): Promise<string> {
+  if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+    let resolved = '';
+    const text = produce().then(value => { resolved = value; return value; });
+    await navigator.clipboard.write([new ClipboardItem({'text/plain': text.then(value => new Blob([value], {type: 'text/plain'}))})]);
+    return resolved || text;
   }
-  function link(assistant: typeof ASSISTANTS[number]) {
-    const prefilled = `${assistant.url}?${assistant.param}=${encodeURIComponent(prompt)}`;
-    return prefilled.length <= MAX_LINK ? prefilled : assistant.url;
+  const value = await produce();
+  await navigator.clipboard.writeText(value);
+  return value;
+}
+
+export default function AssistantHandoff({data, section, draft}: {data: LessonData; section?: string; draft?: string}) {
+  const [link, setLink] = useState<Link | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [showPrompt, setShowPrompt] = useState(false);
+  const practice = !!data.lesson.task;
+  const unsaved = draft?.trim() && draft.trim() !== (data.practice?.body ?? '').trim() ? draft.trim() : undefined;
+  const prompt = buildPrompt(data, {section, draft});
+
+  async function createLink() {
+    setBusy(true); setStatus('');
+    const made: {link: Link | null} = {link: null};
+    const make = async () => {
+      made.link = await postJson<Link>('/api/app/attach-links', {lesson_id: data.lesson.id, draft: unsaved});
+      return made.link.url;
+    };
+    try {
+      await copyAsync(make);
+      setLink(made.link);
+      setStatus('Ссылка скопирована — вставьте её в чат с ассистентом.');
+    } catch (error) {
+      if (made.link) {
+        setLink(made.link);
+        setStatus('Ссылка готова — скопируйте её из поля ниже.');
+      } else {
+        setStatus(error instanceof ApiError ? error.message : 'Не удалось создать ссылку. Повторите попытку.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+  function copy(text: string, done: string) {
+    navigator.clipboard.writeText(text).then(() => setStatus(done), () => setStatus('Не удалось скопировать автоматически — выделите текст и скопируйте его.'));
   }
 
   return (
     <section className="assistant-handoff" aria-labelledby="assistant-title">
-      <h3 id="assistant-title">{practice ? 'Сделайте практику вместе с ИИ' : 'Разберите урок с ИИ-ассистентом'}</h3>
-      <p className="small">
-        {practice
-          ? 'Откроем новый чат с готовым запросом: задание урока, критерии проверки' + (hasDraft ? ' и ваш черновик' : '') + '. Итог вставьте ниже и сохраните.'
-          : 'Откроем новый чат с готовым запросом о вашем уроке — ассистент поможет применить его к вашей задаче.'}
-        {' '}ChatGPT отправляет запрос сразу, в Claude его можно поправить перед отправкой.
-      </p>
-      <div className="assistant-actions">
-        {ASSISTANTS.map(assistant => (
-          <a key={assistant.name} className="button secondary" href={link(assistant)} target="_blank" rel="noopener noreferrer" onClick={() => copy(assistant.name)}>
-            Открыть в {assistant.name} ↗
-          </a>
-        ))}
-        <button type="button" className="link-button" onClick={() => copy()}>Скопировать запрос</button>
-        <button type="button" className="link-button" aria-expanded={preview} onClick={() => setPreview(v => !v)}>{preview ? 'Скрыть запрос' : 'Показать запрос'}</button>
-      </div>
-      {hasDraft && (
-        <label className="assistant-draft">
-          <input type="checkbox" checked={withDraft} onChange={e => setWithDraft(e.target.checked)} /> Добавить мой черновик в запрос
-        </label>
+      <h3 id="assistant-title">{practice ? 'Сделайте практику вместе с вашим ИИ' : 'Разберите урок с вашим ИИ-ассистентом'}</h3>
+      {bootstrap.user ? (
+        <>
+          <p className="small">
+            Скопируйте ссылку и вставьте её в чат с Claude, ChatGPT или в Claude Code. Ассистент откроет урок, увидит задание{unsaved ? ' и ваш черновик' : ''}
+            {practice ? ' и сможет сохранить вашу работу сюда, в «Мои работы»' : ''}.
+          </p>
+          <div className="assistant-actions">
+            <button type="button" className="button" onClick={createLink} disabled={busy}>{busy ? 'Создаём ссылку…' : link ? 'Новая ссылка' : 'Скопировать ссылку для ассистента'}</button>
+            <button type="button" className="link-button" aria-expanded={showPrompt} onClick={() => setShowPrompt(v => !v)}>Нет доступа к ссылкам? Запрос текстом</button>
+          </div>
+          {link && (
+            <div className="assistant-link">
+              <input readOnly value={link.url} aria-label="Ссылка для ассистента" onFocus={event => event.currentTarget.select()} />
+              <button type="button" className="button secondary" onClick={() => copy(link.url, 'Ссылка скопирована.')}>Скопировать</button>
+              <p className="small">
+                Ссылка сработает один раз в течение {link.minutes} минут. Ассистент получит доступ к вашему обучению на 7 дней:
+                читать уроки и сохранять работу. Отключить можно в <AppLink to="/profile#connections">«Моё обучение» → Подключения</AppLink>.
+              </p>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="small">
+          <AppLink to={`/login?next=/lessons/${data.lesson.id}`}>Войдите</AppLink>, чтобы дать ассистенту ссылку на урок — тогда он сможет сохранить вашу работу сюда.
+          Или скопируйте запрос текстом.
+        </p>
       )}
-      {preview && <pre className="assistant-preview">{prompt}</pre>}
+      {(showPrompt || !bootstrap.user) && (
+        <div className="assistant-prompt">
+          <pre className="assistant-preview">{prompt}</pre>
+          <button type="button" className="button secondary" onClick={() => copy(prompt, 'Запрос скопирован — вставьте его в чат с ассистентом.')}>Скопировать запрос</button>
+        </div>
+      )}
       <p className="small" role="status">{status}</p>
     </section>
   );

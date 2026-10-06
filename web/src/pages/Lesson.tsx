@@ -105,7 +105,7 @@ function PracticePanel({data, onSaved}: {data: LessonData; onSaved: () => void})
       {bootstrap.user ? (
         <>
           <p className="chip">{chip}</p>
-          {saved && <p className="small">Сохранено {humanTime(saved.updated_at)}</p>}
+          {saved && <p className="small">{saved.via ? `Сохранено ассистентом (${saved.via})` : 'Сохранено'} {humanTime(saved.updated_at)}</p>}
           <form onSubmit={submit}>
             <label htmlFor="practice-body">Ваш результат или ссылка</label>
             <textarea id="practice-body" name="body" rows={7} maxLength={12000} required value={body}

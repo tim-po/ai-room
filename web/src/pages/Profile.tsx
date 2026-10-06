@@ -1,11 +1,13 @@
 import {useLoaderData} from 'react-router';
-import {getJson} from '../api';
+import {useState} from 'react';
+import {ApiError, deleteJson, getJson, postJson} from '../api';
+import {copyAsync, type Link} from '../components/AssistantHandoff';
 import {ReturnBriefing, stepLabel} from '../components/Briefing';
 import {CalendarLinks} from '../components/PlanEditor';
 import {humanTime, plural} from '../format';
 import {formatDays, formatSession, nextSession} from '../plan';
 import {AppLink} from '../Shell';
-import type {CourseProgress, ProfileData} from '../types';
+import type {Connection, CourseProgress, ProfileData} from '../types';
 import {useTitle} from '../useTitle';
 
 export const profileLoader = ({request}: {request: Request}) => getJson<ProfileData>('/api/app/profile', request.signal);
@@ -36,6 +38,50 @@ function CourseRow({course, entitlement}: {course: CourseProgress; entitlement: 
           ? <AppLink className="button secondary" to={`/membership?next=/lessons/${course.next_locked.id}`}>Открыть доступ</AppLink>
           : <AppLink className="button secondary" to={`/courses/${course.id}`}>Открыть курс</AppLink>)}
     </div>
+  );
+}
+
+/** Assistants connected with a link from a lesson; each can be switched off. */
+function Connections({initial}: {initial: Connection[]}) {
+  const [items, setItems] = useState(initial);
+  const [link, setLink] = useState<Link | null>(null);
+  const [status, setStatus] = useState('');
+  async function revoke(id: string) {
+    try {
+      setItems((await deleteJson<{connections: Connection[]}>(`/api/app/connections/${id}`)).connections);
+      setStatus('Ассистент отключён.');
+    } catch (e) {
+      setStatus(e instanceof ApiError ? e.message : 'Не удалось отключить. Повторите попытку.');
+    }
+  }
+  async function newLink() {
+    const made: {link: Link | null} = {link: null};
+    try {
+      await copyAsync(async () => (made.link = await postJson<Link>('/api/app/attach-links', {})).url);
+      setLink(made.link);
+      setStatus('Ссылка скопирована — вставьте её в чат с ассистентом.');
+    } catch (e) {
+      if (made.link) setLink(made.link);
+      setStatus(made.link ? 'Ссылка готова — скопируйте её из поля.' : e instanceof ApiError ? e.message : 'Не удалось создать ссылку.');
+    }
+  }
+  return (
+    <section className="me-panel" id="connections" aria-labelledby="connections-title">
+      <h2 id="connections-title">Подключения</h2>
+      {items.length ? (
+        <ul className="connections">
+          {items.map(c => (
+            <li key={c.id}>
+              <span><strong>{c.label}</strong><span className="small">подключён {humanTime(c.created_at)}{c.last_used_at ? ` · был ${humanTime(c.last_used_at)}` : ''}</span></span>
+              <button type="button" className="link-button" onClick={() => revoke(c.id)}>Отключить</button>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="me-note">Дайте своему ИИ-ассистенту ссылку из урока — он увидит задание и сможет сохранить вашу работу сюда. Подключённые ассистенты появятся здесь.</p>}
+      <button type="button" className="button secondary" onClick={newLink}>Ссылка для ассистента</button>
+      {link && <input className="connection-link" readOnly value={link.url} aria-label="Ссылка для ассистента" onFocus={e => e.currentTarget.select()} />}
+      <p className="small" role="status">{status}</p>
+    </section>
   );
 }
 
@@ -73,7 +119,10 @@ export default function Profile() {
               <article key={p.lesson_id} className="me-work">
                 <div className="me-work-head">
                   <AppLink to={`/lessons/${p.lesson_id}#practice`}>{p.title}</AppLink>
-                  <span className={'me-chip ' + (p.status === 'draft' ? 'is-draft' : 'is-saved')}>{p.status === 'draft' ? 'Черновик' : 'Результат'}</span>
+                  <span className="me-chips">
+                    {p.via && <span className="me-chip is-via">из {p.via}</span>}
+                    <span className={'me-chip ' + (p.status === 'draft' ? 'is-draft' : 'is-saved')}>{p.status === 'draft' ? 'Черновик' : 'Результат'}</span>
+                  </span>
                 </div>
                 <p className="preserve">{p.body.length > 280 ? p.body.slice(0, 277) + '…' : p.body}</p>
                 <p className="me-work-date">Сохранено {humanTime(p.updated_at)}</p>
@@ -129,6 +178,7 @@ export default function Profile() {
             <p className="me-note">{user.email}</p>
             {user.entitlement !== 'member' ? <AppLink to="/membership">Подробнее о клубе →</AppLink> : <AppLink to="/help">Вопрос по доступу →</AppLink>}
           </section>
+          <Connections initial={data.connections} />
           {(data.favourites.length > 0 || data.material_favourites.length > 0) && (
             <section className="me-panel" aria-labelledby="fav-title">
               <h2 id="fav-title">Избранное</h2>

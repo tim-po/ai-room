@@ -53,7 +53,10 @@ Both paths issue the same kind of credential, which is stored in one `connected_
 
 ## Phasing
 
-_Status: phase 1 is built (`web/src/components/AssistantHandoff.tsx`)._
+_Status 2026-10-06:_
+- _Phase 1 is built: a copy-prompt fallback (`web/src/components/AssistantHandoff.tsx`)._
+- _Phase 2 is built (`club/attach.py`). The owner asked for the link to run the other way, "a link I paste to Claude". So the lesson's main action is now **Скопировать ссылку для ассистента**, a one-time link the learner pastes into any assistant. It works with claude.ai and ChatGPT as long as they can open links and the address is public, as well as with Claude Code and other agents. A consumer chat reads the lesson from the document; an agent that can make HTTP requests or use MCP can also save work back. The text prompt is the fallback for apps that can't open links._
+- _Phase 3, OAuth for claude.ai and ChatGPT connectors, is still to do._
 
 | Phase | What | Effort |
 |---|---|---|

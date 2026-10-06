@@ -54,6 +54,16 @@ Around each lesson (`club/learning_loop.py`, `web/src/pages/lesson/FinishLine.ts
 
 The two tables (`lesson_steps`, `learning_plans`) are additive and created on first use, so no migration is needed.
 
+## Attached assistants
+
+A learner can give their own AI assistant a one-time link from a lesson ("Скопировать ссылку для ассистента", `club/attach.py`; design in `docs/design/attached-sessions.md`).
+- **The link.** The assistant's first fetch of `/attach/<code>` returns a Markdown document: the lesson, the task, the criteria, the draft, and a 7-day key. HEAD requests, link-preview bots and ordinary browser visits don't use the link up. It works once and expires after 15 minutes.
+- **The key.** It authenticates `GET/POST /api/agent/*` and the MCP endpoint `POST /mcp`. Through them the assistant can read the learner's lessons (with live entitlements), save practice and mark sections reached. Lesson completion stays with the learner.
+- **Revoking.** Learners see and switch off connections in Моё обучение → Подключения.
+- **Storage.** Codes and keys are stored as hashes only.
+
+Set `CLUB_PUBLIC_URL=https://…` on staging so links and calendar events carry the public address. claude.ai and ChatGPT fetch links from their own servers, so they can't reach a local `127.0.0.1` link; a local Claude Code can.
+
 ## Setup
 
 Python 3.12+; `uv` or a working Python venv/pip installation.

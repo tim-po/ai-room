@@ -79,6 +79,7 @@ const send = <T>(method: string, path: string, body: unknown, options?: Options)
 
 export const postJson = <T>(path: string, body: unknown, options?: Options) => send<T>('POST', path, body, options);
 export const putJson = <T>(path: string, body: unknown, options?: Options) => send<T>('PUT', path, body, options);
+export const deleteJson = <T>(path: string) => send<T>('DELETE', path, {});
 
 /** Loader helper: the page's API path with the page's own query string. */
 export const withSearch = (path: string, request: Request) => path + new URL(request.url).search;

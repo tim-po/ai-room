@@ -30,9 +30,12 @@ def create_app(config=None):
         PERMANENT_SESSION_LIFETIME=timedelta(days=7), MAX_CONTENT_LENGTH=64 * 1024,
         # Staging/demo only: lets a learner switch membership on and off without billing.
         DEMO_CHECKOUT=os.environ.get('CLUB_DEMO_CHECKOUT') == '1',
+        # Public address for links that leave the site (assistant links, calendar events); the request's host otherwise.
+        PUBLIC_URL=os.environ.get('CLUB_PUBLIC_URL'),
     )
     if config:
         app.config.update(config)
+    app.json.ensure_ascii = False   # readable Russian in JSON (assistants read /api/agent/* raw)
     if not app.config['SECRET_KEY']:
         key_file = Path(app.instance_path) / 'session.key'
         if not key_file.exists():
@@ -65,7 +68,7 @@ def create_app(config=None):
 
     def event(name, lesson_id=None):
         allowed = {'lesson_started', 'lesson_completed', 'practice_saved', 'practice_submitted', 'help_requested', 'onboarding_completed', 'course_started', 'meaningful_return',
-                   'plan_saved', 'plan_calendar'}
+                   'plan_saved', 'plan_calendar', 'session_connected'}
         if name not in allowed:
             raise ValueError('Unsupported event')
         if g.user['role'] != 'learner':
@@ -98,6 +101,10 @@ def create_app(config=None):
         # Increase the limit only for teaching uploads, before form parsing.
         if request.endpoint == 'upload':
             request.max_content_length = app.config['TEACHING_UPLOAD_LIMIT'] + 64 * 1024
+        # Connected assistants authenticate with their own key only: no cookies, so no CSRF to check.
+        if attach['is_agent_request']():
+            attach['authenticate']()
+            return
         g.user = query('SELECT * FROM users WHERE id=?', (session['user_id'],), True) if session.get('user_id') else None
         session.setdefault('csrf', secrets.token_hex(32))
         if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
@@ -247,13 +254,15 @@ def create_app(config=None):
         return dict(tree=tree, continuation=continuation, free_lessons=free_lessons, briefing=loop['briefing'](unfinished),
                     next=dict(id=next_lesson['id'], title=next_lesson['title'], url='/lessons/' + next_lesson['id']) if next_lesson else None)
 
+    def continue_url():
+        data = home_data()
+        return data['briefing']['url'] if data['briefing'] else data['next']['url'] if data['next'] else '/'
+
     @app.get('/continue')
     @require_user
     def continue_learning():
-        # Calendar events and reminders link here: the next thing to do, resolved when the learner arrives.
-        data = home_data()
-        target = data['briefing']['url'] if data['briefing'] else data['next']['url'] if data['next'] else '/'
-        return redirect(target)
+        # Calendar events and assistants link here: the next thing to do, resolved when the learner arrives.
+        return redirect(continue_url())
 
     @app.get('/')
     def home():
@@ -379,7 +388,8 @@ def create_app(config=None):
                      checklist=lesson['checklist'].split('\n') if lesson['checklist'] else [], video=video)
         from .learning_loop import checkpoints
         return dict(locked=False, lesson=info, course=course, outline=outline, resources=resources,
-                    progress=dict(progress) if progress else None, practice=dict(practice) if practice else None,
+                    progress=dict(progress) if progress else None,
+                    practice=dict(practice) | dict(via=attach['origin'](lesson_id)) if practice else None,
                     checkpoints=checkpoints(lesson), step_progress=loop['step_progress'](lesson_id), plan=loop['plan'](),
                     previous=neighbour(lessons[index - 1] if index else None),
                     following=neighbour(lessons[index + 1] if index + 1 < len(lessons) else None))
@@ -452,7 +462,17 @@ def create_app(config=None):
             row = query('SELECT body,status,updated_at FROM practice WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
             return jsonify(dict(row) if row else None)
         data = payload()
-        body, status = data.get('body'), data.get('status', 'draft')
+        status = data.get('status', 'draft')
+        store_practice(lesson_id, data.get('body'), status)
+        with db():
+            attach['clear_origin'](lesson_id)
+        return saved_response(lesson_id, 'Результат сохранён.' if status == 'submitted' else 'Черновик сохранён.')
+
+    def store_practice(lesson_id, body, status):
+        """Validated practice save for the website and connected assistants."""
+        lesson = get_lesson(lesson_id)
+        if not lesson['task']:
+            abort(404, 'В этом уроке нет практики.')
         if not isinstance(body, str) or not body.strip() or len(body) > 12000 or status not in ('draft', 'submitted'):
             abort(400, 'Введите результат до 12 000 символов и выберите допустимый статус.')
         with db():
@@ -462,7 +482,6 @@ def create_app(config=None):
                 ON CONFLICT(user_id,lesson_id) DO UPDATE SET body=excluded.body,status=excluded.status,updated_at=CURRENT_TIMESTAMP''', (g.user['id'], lesson_id, body.strip(), status))
             if not old or old['body'] != body.strip() or old['status'] != status:
                 event('practice_submitted' if status == 'submitted' else 'practice_saved', lesson_id)
-        return saved_response(lesson_id, 'Результат сохранён.' if status == 'submitted' else 'Черновик сохранён.')
 
     @app.post('/api/lessons/<lesson_id>/video')
     @require_user
@@ -578,7 +597,8 @@ def create_app(config=None):
         return dict(user=dict(name=user['name'], email=user['email'], entitlement=user['entitlement'], weekly_goal=user['weekly_goal']),
                     continuation=continuation, briefing=loop['briefing'](continuation['unfinished']), plan=loop['plan'](),
                     weekly=weekly_completed(),
-                    practices=[dict(p) for p in practices], active_courses=[c for c in learning if c not in completed],
+                    practices=[dict(p) | dict(via=attach['origin'](p['lesson_id'])) for p in practices],
+                    connections=attach['connections'](), active_courses=[c for c in learning if c not in completed],
                     completed_courses=completed, favourites=[dict(f) for f in favourites],
                     material_favourites=[dict(m) for m in material_favourites])
 
@@ -668,7 +688,7 @@ def create_app(config=None):
     @app.errorhandler(413)
     @app.errorhandler(429)
     def error(err):
-        if request.path.startswith('/api/') or request.is_json:
+        if request.path.startswith('/api/') or request.path == '/mcp' or request.is_json:
             return jsonify(error=err.name, message=err.description), err.code
         return spa_shell(err.code, err)
 
@@ -726,5 +746,8 @@ def create_app(config=None):
 
     from .support_admin import register_support
     register_support(app, db, query, require_user)
+
+    from .attach import register_attach
+    attach = register_attach(app, db, query, require_user, get_lesson, event, loop, store_practice, continue_url, continuation_context)
 
     return app

@@ -65,20 +65,23 @@ def register_learning_loop(app, db, query, require_user, get_lesson, event):
         row = query('SELECT furthest,last,updated_at FROM lesson_steps WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson_id), True)
         return dict(row) if row else None
 
-    @app.post('/api/lessons/<lesson_id>/step')
-    @require_user
-    def lesson_step(lesson_id):
-        lesson = get_lesson(lesson_id)
-        data = request.get_json(silent=True)
-        step = data.get('step') if isinstance(data, dict) else None
-        if type(step) is not int or not 1 <= step <= len(checkpoints(lesson)):
-            abort(400)
+    def record_step(lesson, step):
+        """Section `step` (1-based) reached in an accessible lesson; keeps the furthest one."""
+        total = len(checkpoints(lesson))
+        if type(step) is not int or not 1 <= step <= total:
+            abort(400, f'Номер раздела — целое число от 1 до {total}.')
         ensure()
         with db():
             db().execute('''INSERT INTO lesson_steps(user_id,lesson_id,furthest,last) VALUES(?,?,?,?)
                 ON CONFLICT(user_id,lesson_id) DO UPDATE SET furthest=MAX(furthest,excluded.furthest),
-                last=excluded.last,updated_at=CURRENT_TIMESTAMP''', (g.user['id'], lesson_id, step, step))
-        return jsonify(step_progress(lesson_id))
+                last=excluded.last,updated_at=CURRENT_TIMESTAMP''', (g.user['id'], lesson['id'], step, step))
+        return step_progress(lesson['id'])
+
+    @app.post('/api/lessons/<lesson_id>/step')
+    @require_user
+    def lesson_step(lesson_id):
+        data = request.get_json(silent=True)
+        return jsonify(record_step(get_lesson(lesson_id), data.get('step') if isinstance(data, dict) else None))
 
     # ---- Plan ----
     def plan():
@@ -139,7 +142,7 @@ def register_learning_loop(app, db, query, require_user, get_lesson, event):
         first = next(today + timedelta(days=i) for i in range(7) if (today + timedelta(days=i)).isoweekday() in current['days'])
         start = datetime(first.year, first.month, first.day, hour, minute)
         end = start + timedelta(minutes=SESSION_MINUTES)
-        link = request.host_url.rstrip('/') + '/continue'
+        link = (app.config.get('PUBLIC_URL') or request.host_url).rstrip('/') + '/continue'
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
         # Floating local times (no time zone): "Tuesday 19:00" stays 19:00 wherever the learner is.
         lines = [
@@ -184,4 +187,4 @@ def register_learning_loop(app, db, query, require_user, get_lesson, event):
                     returning=away is not None and away >= AWAY_DAYS,
                     practice=dict(excerpt=practice['body'][:220], status=practice['status'], updated_at=practice['updated_at']) if practice else None)
 
-    return dict(step_progress=step_progress, plan=plan, briefing=briefing)
+    return dict(step_progress=step_progress, plan=plan, briefing=briefing, record_step=record_step)

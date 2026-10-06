@@ -109,6 +109,17 @@ export interface Practice {
   body: string;
   status: 'draft' | 'submitted';
   updated_at: string;
+  /** Set when the latest save came from a connected assistant ("Claude", "Claude Code"…). */
+  via?: string | null;
+}
+
+/** An assistant the learner connected with a link (club/attach.py). */
+export interface Connection {
+  id: string;
+  label: string;
+  created_at: string;
+  last_used_at: string | null;
+  expires_at: string;
 }
 
 export interface LessonData {
@@ -145,6 +156,7 @@ export interface ProfileData {
   continuation: Continuation;
   briefing: Briefing | null;
   plan: Plan;
+  connections: Connection[];
   weekly: number;
   practices: (Practice & {lesson_id: string; title: string; course_id: string})[];
   active_courses: CourseProgress[];
