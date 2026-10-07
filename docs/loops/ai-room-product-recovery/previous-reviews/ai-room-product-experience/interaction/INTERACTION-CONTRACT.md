@@ -1,0 +1,51 @@
+# Interaction contract 001 — proposed implementation acceptance
+
+2026-10-04 · interaction_designer · scope: navigation, onboarding state, map and learning continuity. This is a specification, not implemented acceptance. Read alongside REVIEW.md and ../learning/JOURNEYS-AND-MEASUREMENT.md. No source or schema edits authorized by this artifact; manager/backend ownership agreement remains authoritative.
+
+## Information architecture and first viewport
+
+Primary navigation: «Карта», «Библиотека», «Моё обучение» (saved work/progress). Profile/account/help remain clearly reachable. Desktop uses the same destinations as mobile; mobile navigation must not cover focused inputs or task actions. Onboarding uses its own task footer with Back/Next/Skip, not competing global fixed navigation. Lessons offer contextual return and curriculum. A persistent global destination must not silently discard unsaved writing.
+
+For every screen, show the current subject, current state and one useful action before decorative space. At 360×800 and 390×844 show onboarding heading, step count, first choices and a visible Next action. Scrolling remains available for long text; sticky controls have sufficient content padding and adapt to the software keyboard. At 768 and 1440, constrain reading width and use available space for helpful context, not larger gaps. After saving first work, home and profile show its title, saved status and reopen/continue before unknown-skill summaries.
+
+## Onboarding state machine
+
+Entry after successful fresh sign-in: welcome/value → interests → experience/time → start recommendation. Optional diagnostic is a detour from recommendation with «Начать без проверки» equally available. The welcome includes one concrete example of a small result. Interests allow 0–5+ concurrent choices; never replace a route or erase evidence. Experience is a preference, not proof. Time may be unset. Recommendation names one accessible real activity, expected result and estimated effort; learner can explore all branches instead.
+
+Server state proposal (contract to agree with backend): version, status not_started/in_progress/completed/skipped, current step, draft interests, experience, time, permitted return destination, revision/update timestamp. Keep learning evidence, actual interests and onboarding draft distinct. Draft saves on Next and Back; do not announce success before acknowledgement. Completing atomically promotes draft preferences and status. Skip records skipped without dropping existing interests/progress; preserve draft for optional later editing. Resuming after refresh, logout/login or another device restores the last acknowledged step and selections. A failed save leaves inputs intact, explains it was not saved and offers Retry; browsing must remain possible. Do not repeatedly force skipped/completed learners through welcome.
+
+Editing from profile uses current preferences, visibly names editing mode and offers Save/Cancel. Cancel preserves the committed values. Completing an edit returns to the invoking view. Concurrent revision conflict offers reload saved version or explicitly retry current choices. No learning reset accompanies edits. Preserve a valid authorized deep link through sign-in/onboarding; validate the final destination server-side. If it is inaccessible, explain why and offer a free alternative.
+
+On step transition focus the new heading/legend. Back restores the prior meaningful control. Browser Back changes the step without dropping acknowledged drafts. Enter must not submit a hidden final step. Optional diagnostic decline is not a failed assessment. Empty published diagnostic inventory says unavailable and offers learning; zero available checks must never mean the learner completed knowledge testing.
+
+## Map interaction and context
+
+Overview contains one foundation plus five nonexclusive branches. Node selection reveals direct siblings/children, breadcrumb and a concise detail panel: demonstrable ability, readiness advice, access, real learning action, eligible challenge. Mark containment separately from prerequisite/cross-links. Do not use color alone for state. Unknown, attempted, understanding confirmed, applied confirmed, lesson completed and membership are separate concepts.
+
+Persist navigational context in URL/history: selected node, neighborhood, map/list view and query; history state may add expanded list IDs, scroll and focused trigger. Persist learning/exploration server-side. Closing detail restores prior neighborhood/scroll/trigger, not global overview. Browser Back reverses node selection and detail opening; refreshing a shareable node URL opens that node. Returning from lesson/challenge restores originating map/list context. «Вся карта» clears neighborhood/query intentionally; it does not erase interests. Directly entering an unknown node explains unavailable content and offers overview.
+
+Desktop detail may be an adjacent nonmodal region with a heading and close control; mobile can use a sheet only if implemented as a real modal with trapped focus, inert background and Escape/visible close. Do not mark inline detail aria-modal. Opening detail focuses its heading; closing restores the actual trigger with preventScroll then restores position. Do not reuse this focus-return function when updating search. Typing must retain caret and focus, including after a prior selection and switching to list. Announce result count politely; include full hierarchical path for ambiguous hits, a clear-query action and zero-result recovery. Do not announce every graph redraw as a new page.
+
+Map buttons support Tab, Enter/Space; arrow traversal is an additional convenience within the neighborhood, never a prerequisite. Touch targets should be at least 44 CSS pixels as a product target. No action requires dragging/hover/pinch. The list uses native nested disclosure with Enter/Space and same node IDs/status/actions. Switching views preserves selection and opens ancestors. Native page/list scrolling must remain obvious; avoid an unexplained nested scroll well concealing the selected result. Reduced motion removes animated travel; meaning and focus stay identical. At actual 200% browser zoom and long Cyrillic labels, labels/actions remain available without overlap; reduced viewport emulation alone is not final proof.
+
+## Learning, return and errors
+
+Discovery retains query/filters/back position in the URL; results announce count and reset. Course uses ordered module disclosures, actual lesson/time/access data and named Start/Continue. Default expansion includes current lesson; 37-lesson curriculum remains navigable by keyboard. Lesson places title/objective/content first, materials/practice nearby, previous/next at end; return destination names course or originating skill. Video failure offers text/transcript/materials when present and Retry, not a fake player. Save draft/result separately from completion; focus stays near save confirmation. Show next action adjacent to save success, and label review unavailable honestly. Never derive mastery from stored text.
+
+On return, prioritize actual unfinished work across branches, then last completed result and a suggested next activity. A break introduces no penalty or lost completion. Experienced skip can reach available challenge; after partial/unknown feedback show source explanation and precise study action. Assessment unavailable is different from forbidden, expired access, withdrawn form, processing, ungraded and completed. All preserve any existing attempt/artifact and offer an appropriate action.
+
+Error recovery: loading reserves stable space and announces status; offline save retains writing and gives retry; expired session offers sign-in with safe return and preserved local unsaved draft; permission failure gives access explanation plus permitted alternative; unpublished/deleted content retains history evidence and offers parent/course; missing media offers available text. Never imply success after an HTTP failure. Do not automatically retry assessment submission or mark completion twice. Confirmation only for an actually destructive discard.
+
+## Research-to-interaction decisions
+
+Accessed 2026-10-04. [W3C disclosure pattern](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/) supports native disclosure/Enter/Space and expanded state for list/curriculum. Acceptance: keyboard expand/collapse exposes same node/lesson actions as pointer. [W3C modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) supports heading focus, contained Tab sequence, Escape and trigger restoration for a mobile modal sheet. Acceptance: touch and keyboard close restore orientation; background is inert only while modal. These are primary interaction guidance, not evidence of retention uplift.
+
+Product patterns in ../research/RESEARCH-DECISIONS.md are bounded observations: Duolingo obvious first action → visible welcome CTA; Coursera expandable curriculum → realistic long course disclosure; Codecademy guided project distinction → first small saved artifact; Khan evidence distinctions → honest unknown states. This turn read that register rather than repeating or claiming five new authenticated studies. First-viewport and continuity improvements are design hypotheses to test, not causal learning claims.
+
+## Required next acceptance tasks
+
+1. Fresh novice signs in normally, sees welcome, chooses coding+content, saves each step; refresh/logout/new context resume at every step. Finish reaches a real free first task and saves/reopens an artifact.
+2. Fresh experienced learner skips, reaches an eligible challenge, sees real response/source explanation; preserve draft/attempt and original interests on later preference edit.
+3. On 360/390/768/1440, tap/keyboard select root→branch→deep ability; switch list, type Cyrillic search character by character, close/back/reload/recenter and return from lesson with selection/query/focus retained.
+4. Test actual 200% zoom, long Russian labels, screen-reader naming, reduced motion and software keyboard; all primary controls remain operable.
+5. Inject failed load/save, 401, forbidden/expired, missing media/unpublished/unknown assessment; exercise visible recovery with real endpoints and verify retained state. Review final staging exact SHA+content ledger independently.

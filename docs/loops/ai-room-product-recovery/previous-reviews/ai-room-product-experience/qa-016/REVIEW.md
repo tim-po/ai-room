@@ -1,0 +1,52 @@
+# Independent QA016 — needs_work
+
+2026-10-05. Exact clean candidate **cddc8b2db6fe13001f091dfb8da70f551318d56f**, verified before/after; source-ledger.json. Actual headless Chromium **153.0.8010.12**, **360×640, 390×844, 768×900, 1440×900**. Disposable local applications at http://127.0.0.1:18881, :18886, :18888, :18889, :18890 with /tmp databases. All five browser probes exited 0. Four genuinely fresh synthetic accounts provisioned in main audit; novice completion, interrupted resume, skip and isolation use distinct accounts. Other audits use fresh seed learner/member accounts in their own databases. Passwords generated in memory, excluded from artifacts. Expert/agent simulation, not human usability research. No application edits, deployment, staging account mutation, service restart, push or production activity.
+
+Read authoritative brief in full and historical brief/policy/finish/current-direction. This review makes fresh decisions for the current SHA; previous signoff is not inherited. Harnesses copied into this evidence folder: main independently authored prior QA audit; support/roundtrip/continuation disclosed builder harnesses rerun independently; measurement independent QA probe. Ephemeral builder ports replaced with allowed high ports. Main withheld-response route emits an asyncio CancelledError during cleanup; process exits 0, page errors empty. This is harness cleanup, not product failure. Initial setup used missing unqualified python; corrected to installed virtualenv Python before testing; no permission denial occurred.
+
+## Concrete decisions
+
+**QA-15 support keyboard focus CLOSED locally.** After a real own-ticket/admin-response roundtrip, focus refresh, Enter with injected 503, restore actual endpoint and Enter retry. activeElement remains BUTTON#support-refresh at all four widths. Own response persists after new login, HTML renders literally, long Cyrillic wraps, failed refresh retains answer, failed initial GET retains question and retry recovers. Other learner direct ticket access is 404. `support/evidence.json`, `support/focus-after-retry-360.png`, `support/failure-390.png`. Source uses aria-disabled/aria-busy with in-flight guard, no native disabling or forced focus restoration. Moving focus during pending requests was not separately exercised.
+
+**Mapped lesson roundtrip PASS locally.** Keyboard selected `agents.tools.demonstrate` in searched list → actual permitted `/lessons/skill-example-tools-v1` → return link restores exact node/search/list. Reload and Back/Forward preserve list/map pressed states; invalid node gets real 404 and hides return link. Four widths, no overflow or page errors. `roundtrip/evidence.json`, paired lesson/return captures. Actual graph, each ability detail, practical-task inventory and explore API calls exercised; server response log retained. This fixture explicitly runs install-skill-examples because ordinary seed has no mappings; it proves navigation, not reviewed teaching publication.
+
+**Mobile map composition correction PASS in inspected states.** Opened actual candidate map 360/390 and continuation home 360. At 360×640 two branch buttons appear below the common root before bottom navigation; at 390×844 all five appear. Unfinished-work strip remains above map, separate saved result below. No map orientation claim beyond tested selection/close/touch/search/list/history and mapped lesson return. Selected mobile detail receives heading focus and is brought into viewport; closing restores originating node.
+
+**QA-03 continuation PASS on current SHA.** Completed foundation plus unfinished agent draft: home and profile point to `/lessons/agent-api-basics#practice`; separate last result points to foundation. Exact draft readback, changed interests, logout/login and fresh browser context pass at all four widths. Another learner receives neither record. Expired-entitlement fixture removes forbidden links while retaining draft/completion and explaining preservation. `continuation/continuation-evidence.json`.
+
+**Meaningful return FAIL remains.** Independent isolated learner with synthetic prior-day learning row only navigates to permitted lesson. HTTP 200, meaningful_return increases **0→1**, practice rows **0**, no playback/question/substantive task. `measurement/evidence.json`, `measurement/audit.py`, `measurement/passive-return.png`. Real browser behavior agrees with `club/__init__.py` lesson GET calling learning_activity and `club/measurement.py` emitting new-day return. Replace with agreed substantive-activity definition; validate D1/D7 windows/denominators/privacy. Synthetic probe establishes event behavior only, never real retention uplift.
+
+**Exact staging delivery FAIL.** Independently opened https://airoom.nolimlabs.uk/ and its /health in Chromium this turn: 200, **dae021716ac92abe5fdf1253093f82ac8f3f3286**, schema 6. Opened `main/staging-welcome-viewport.png`: old dark tree remains, not local cream/green welcome. No staged redesigned fresh-account journey signed off. Sole deployment owner must deploy reviewed integrated candidate/content and schedule independent exact-staging recheck.
+
+**Approved first useful result / successful assessment remain UNVERIFIED.** Fresh novice choosing coding+content receives generic synthetic agent boundaries lesson. Actual text/practice save/readback succeeds; first source-comparison teaching/meaningful feedback cannot be certified from this fixture. Diagnostic inventory genuinely returns empty; challenge unavailable has clear recovery. Do not extrapolate absence of approved shared assessments from disposable seed. Experienced successful challenge, partial feedback/source explanations and uneven evidence profile require exact approved content installed in the review target.
+
+## Current requirement-to-evidence matrix
+
+| Requirement | Result | This-turn evidence / limit |
+|---|---|---|
+| Automatic fresh onboarding, optional interests, Back/refresh/logout resume, skip | PASS | main/evidence.json, fresh accounts; two selected interests retained |
+| Preference editing without reset, practice save/failure/retry, fresh-context persistence | PASS | main/evidence.json; three committed interests after edit; exact practice readback |
+| Lost committed response preserves choices and retry payload/key | PASS | main/evidence.json retry_same_payload=true; two retained choices |
+| Current home/profile continuation, separate result, expired preservation | PASS | continuation/continuation-evidence.json |
+| Support history/response/privacy/escaping/failure/retry and keyboard focus | PASS | support/evidence.json, four widths |
+| Deep mapped ability→lesson→same searched list + history | PASS | roundtrip/evidence.json, keyboard; synthetic installed mappings |
+| Mobile root/branches and map selection/close/touch/recenter | PASS bounded | main/map captures, main/evidence.json; no blanket map usability approval |
+| Discover, realistic long curriculum, lesson/practice, help, preferences, profile, 404 | PASS render/probe scope | main surfaces loaded four widths; 74 screen states, no document overflow |
+| Real graph/me/node/onboarding/practice endpoints | PASS | main/evidence.json: HTTP 200 with real nonempty JSON; graph tree-2026-10-v1 |
+| Learner admin/member access and anonymous/cross-user practice | PASS bounded | actual 403/401 and other-user null; full access matrix unverified |
+| Approved first instructional result/recommendation and feedback | UNVERIFIED | generic synthetic agent seed; persistence is not semantic approval |
+| Successful experienced challenge/partial feedback/source/uneven strengths | UNVERIFIED | genuine empty fixture inventory, unavailable state only |
+| Full video playback/resume/resources/media recovery | UNVERIFIED | main temporary media dir empty; black player/404 is fixture limit |
+| Complete revoked/unpublished/offline/access/account recovery matrix | UNVERIFIED | bounded denial/expired/support/network tests only |
+| Native browser 200% zoom/full keyboard/reduced-motion acceptance | UNVERIFIED | reduced-motion preference and selected keyboard/touch paths exercised only |
+| Passive GET excluded from meaningful return | FAIL | measurement event 0→1 with no substantive learning |
+| D1/D7 cohort windows/denominators/privacy | UNVERIFIED/FAIL | substantive-event blocker remains; no real learner cohort claim |
+| Exact redesigned staging/content manifest | FAIL/UNVERIFIED | public build still dae0217; publication ledger not final integrated UI manifest |
+
+Content ledgers: main/support/continuation graph digest **8634a70d10413cb0d7dc71e9400c3079f2a9c6ebc36e0ddafa509020207bd918** (sorted Unicode-preserving JSON in support/continuation); release tree-2026-10-v1, score verified-coverage-v1. Support inventory **f8cb55702c470b43554efdae9228c2ad8aa42591ce04176f21b3112c650d8d30**; continuation inventory **f52360d22618c87d5348fec1546dfdf2bd77eb9b194dd57385616ea1fee03f6a**, including altered access fixtures. Mapped-example graph **76687aa28099e2222fde1045c23ce7c8fa1218735c0cdf2e78fafae967fd3fcf**. No approved publication inferred from any seed digest.
+
+## Rendered-image inspection
+
+Personally opened this run's main welcome desktop, interests full 360, pace viewport 360, map 360/390, return mobile, course 390, unavailable challenge 390, text/video lesson 1440 and staging mobile; roundtrip returned selection 360/1440 and lesson 390; continuation home 360/profile 390; support focused retry 360/full failed refresh 390. Dark Cyrillic on cream, green continuation and terracotta focus/actions are readable in inspected images. Mobile branch composition now gives visible exploration choices; selected detail/return shows the correct label and focus. Long support Cyrillic wraps while retaining response on error. Full-page captures show sticky navigation at capture scroll position and can clip controls; viewport images and exercised scrolling remain the evidence for usability. Video image is a black unavailable fixture, not a polished-content or playback approval. Remaining 201 gallery images are captures, not individually approved; no complete benchmark/design signoff.
+
+`gallery.html` links all durable full-page/viewport captures. Each subfolder retains executable audit, run log and JSON evidence. Required remaining work: substantive event correction; exact approved novice/assessment/media content and remaining accessibility/access gates; reviewed integration and sole-owner staging deployment; independent same-build final recheck. Overall **needs_work**.

@@ -1,0 +1,97 @@
+{
+  "name": "ai-room-product-recovery",
+  "goal": "Deliver the owner-rejected AI Room redesign through one excellent complete learner journey first, then coherent supporting surfaces. Full execution brief and preserved previous reviews: /home/claude/ai-room-product-experience/docs/loops/ai-room-product-recovery/BRIEF.md. Three implementers own visual UI, learner interactions and deterministic learning/backend prerequisites in one team. Concrete board assignments, independent rendered-product reviews, preserved learner data, truthful budget. Saved only: do not launch until quota/accounting preflight is verified.",
+  "substrate": "headless",
+  "projectId": "ai-room",
+  "productId": "ai-room",
+  "contextCaps": {
+    "default": 200000,
+    "manager": 400000
+  },
+  "budget": {
+    "turnLimit": 80,
+    "managerFinalizeSteps": 1,
+    "minorOnlyExtraSteps": 0,
+    "minorSkipThreshold": 0.3
+  },
+  "humanInLoop": {
+    "owner": "owner",
+    "via": "manager"
+  },
+  "briefingMode": "board",
+  "briefingStart": "auto",
+  "inputMode": "evidence",
+  "steps": {
+    "manager": {
+      "type": "agent",
+      "role": "manager",
+      "personality": "Product delivery lead accountable for a compelling useful learner journey, precise assignments and truthful budget.",
+      "goal": "Read /home/claude/ai-room-product-experience/docs/loops/ai-room-product-recovery/BRIEF.md and its review-manifest.json. Follow the CURRENT injected manager board; report board revision and task ID. Read relevant full prior reviews before changes. Missing/blocked assignments are blockers, not permission for unrelated polish. Read the entire prior review manifest and reconcile findings into a current issue ledger. Verify launch gates; if unmet ask_owner and do not schedule product work. Write a compact current board to the EXACT engine-provided path every turn, with specific next tasks, contracts, ownership and acceptance for all five teammates. Three builders own the complete critical path; resolve prerequisites within this team. Inspect real screens personally. Read authoritative progress, distinguish quota failures, reserve final 24 of 80. Do not count manager turn index as collective budget. First useful exercise and visual quality before peripheral recovery polish. Integrate reviewer-verified work and own any staging operation; require exact-SHA independent reviews before and after deployment. Wrap-up is reporting only; incomplete remains incomplete.",
+      "runtime": "codex",
+      "model": "gpt-6.1-sol",
+      "maxRepeatTurns": 1,
+      "maxTurnMinutes": 40
+    },
+    "visual_builder": {
+      "type": "agent",
+      "role": "worker",
+      "personality": "Hands-on visual product designer and frontend implementer with strong Cyrillic typography and composition.",
+      "goal": "Read /home/claude/ai-room-product-experience/docs/loops/ai-room-product-recovery/BRIEF.md and its review-manifest.json. Follow the CURRENT injected manager board; report board revision and task ID. Read relevant full prior reviews before changes. Missing/blocked assignments are blockers, not permission for unrelated polish. Own production art/tokens/CSS and base/home/catalogue/profile templates. Render two concise first-journey visual alternatives then implement selected benchmark as real UI. Read art/copy/research/interaction and visual-critic reviews, OPEN prototype and actual images. No generic panel reskin. Coordinate CSS contracts with experience_builder; honor transferred hunks. Every turn makes the current assigned product slice visibly better and produces opened desktop/mobile captures, not a design report alone.",
+      "runtime": "codex",
+      "model": "gpt-6.1-sol",
+      "maxRepeatTurns": 2,
+      "maxTurnMinutes": 50
+    },
+    "experience_builder": {
+      "type": "agent",
+      "role": "worker",
+      "personality": "Frontend engineer accountable for a complete usable first-result journey and preserved state.",
+      "goal": "Read /home/claude/ai-room-product-experience/docs/loops/ai-room-product-recovery/BRIEF.md and its review-manifest.json. Follow the CURRENT injected manager board; report board revision and task ID. Read relevant full prior reviews before changes. Missing/blocked assignments are blockers, not permission for unrelated polish. Own onboarding/lesson/practice/help templates and JS, atlas.js/navigation. Read latest learning/interaction/QA/visual reviews. Implement source\u2192attempt\u2192comparison\u2192revision\u2192save\u2192reopen against learning_builder contract; preserve all proven persistence/context/access behavior. Real first activity is priority over media polish. Avoid changes to visual_builder templates without board transfer. Independently exercise browser state and error recovery for the assigned feature; report actual source/content SHA.",
+      "runtime": "codex",
+      "model": "gpt-6.1-sol",
+      "maxRepeatTurns": 2,
+      "maxTurnMinutes": 50
+    },
+    "learning_builder": {
+      "type": "agent",
+      "role": "worker",
+      "personality": "Full-stack learning engineer who ships concrete deterministic teaching content and reliable additive persistence.",
+      "goal": "Read /home/claude/ai-room-product-experience/docs/loops/ai-room-product-recovery/BRIEF.md and its review-manifest.json. Follow the CURRENT injected manager board; report board revision and task ID. Read relevant full prior reviews before changes. Missing/blocked assignments are blockers, not permission for unrelated polish. Own approved first exercise content, recommendation/backend DTOs, feedback explanation and meaningful-return measurement. Read learning/content-decision plus backend/assessment/security/reliability reviews and contracts. Implement the prerequisite in this team, not a request to the old backend loop. Recommendations must actually use preferences/time or communicate a bounded fallback. No model API required for source-grounded comparison. Preserve IDs/work through additive migration, distinguish storage from proficiency; do not publish unreviewed forms. Deliver consumable working content/backend with meaningful tests and an exact integration commit.",
+      "runtime": "codex",
+      "model": "gpt-6.1-sol",
+      "maxRepeatTurns": 2,
+      "maxTurnMinutes": 50
+    },
+    "visual_reviewer": {
+      "type": "agent",
+      "role": "input_provider",
+      "personality": "Independent demanding visual and interaction reviewer who evaluates product craft against owner rejection.",
+      "goal": "Read /home/claude/ai-room-product-experience/docs/loops/ai-room-product-recovery/BRIEF.md and its review-manifest.json. Follow the CURRENT injected manager board; report board revision and task ID. Read relevant full prior reviews before changes. Missing/blocked assignments are blockers, not permission for unrelated polish. Read all latest visual/art/interaction/copy reviews, compare retained benchmark with current screenshots. Run the actual candidate in Chromium, OPEN desktop/mobile images and judge composition, typography, identity, hierarchy, density, orientation and interaction. Return prioritized screenshot-specific corrections with exact SHA/content/state. Never approve mere palette consistency or zero overflow. First-slice pass is provisional: satisfied only when full assigned final scope including same-build staging passes. Never author the fixes you approve.",
+      "runtime": "codex",
+      "model": "gpt-6.1-sol",
+      "maxRepeatTurns": 1,
+      "maxTurnMinutes": 40
+    },
+    "learning_qa": {
+      "type": "agent",
+      "role": "input_provider",
+      "personality": "Independent learning and functional reviewer focused on useful first results, honest evidence and safe retained data.",
+      "goal": "Read /home/claude/ai-room-product-experience/docs/loops/ai-room-product-recovery/BRIEF.md and its review-manifest.json. Follow the CURRENT injected manager board; report board revision and task ID. Read relevant full prior reviews before changes. Missing/blocked assignments are blockers, not permission for unrelated polish. Read latest learning/research/QA and backend assessment/security/reliability reports. Fresh-account two-interest five-minute journey, concrete source task and explanatory comparison, save/revision/logout/reopen, recommendation relevance, access isolation and migration retention. Verify passive requests do not count as substantive learning. Exercise real browser/API states; never replace actual feedback with save confirmation. No fake mastery or unreviewed longest-answer assessments. Prioritize exact repros; satisfied only at final exact integrated/staged candidate, not partial progress.",
+      "runtime": "codex",
+      "model": "gpt-6.1-sol",
+      "maxRepeatTurns": 1,
+      "maxTurnMinutes": 40
+    }
+  },
+  "stepOrder": [
+    "manager",
+    "visual_builder",
+    "experience_builder",
+    "learning_builder",
+    [
+      "visual_reviewer",
+      "learning_qa"
+    ],
+    "manager"
+  ]
+}

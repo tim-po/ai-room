@@ -1,0 +1,23 @@
+{
+  "decision": "approved_for_narrow_instructional_self_check_only",
+  "reviewer": "learning_designer",
+  "date": "2026-10-04",
+  "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/copy/review-002/first-result-proposal.json",
+  "sha256": "668ac857e48f2cba0d45513d443050cb0c8bd3636bcd4fd605bd440284b7a4d2",
+  "title": "Исправьте ответ по исходным заметкам",
+  "reason": "Exact fictional source supports Irina choosing story and Oleg preparing questions. Date/place are unknown; invitations are unsupported. Worked example removes all three unsupported additions, preserves assignments, explains correction. Checklist matches task, permits equivalent wording, and clearly says no automatic grading.",
+  "boundaries": [
+    "Not published or browser-verified; approval is exact authored instructional bytes only.",
+    "No proficiency credit, assessment form approval, external AI execution or measured retention claim.",
+    "Use additive stable content mapping; preserve learner work and existing lesson IDs.",
+    "Render attempt before optional comparison; reveal does not save or grade. Allow revise and save, acknowledge exact server revision, reopen from profile.",
+    "First-task selection must be explicit and appropriate for novice/5-minute setting; no proven duration claim before observation."
+  ],
+  "acceptance": [
+    "Read source and flawed answer in real UI at 360/390/768/1440.",
+    "Submit partial answer; open comparison and see all unsupported details explained without fabricated individual grading.",
+    "Revise, save, logout/login, reopen exact current artifact.",
+    "Failed/dirty save cannot retain current-success claim.",
+    "Published content hash must match approved teaching strings; subsequent content changes require review."
+  ]
+}

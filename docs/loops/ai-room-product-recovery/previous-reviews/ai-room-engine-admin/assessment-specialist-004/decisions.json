@@ -1,0 +1,256 @@
+{
+  "verdict": "needs_work",
+  "application_sha": "ddc0f32e37a045687f9aecaffbda5b964aa77514",
+  "graph_release": "curriculum-aa69319f873d2dc30c38d1f67184d77c4e4b08ed8d21b58358e242909f601350",
+  "retained_manifest_sha256": "9360018f5f0a922e64ab5316fe2b065a4317de5edb77fc40519478b964639e28",
+  "authored_reviewed_content": false,
+  "decisions": [
+    {
+      "id": "skill-transfer-form-verification-v1",
+      "candidate_id": "transfer-B-verification",
+      "decision": "revise",
+      "delivery_decision": "accept",
+      "source_sha256": "f46f852a4a97276d59199690028bf6a7f78eb820315a4394f9cbd49eba0103d1",
+      "stored_body_sha256": "111ae31b20836bf38ca7c734f88ab3b9badbc5772f8a7b2a423ce11cde3277b9",
+      "canonical_form_sha256": "d4a6cc7365def8d6954a9785d0e2e58595a304672c842c6d218c45e659d5d080",
+      "objective_id": "basic-ai.verification",
+      "source_key_rationale_consistency": "accept for narrow case reading; not certification approval",
+      "reason": "Weighted aggregate 53/100 and rejection of unsupported quality inference are correct; d3 repeats d1/d2 and reveals both decisions, reducing independent coverage.",
+      "blocking_revision": "Every correct response is the longest choice. Rebalance detail and length across plausible distractors and rerun blind cue-only check; retain versions and prior evidence. Do not merely reshuffle.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "f46f852a4a97276d59199690028bf6a7f78eb820315a4394f9cbd49eba0103d1"
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "f46f852a4a97276d59199690028bf6a7f78eb820315a4394f9cbd49eba0103d1"
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "f46f852a4a97276d59199690028bf6a7f78eb820315a4394f9cbd49eba0103d1"
+        }
+      ],
+      "equivalence": "not_approved",
+      "applied_competence": "not_approved"
+    },
+    {
+      "id": "skill-transfer-form-mobile-v1",
+      "candidate_id": "transfer-B-mobile",
+      "decision": "revise",
+      "delivery_decision": "accept",
+      "source_sha256": "b0211d543ff91a6580a7a09009f0fdd61e9cf57b47e5c6a459d9300e2dc48aab",
+      "stored_body_sha256": "3f93caa3da912aab75acca570bf1645aa75c65e318764b1e9786733af0601cc2",
+      "canonical_form_sha256": "8a5d1bd8cfe865268ca6c6ae862dfc55571151f82802f562ae758a04ab95199a",
+      "objective_id": "coding.mobile.demonstrate",
+      "source_key_rationale_consistency": "accept for narrow case reading; not certification approval",
+      "reason": "Crash after revocation, observed test evidence and no unrelated contacts permission are coherent; extreme distractors and longest-answer cue allow success without interpreting device states.",
+      "blocking_revision": "Every correct response is the longest choice. Rebalance detail and length across plausible distractors and rerun blind cue-only check; retain versions and prior evidence. Do not merely reshuffle.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "b0211d543ff91a6580a7a09009f0fdd61e9cf57b47e5c6a459d9300e2dc48aab"
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "b0211d543ff91a6580a7a09009f0fdd61e9cf57b47e5c6a459d9300e2dc48aab"
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "b0211d543ff91a6580a7a09009f0fdd61e9cf57b47e5c6a459d9300e2dc48aab"
+        }
+      ],
+      "equivalence": "not_approved",
+      "applied_competence": "not_approved"
+    },
+    {
+      "id": "skill-transfer-form-review-v1",
+      "candidate_id": "transfer-B-review",
+      "decision": "revise",
+      "delivery_decision": "accept",
+      "source_sha256": "b2ec243279b7a459636d381128ca3feba671f4853358b2d397eb6a0ad758818d",
+      "stored_body_sha256": "c2e35592cde917145c8c266fdee991e2a2b4647fb3936c25949456817c51c4b0",
+      "canonical_form_sha256": "e28492630f17ba1acf468f44be1a198983c600b7a2400ad89aab333ea9d1a765",
+      "objective_id": "coding.review.demonstrate",
+      "source_key_rationale_consistency": "accept for narrow case reading; not certification approval",
+      "reason": "Slice assignment mutates caller list; new filtered list is correct. Replace ambiguous distractor wording about saving rows[:] with concrete code; use plausible nonmutating-but-incorrect alternatives.",
+      "blocking_revision": "Every correct response is the longest choice. Rebalance detail and length across plausible distractors and rerun blind cue-only check; retain versions and prior evidence. Do not merely reshuffle.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "b2ec243279b7a459636d381128ca3feba671f4853358b2d397eb6a0ad758818d"
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "b2ec243279b7a459636d381128ca3feba671f4853358b2d397eb6a0ad758818d"
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "b2ec243279b7a459636d381128ca3feba671f4853358b2d397eb6a0ad758818d"
+        }
+      ],
+      "equivalence": "not_approved",
+      "applied_competence": "not_approved"
+    },
+    {
+      "id": "skill-transfer-form-writing-v1",
+      "candidate_id": "transfer-B-writing",
+      "decision": "revise",
+      "delivery_decision": "accept",
+      "source_sha256": "d640bcd693aed1ca932c9ae0b8c9e9e998671a9e2d72fba8ca36d8e6efa5cc6f",
+      "stored_body_sha256": "0fe9a28fbd33621136420cef93e7e8ec446652744cb2a4e3012473a3194f0a7d",
+      "canonical_form_sha256": "bb995114f64e3b5ff412b185486d9c416af0723d7175ab6ad1ed029a9ff153e6",
+      "objective_id": "content.writing.demonstrate",
+      "source_key_rationale_consistency": "accept for narrow case reading; not certification approval",
+      "reason": "Current v2 supports Team CSV only; absent Start information remains unknown. Version/claim distinctions are sound, but cue and obviously unsupported promises undermine measurement.",
+      "blocking_revision": "Every correct response is the longest choice. Rebalance detail and length across plausible distractors and rerun blind cue-only check; retain versions and prior evidence. Do not merely reshuffle.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "d640bcd693aed1ca932c9ae0b8c9e9e998671a9e2d72fba8ca36d8e6efa5cc6f"
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "d640bcd693aed1ca932c9ae0b8c9e9e998671a9e2d72fba8ca36d8e6efa5cc6f"
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "d640bcd693aed1ca932c9ae0b8c9e9e998671a9e2d72fba8ca36d8e6efa5cc6f"
+        }
+      ],
+      "equivalence": "not_approved",
+      "applied_competence": "not_approved"
+    },
+    {
+      "id": "skill-transfer-form-handoff-v1",
+      "candidate_id": "transfer-B-handoff",
+      "decision": "revise",
+      "delivery_decision": "accept",
+      "source_sha256": "4ffee59e6fa493a9a1fa879869953cd0e5e4d816aabf26033f4b13ae4988709d",
+      "stored_body_sha256": "c729e2e5a4c9523ef4b725059a69a2f3cfc996adaf2e436a68e1d00d82668fdd",
+      "canonical_form_sha256": "49d01d4d4985ef526501c58306d196dbb90fee812a1dcc4e172b6bfdb5326750",
+      "objective_id": "teams.handoff.demonstrate",
+      "source_key_rationale_consistency": "accept for narrow case reading; not certification approval",
+      "reason": "Current brief, bounded authority and recipient acknowledgement are coherent; d2 introduces mismatching numbers not explicitly observed in the case, so frame it conditionally or add the actual conflict.",
+      "blocking_revision": "Every correct response is the longest choice. Rebalance detail and length across plausible distractors and rerun blind cue-only check; retain versions and prior evidence. Do not merely reshuffle.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "4ffee59e6fa493a9a1fa879869953cd0e5e4d816aabf26033f4b13ae4988709d"
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "4ffee59e6fa493a9a1fa879869953cd0e5e4d816aabf26033f4b13ae4988709d"
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "4ffee59e6fa493a9a1fa879869953cd0e5e4d816aabf26033f4b13ae4988709d"
+        }
+      ],
+      "equivalence": "not_approved",
+      "applied_competence": "not_approved"
+    },
+    {
+      "id": "skill-transfer-form-workflow-v1",
+      "candidate_id": "transfer-B-workflow",
+      "decision": "revise",
+      "delivery_decision": "accept",
+      "source_sha256": "478064705f9e96ff62a43a2e4b8faa94627249dd6a423342299275cdd3cc076a",
+      "stored_body_sha256": "d021e0af4eded8f63ef0c412c989f4576884b6fbf035d3c1df3aad762db02ac6",
+      "canonical_form_sha256": "0bd8107a2483a31109acdbcc32486bd0e962b7e192c0671a2e56343c6f49464d",
+      "objective_id": "automation.workflow.demonstrate",
+      "source_key_rationale_consistency": "accept for narrow case reading; not certification approval",
+      "reason": "Trigger, missing booking ID and dedup requirements are supported directly; these are largely verbatim recognition, not independent evidence of transfer or implemented idempotency.",
+      "blocking_revision": "Every correct response is the longest choice. Rebalance detail and length across plausible distractors and rerun blind cue-only check; retain versions and prior evidence. Do not merely reshuffle.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "478064705f9e96ff62a43a2e4b8faa94627249dd6a423342299275cdd3cc076a"
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "478064705f9e96ff62a43a2e4b8faa94627249dd6a423342299275cdd3cc076a"
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "478064705f9e96ff62a43a2e4b8faa94627249dd6a423342299275cdd3cc076a"
+        }
+      ],
+      "equivalence": "not_approved",
+      "applied_competence": "not_approved"
+    },
+    {
+      "id": "skill-transfer-form-tools-v1",
+      "candidate_id": "transfer-B-tools",
+      "decision": "revise",
+      "delivery_decision": "accept",
+      "source_sha256": "3031a01360d5ea1e6acddc73ad55c56d6d31aecb15a035b9b9200181994836e2",
+      "stored_body_sha256": "8c40901364f24e3a4bf170fb3afeac8785784768b13617a2f5ab59bcfd37a63e",
+      "canonical_form_sha256": "729843c6b1e88cd56e4eace96d7002979029681ee0f5bf5929a16b8a9a556edb",
+      "objective_id": "agents.tools.demonstrate",
+      "source_key_rationale_consistency": "accept for narrow case reading; not certification approval",
+      "reason": "Strict argument validation, output restriction and unchanged state after injection are coherent. Reading the supplied contract suffices; do not count this as executing a tool or new independent transfer.",
+      "blocking_revision": "Every correct response is the longest choice. Rebalance detail and length across plausible distractors and rerun blind cue-only check; retain versions and prior evidence. Do not merely reshuffle.",
+      "items": [
+        {
+          "id": "d1",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "3031a01360d5ea1e6acddc73ad55c56d6d31aecb15a035b9b9200181994836e2"
+        },
+        {
+          "id": "d2",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "3031a01360d5ea1e6acddc73ad55c56d6d31aecb15a035b9b9200181994836e2"
+        },
+        {
+          "id": "d3",
+          "decision": "revise",
+          "reason": "Correct option uniquely longest; browser length-only attack answered correctly.",
+          "source_sha256": "3031a01360d5ea1e6acddc73ad55c56d6d31aecb15a035b9b9200181994836e2"
+        }
+      ],
+      "equivalence": "not_approved",
+      "applied_competence": "not_approved"
+    }
+  ],
+  "provider_generated_outputs": "unverified; no actual provider output supplied",
+  "prior_teaching_and_rubric_decisions": "preserved unchanged"
+}

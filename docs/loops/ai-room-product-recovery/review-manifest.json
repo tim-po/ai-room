@@ -1,0 +1,337 @@
+[
+  {
+    "path": "previous-reviews/ai-room-product-experience/art/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/art/REVIEW.md",
+    "sha256": "0abd829b261f7c3fc5d5e246b2c818b43f906dc67010f2475177cfbfc737292e"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/art-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/art-002/REVIEW.md",
+    "sha256": "394dd82f0a21663639b98047e33624bea4ae07038cd407e4fc2ef323e5ea599d"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/copy/REVIEW-001.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/copy/REVIEW-001.md",
+    "sha256": "0bd22b8b148c20d2e0ee4e75619645fd95382c75b7fe2fadfb58d411a7fd4df2"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/copy/review-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/copy/review-002/REVIEW.md",
+    "sha256": "40bf0ff4caf4ff393913708ae2e188fc7b4a4e285bdb8012e6ec90a1b2242c81"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/frontend-008/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/frontend-008/CONTRACT.md",
+    "sha256": "9c74675d265a8ac99e2774e71f0c4c226fd3310629dff0501e5feafbfae71a27"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/frontend-031/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/frontend-031/CONTRACT.md",
+    "sha256": "e7992a839012ff6964989b41e76cbebbf7d3e489a453648ea1e3dc585eb2d069"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/frontend-032/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/frontend-032/CONTRACT.md",
+    "sha256": "bd7f34289ea4bc81e924561c2c02faa1e486a6ea3fefbbc443f233047a3855ef"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/frontend-033/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/frontend-033/CONTRACT.md",
+    "sha256": "3443f2774e1d2ec47c47a9b76db6fd80f879f9dc414a364c881847fe8ebf1bc4"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/frontend-034/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/frontend-034/CONTRACT.md",
+    "sha256": "e4cda8681b1c488a8dd8de6cab6fe6ae1a0918d3910b57e77a5ec0f78a1b10ce"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/interaction/INTERACTION-CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/interaction/INTERACTION-CONTRACT.md",
+    "sha256": "1890d8c1d1e9810a9d093d76b82e24a5f5c137be1b81218cbadafd215241a441"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/interaction/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/interaction/REVIEW.md",
+    "sha256": "449e61e8a71b197105f7f067ccabcb1b128df98f5e9536abfdef79565c72339b"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/interaction-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/interaction-002/REVIEW.md",
+    "sha256": "4a91b9b3e43cdec7ab72cab6ce99c7f05577e28df208027b180cf0840e55466e"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/learning/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/learning/REVIEW.md",
+    "sha256": "53301cad5d6e359987a9104bbd4b25f4ef77068b95884a3b926c3176e9d4bc71"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/learning-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/learning-002/REVIEW.md",
+    "sha256": "4cc9276827977613e91b61df86c736040b7a15e7da33388cf35452064e96b8b8"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/learning-003/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/learning-003/REVIEW.md",
+    "sha256": "c5fd1fea985f70e374902dd1d50df868c4ee31fcc12bb320c9e074d95c57f0ff"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/learning-003/content-decision.json",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/learning-003/content-decision.json",
+    "sha256": "160b19480140319d88e0b6887ee30f20433c3b90ce800d45ea5c5c51149d8bf2"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/learning-004/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/learning-004/REVIEW.md",
+    "sha256": "79605f0e00622845d032f886001a1c20c3f6639c3f1b094616191734e726f230"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/learning-018/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/learning-018/REVIEW.md",
+    "sha256": "ee5100bbd7805a1ea86a9e7ea7492b454655425182eefb021124ff919a8f34d0"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/learning-020/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/learning-020/REVIEW.md",
+    "sha256": "2c28c8d3f89c6b0d14ad51f2eca116c1de64a1a904414a996d78e65677176dc7"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/qa-001/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/qa-001/REVIEW.md",
+    "sha256": "3a26c61ddd6d0b4528998bd0e933f20ffceaa40559b90f6df3dd7e10459b862b"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/qa-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/qa-002/REVIEW.md",
+    "sha256": "d33523e99dfbe5c2b2a468c28da9826b132d78332f07cc1cddb63bf1860ff0eb"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/qa-003/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/qa-003/REVIEW.md",
+    "sha256": "0657ab6b045835c0b453354f9170977133e22edeb8acebcdd95478d36dccfe9c"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/qa-015/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/qa-015/REVIEW.md",
+    "sha256": "636daf1ea0c4b4025d3e07a4cacfeae4fd83775ea8cdb09e358c446d5c965519"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/qa-016/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/qa-016/REVIEW.md",
+    "sha256": "3df5a93e6a09833583a0bd8297ab9bf59384fd3937709cbe3a619816f06f82bc"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/requirement-evidence-matrix.json",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/requirement-evidence-matrix.json",
+    "sha256": "f1763b9a4773e114b1f860bb04ced9d203793b1aa9616f898b499f6004dd08b6"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/research/MEASUREMENT-CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/research/MEASUREMENT-CONTRACT.md",
+    "sha256": "7c876fefda65fe9146ddedcd02daeb0c07cd00850df4fffd361ec04023a34b9a"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/research/RESEARCH-DECISIONS.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/research/RESEARCH-DECISIONS.md",
+    "sha256": "28c4aa6aebeff2e03d78d8a96a85a5357f2f5bcd895ba418a9955c2c3285ca2c"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/research-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/research-002/REVIEW.md",
+    "sha256": "838ec74fb3857d7d883686d4bf2ef82bf3493eca5908f7bea60d2b95be16f9a0"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/ui-review-target-007.json",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/ui-review-target-007.json",
+    "sha256": "1d1d7389a471a069484bb70be2be4605838edd0208f5e3cf301d21bcbbdadc03"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/visual-critic/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/visual-critic/REVIEW.md",
+    "sha256": "243e7335f5e14da69cc2625a32c89142c17bca5692bbb06dbcaaf6c70c902532"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/visual-critic-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/visual-critic-002/REVIEW.md",
+    "sha256": "49d30670d1548ce8f2a7a1c7b35a1d48ab041fc07699fdc1ac709e46f00e00f7"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/visual-critic-003/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/visual-critic-003/REVIEW.md",
+    "sha256": "4bd4be78fbb08474e1b69100eaa5333be01a025e10b1af700be9e0b10ba2754e"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/visual-critic-004/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/visual-critic-004/REVIEW.md",
+    "sha256": "e3b54401df2668b46f08412927486a7a507b6e97d8a6a2d684f35e874d39e046"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/visual-critic-019/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/visual-critic-019/REVIEW.md",
+    "sha256": "db91b0035e23e94aefcaf4ffcd826bbb8d15431f9fe02acd9c9d354a44035ede"
+  },
+  {
+    "path": "previous-reviews/ai-room-product-experience/visual-critic-020/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-product-experience/deliverables/visual-critic-020/REVIEW.md",
+    "sha256": "2447f69ee9087072abc90d450be74d571f9310e9df17e1ded6d9b23ed1fe7111"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/admin-access-003/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/deliverables/admin-access-003/CONTRACT.md",
+    "sha256": "7d603db0171145ef12fd12af464844281697d3362609c23172d06fc986d7c38d"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/admin-access-003/SUPPORT-CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/deliverables/admin-access-003/SUPPORT-CONTRACT.md",
+    "sha256": "ec4a560a834c7246cc465eac63af4456fd05d6bad484f36a4823ad902ae3ecd4"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/admin-recovery-001/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/deliverables/admin-recovery-001/CONTRACT.md",
+    "sha256": "06bf9e73573bb752966371a9bd0d56c0d080e32158d1abc0b1b323595cbe5106"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/backend-access-001/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/deliverables/backend-access-001/CONTRACT.md",
+    "sha256": "5c947750be0759985435fdd56f24699b12fd41d4a1ce93fd42918615deb877aa"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/backend-concurrency-005/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/deliverables/backend-concurrency-005/CONTRACT.md",
+    "sha256": "c4b43088dd530f937605457a6688cc6199361763ab699776a8cfe8340a739cfc"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/backend-continuation-006/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/deliverables/backend-continuation-006/CONTRACT.md",
+    "sha256": "a9277b0ccf64fc88df12d85a7391c5456170bc8bc2fe2202857c58182b838d17"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/backend-impact-002/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/deliverables/backend-impact-002/CONTRACT.md",
+    "sha256": "894def8b3c513065f6ec217ee439a6daf7326a1a557bdcf0dc4b63024b891a25"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/backend-onboarding-003/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/deliverables/backend-onboarding-003/CONTRACT.md",
+    "sha256": "8282efa60dfaa63eaf825aa9bea985ddb74c8d9ac839976de8c202e8be550ec6"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/backend-presentation-004/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/deliverables/backend-presentation-004/CONTRACT.md",
+    "sha256": "3d802a9b5b152ad5c16e958ac35986aca5c171a7ea3b6eb07dab4aafd51ef86e"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/admin-product-review-001/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/admin-product-review-001/REVIEW.md",
+    "sha256": "04d38d785f57f24683594d583e576cde4b7878e80d715c9e64732fbf8cb13b15"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/admin-product-review-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/admin-product-review-002/REVIEW.md",
+    "sha256": "affd4fd65446d0556b721c26c474fa1ae32fd939c712e6d2f426958791fde97c"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/admin-product-review-003/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/admin-product-review-003/REVIEW.md",
+    "sha256": "3bd57ffba78d63cf9c1f1003123dd26e61971a89c2188637a1454b23f83bae71"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/admin-product-review-004/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/admin-product-review-004/REVIEW.md",
+    "sha256": "f782a3edcc00a2a02cc579d207582264873786169cb9a35e34750c531c622e13"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/admin-product-review-005/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/admin-product-review-005/REVIEW.md",
+    "sha256": "2a06bc2efb16f39683df5b2fa8a0edab2bc0a469f8796268e6f544253897b2d3"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/architect-001/CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/architect-001/CONTRACT.md",
+    "sha256": "42b63b37e9bab4faa4cb07c28e7e524ca520bb84d0cc39a27d1ccf7034540c5f"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/architect-001/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/architect-001/REVIEW.md",
+    "sha256": "999862b973d3461f889c1074d1b181c8dc617320654341b2de8dedeab79b995c"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/architect-002/MEASUREMENT-CONTRACT.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/architect-002/MEASUREMENT-CONTRACT.md",
+    "sha256": "14413a9f13ad334e5a69ce71173d8b14e7cecb48575ff42a6eb5446357c2f6e2"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/architect-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/architect-002/REVIEW.md",
+    "sha256": "97dcbb21fd63411e360b72252087253037e5a2e60103722812413d9e5f664914"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/assessment-specialist-001/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/assessment-specialist-001/REVIEW.md",
+    "sha256": "5fd50724b2d5ef7b10b2a2c57d8f30944bf77c889d1dd1051636e9e83ea451d7"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/assessment-specialist-001/decisions.json",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/assessment-specialist-001/decisions.json",
+    "sha256": "feca2d264f4bf8e4c9eee664edb31521770b70464cca8a16783cc113b64a1766"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/assessment-specialist-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/assessment-specialist-002/REVIEW.md",
+    "sha256": "272959a928c63d9f10df3fa9a2509630ff82be2a3b9d20d962e9f032e964a7be"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/assessment-specialist-002/decisions.json",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/assessment-specialist-002/decisions.json",
+    "sha256": "dc06dd3fc9000ea7f7df7459ec8354807237b35b21d17efcd19157bf6128cd52"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/assessment-specialist-003/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/assessment-specialist-003/REVIEW.md",
+    "sha256": "8f94c530e3903b7f4adf46e0ccdb179c3b580a2a060d70b8ad6ece03d691c92f"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/assessment-specialist-003/decisions.json",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/assessment-specialist-003/decisions.json",
+    "sha256": "eadff1be84c8240a183f7e2bceb50cb81e2d7c5235cc3a5af2b98a258f51cbb4"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/assessment-specialist-004/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/assessment-specialist-004/REVIEW.md",
+    "sha256": "2d1a7052dba97b8877ebf6484cc011f3585c166a0dfbe95feaa528224b713a7a"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/assessment-specialist-004/decisions.json",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/assessment-specialist-004/decisions.json",
+    "sha256": "7517121ae56d45605e253d5dc9a8aa4b2583cc5c6d077711a90c2e177429d072"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/reliability-001/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/reliability-001/REVIEW.md",
+    "sha256": "814da10d24076756040a88fc7bd8a045c90f62ac0f5194ce8ce4fddd21449713"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/reliability-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/reliability-002/REVIEW.md",
+    "sha256": "d092040bd06c7e75507db3489ae34c491aed2c9db1aef33c5059a00febfa9535"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/reliability-review-001/review.json",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/reliability-review-001/review.json",
+    "sha256": "f1e8b326f5d65519b882f9721f3788adf62fcc594b735351c7ae97db52d5d9e2"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/security-qa-001/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/security-qa-001/REVIEW.md",
+    "sha256": "13e68e3376826eb2672ef5a202fc81ef9af08c91822067e26a1e291284a4700b"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/security-qa-002/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/security-qa-002/REVIEW.md",
+    "sha256": "5888b462a126dca95135172084ccaac94dc943723f9bea547b2ed9c072bf944c"
+  },
+  {
+    "path": "previous-reviews/ai-room-engine-admin/security-qa-003/REVIEW.md",
+    "source": "/home/claude/bot-swarm/data/_loops/_output/ai-room-engine-admin/security-qa-003/REVIEW.md",
+    "sha256": "610a0db69255185ed77f8ed5b87003943e77d1d4ca8a1164b7a322717ef075a4"
+  }
+]

@@ -1,0 +1,1 @@
+Base 68193a7515e169abfcce19cdbea93e2bdc67e2dd; existing isolated learner worktree. No AGENTS.md. Ownership: learner lesson-context.js only. Distinguish timed-out video retry from media failure; existing player, server, events, teaching content, dependencies and staging unchanged. Disposable original synthetic WebM copied only to temporary test media directory.

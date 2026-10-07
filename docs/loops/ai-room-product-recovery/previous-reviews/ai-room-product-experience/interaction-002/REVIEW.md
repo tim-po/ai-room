@@ -1,0 +1,47 @@
+# Interaction review 002 — needs_work
+
+2026-10-04. Independent expert/simulated walkthrough, not human usability research. Reviewed source: `/home/claude/ai-room-product-experience`, exact clean commit `6e7d7b31e9d82ba2849a0415a8563eebe5a6d8e6`. Actual headless Chromium 153.0.8010.12 at `http://127.0.0.1:18849` and `http://127.0.0.1:18850`. Four widths: 360×844, 390×844, 768×900, 1440×900; additional 360×640. Disposable synthetic accounts/database, ordinary seed + init-skills + init-onboarding. No repository edits, shared data changes, deployment, service restart or process kills. No staging signoff.
+
+Graph: `tree-2026-10-v1`, root `basic-ai`, graph response SHA256 `c19c98cef4c00cce21f36c796f2c8732b7229557b56da9546d786a7308a76553`. Source/content hashes, exact requests, state rereads and screenshot metadata: [evidence.json](evidence.json), [followup.json](followup.json). Executable audit sources are adjacent. Ordinary seed has no graph content mappings or reviewed assessment forms; these limitations do not describe installed staging inventory.
+
+## Blockers and concrete changes
+
+**IX2-01 / mobile onboarding action hierarchy — FAIL.** On interests at 390×844, Next occupies y=787.8–838.2 while fixed global navigation begins near y=791; the action is almost entirely covered at initial scroll. At 360, Next begins y=814; on pace at both mobile widths Next begins y=956.2. Pace at 1440×900 also has Next y=883.6–934.0, extending below viewport. The user sees optional choices and a prominent route out of onboarding before seeing how to advance. Scrolling makes controls usable, so this is an orientation/first-action failure, not an absolute inability to complete. See opened viewport and full-page `interests-390`, `pace-360`, plus `lost-response-viewport.png`. Recovery action after timeout is also below the mobile viewport.
+
+Required frontend correction: during active onboarding replace mobile global tabs with a dedicated task footer. Keep Next prominent, Back secondary, Skip an explicit text/secondary action. Reserve real bottom space; footer must not obscure the last choice, status, focused input or virtual keyboard. Compact top spacing and radio layout enough to show title/current step/first choices with the action visible at 360×640 and 390×844. Maintain the same task hierarchy at tablet/desktop; no forced interest choice. Validate actual keyboard scrolling and zoom, not merely no horizontal overflow.
+
+**IX2-02 / QA-03 / L04 return continuity — FAIL, existing blocker reproduced.** Fresh novice completes onboarding into `/lessons/agent-lab-intro-01`, saves a practical result, edits preferences, signs out/in. Profile correctly leads with «Границы и разрешения агента» and saved work; home instead says «Первый небольшой шаг» with «Что AI умеет — и где нужна ваша проверка» linking `/lessons/foundations-start-01`. This appears both immediately after learning and after login. See opened `return-viewport.png`, `map-1440.png`, `profile-viewport.png`, and `checks.home_links` versus `checks.first_lesson`. Repair backend-owned selection using actual latest permitted activity; frontend labels named continuation accurately. Regression: save/open a lesson in a second branch, sign out/in, and resume that same unfinished work without replacing earlier interests or learning.
+
+**IX2-03 / browser Back during onboarding — FAIL against the interaction contract.** Welcome → interests → saved pace → browser Back lands on `/login` rather than the previous acknowledged step. On-page Back works and retains both choices. Source uses local render without step history. See `browser-back-viewport.png`, `followup.json.checks.browser_back`. Add bounded step history with revision-aware restoration; do not blindly reapply stale mutations. Back/Forward must keep the signed-in learner oriented and preserve acknowledged drafts. This is separate from the passing explicit Back button.
+
+**IX2-04 / map-to-lesson navigation context — UNVERIFIED in this fixture; implementation gap remains.** The real deep-node endpoint succeeds, but the ordinary graph has no mapped lessons, so no actual lesson round trip was possible here. Read `atlas.js` lesson links and `lesson-context.js`: only `node` is passed/returned, dropping `view` and `q`. Preserve validated navigation context in links/history, then exercise it on an exact approved mapped-content manifest. Do not claim a browser-proven round-trip failure from this source inspection alone.
+
+## Bounded passes
+
+| Requirement | Concrete evidence | Verdict |
+|---|---|---|
+| Fresh ordinary login exposes onboarding automatically | Synthetic ix0; ordinary `/login` → `/onboarding`; four-width screenshots | Pass |
+| Multiple interests and step persistence | coding+content acknowledged; GET state; refresh and logout/login return to pace with both interests | Pass |
+| Explicit Back | Returns to interests with two checked controls | Pass |
+| Completion and first permitted task | Opened actual agent-lab-intro-01; real practice POST/GET 200 with saved text | Pass for navigation/storage, not teaching quality |
+| Edit without resetting work | Added agents; committed interests agents/coding/content; saved practice reread unchanged | Pass |
+| Skip and cancel edit | Separate fresh account reaches map; cancelled edit leaves skipped status and committed preferences intact | Pass |
+| Slow save with lost server response | Server write committed; real 15-second timeout; controls recover, two choices retained; identical payload/key retry; revision stays exactly 2 | Pass mechanism; mobile recovery placement fails IX2-01 |
+| Dirty saved practice then failed re-save | Aborted request retains new text, shows network recovery, no stale successful confirmation; retry succeeds | Pass tested case |
+| Map selection and close orientation | Coding selection focuses detail-title; Close restores coding trigger; inline detail is not falsely modal | Pass tested branch |
+| Search, refresh and reset | Cyrillic typed character by character, focus stays in search; reload restores Код; recenter clears it | Pass |
+| Native list keyboard | Enter opens disclosure; real deep node and practical-task endpoints return 200 | Pass bounded behavior |
+| Empty diagnostic recovery | Actual start POST 201; UI says unavailable/no results, offers available lessons; no fake knowledge credit | Pass unavailable state only |
+| Four-width layout | 38 captured screen states, no measured horizontal overflow; opened representative desktop/tablet/mobile viewport and full-page screenshots | Supplemental pass; does not override IX2-01 |
+| Reduced motion | Emulation active and page usable at 360×640 | Bounded pass; animation audit not complete |
+| Available challenge/questions/feedback; actual 200% browser zoom; virtual keyboard; cross-device; all access/media failures; final staging | Not fully exercised | Unverified |
+
+API evidence: actual browser calls include GET graph/me/diagnostics, GET node coding and six descendant abilities, GET basic-ai.context and practical-tasks, POST explore, PUT onboarding, POST/GET lesson practice, POST diagnostics. All recorded real responses are 200 or 201; the deliberately aborted practice save and withheld onboarding response are injected recovery tests. Separate HTTP rereads returned graph 15804 bytes, node/me/onboarding real JSON, and persisted practice. Server-rendered welcome/login/profile/lesson pages were loaded and interacted with, not replaced by mock HTML. No application JavaScript errors. Harness initially used a string predicate disallowed by CSP; corrected to a function and reran successfully. Playwright logs cancellation for the deliberately unresolved intercepted request during teardown; this is harness output, not a product page error.
+
+## Research and visual assessment
+
+Revisited primary [W3C disclosure guidance](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/) and [W3C modal guidance](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) on 2026-10-04. Disclosure guidance supports Enter/Space and truthful expanded state; modal guidance requires inert outside content and contained focus. Current inline map detail should remain nonmodal with explicit heading focus and trigger return, which passed for Coding. These sources guide interaction requirements, not retention claims. Existing five-product research remains in `../research/RESEARCH-DECISIONS.md`; this turn does not claim five new product studies.
+
+Opened and examined actual images: welcome-360-viewport, onboarding-welcome-1440-viewport, onboarding-welcome-768-viewport, interests-390-viewport and full, pace-360-viewport and full, start-1440-viewport, map-390-viewport, map-1440 full, selected-viewport, deep-selection-viewport, lesson-390-viewport, practice-saved full, practice-failed-resave-viewport, profile-viewport, return-viewport, lost-response-viewport, diagnostic-empty-result-viewport. Atelier typography and warm surfaces are coherent; welcome first action is clear, lesson reading width is useful, profile prioritizes actual work. Mobile task navigation and false fresh-start return behavior still block acceptance. No numerical average or polished screenshot closes those failures.
+
+Next action: frontend corrects IX2-01 and IX2-03; backend supplies exact continuation patch for IX2-02. Recheck these on one integrated SHA, then use the approved mapped-content ledger to validate map/list → lesson → return and an eligible challenge. Full product and deployed same-build gates remain outstanding.

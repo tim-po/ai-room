@@ -1,0 +1,33 @@
+# Independent admin product review 002 — needs_work
+
+Actual candidate b32d43fb94bdb523750d1b20cd702062815d93bc in /home/claude/ai-room-engine-admin-work, clean at review start/end. Browser Chromium 153.0.8010.12; desktop 1440×1000 and manual editor/tree/practical views at 390×844. Successful main journey http://127.0.0.1:18861; support http://127.0.0.1:18862. Disposable SQLite, original labelled synthetic Markdown upload and explicit synthetic test assessment/practical fixture. Graph SHA-256 and complete graph/form inventory are recorded in result.json and manifest.json. No shared publication, production/staging mutation, repository edits, provider calls, mocks, service restart or process killing. Agent novice simulation, not human user research. This is local candidate acceptance evidence, not final staged acceptance.
+
+## Passed in this independent browser run
+
+- Actual upload/package creates one saved job. Real worker with unavailable provider consumes zero attempts. Reload and readiness refresh retain the job; UI says saved/waiting and shows neither futile retry nor duplicate-charge warning. Real capabilities/jobs requests return 200 with actual state. Screenshot waiting.png opened and inspected.
+- Assessment inventory uses human title. Populated impact displays 1 learner, 2 attempts, 1 pending attempt, 1 practical task, 1 saved work, 1 work without decision, 1 understanding record, 0 application records, 1 form. These match the deliberately populated fixture and real /api/skills/forms response. Actual browser withdrawal succeeds; original completed attempt remains accessible. Screenshot impact.png opened and inspected. This closes the previously missing quantified-impact presentation for this fixture; replacement/rollback is not inferred.
+- Manual course → module → lesson creation, draft learner preview, lesson publication, course publication work through actual browser forms. Preview explicitly labels draft and disables learning record writes. Screenshot manual-preview.png opened and inspected. All successful form requests return real redirects/200; this proves manual authoring, not AI publication.
+- Two editors: first saves a new title; stale second editor receives 409 and keeps its typed body in the current form with an explicit copy/open-current-version instruction. No overwrite observed. manual-conflict.png and manual-mobile.png opened; no 390px horizontal overflow. Current form requires manual reconciliation, but text remains available.
+- Learner posts a real help request. It appears in learner history as Open and in the editor workshop support section with exact text and timestamp. Screenshots support-learner.png and support-admin.png opened and inspected. GET/POST /help and GET /admin succeed; capabilities/jobs API re-probes both 200.
+- /admin/practice and /admin/tree render at mobile; actual practical-review and graph-proposals endpoints return 200. These remain EMPTY-STATE checks: practical fixture was only a draft, not a submitted review task. Graph is real/nonempty; no proposal decisions tested. Both screenshots opened.
+
+Network evidence is in result.json and run4.log. Apart from intentional stale-save 409, the observed successful workflow endpoints returned 2xx/redirects; no browser script errors. Server-rendered manual/support forms have no separate missing page API.
+
+## New task failure: P2 support cannot be handled
+
+After submitting “Synthetic support request: source link unavailable; please advise.”, the learner sees Open. Admin workshop displays the ticket, but supplies no reply, resolution, ownership or handling action. The support disclosure's only interactive control is the courses link (support.json). Source inspection confirms club/templates/admin.html only prints tickets; club/__init__.py has help insert/list and admin list but no ticket update path. The task “locate and resolve a learner support request” therefore fails after locate, even though request capture works.
+
+Minimum correction: protected support action to record a concise response and mark handled, retaining original text/context and audit time; learner can see status/response after reload, with no claimed response deadline. Keep scope small; do not add messaging integrations. Because routes/schema/help template span shared ownership, manager must allocate exact files before implementation. Recheck actual learner → admin handling → learner reload plus cross-user/role/CSRF boundary tests by security reviewer.
+
+## Open acceptance gates
+
+- Real spoken-video + materials transcription/analysis and generated correction/remap/reject/preview/publish: UNVERIFIED. Local provider intentionally absent; latest names-only pipeline report also identifies CLUB_AI_APPROVED not approved, CLUB_AI_API_KEY absent, CLUB_AI_MODEL absent, ffprobe absent. That status is the pipeline engineer's evidence, not a new independent config discovery. No fake provider acceptance.
+- Readiness restored → explicit retry and uncertain-outcome charge confirmation were NOT independently exercised this turn. Builder simulation exists but does not establish real provider recovery.
+- AI save-in-flight fix b32d43f: NOT independently rechecked against a generated draft this turn. Manual stale conflict is a different task and must not close that gate.
+- Practical submitted/revised/decision lifecycle, graph activation/rollback, compatible content rollback, replacement and later-write preservation remain unverified here.
+- Visual integration remains blocked by absent accepted UI handoff. Opened screenshots still show navy workshop/assessment versus green manual editor; preserve learner design and apply accepted tokens only under agreed ownership. Mobile full-page capture includes fixed nav crossing content; no separate viewport-level obstruction claim is made from that capture alone.
+- Final exact staging SHA/content manifest reviews, independent assessment/security/recovery approval remain required. No staging re-verification performed in this bounded correction turn.
+
+## Harness notes
+
+Initial attempt captured URLs before asynchronous manual-save navigation finished; another attempt used an ambiguous title locator that also matched resource title. Both were harness errors, corrected with navigation waits and scoped locator. Final successful run used a fresh database on 18861. Shell alias `python` was absent; explicit venv Python worked. No capability denial occurred. No failed harness result is used as a product finding. The successful script's last check originally said browser Back; correction in result.json clarifies text was retained in-place without Back.
