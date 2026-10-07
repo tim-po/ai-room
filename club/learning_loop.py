@@ -6,12 +6,12 @@ Progress here records only what the learner did (steps reached, a plan chosen); 
 learning from page visits.
 """
 import re
-import sqlite3
 from datetime import date, datetime, timedelta, timezone
 
 from flask import abort, g, jsonify, request
 
 from .legacy_content import outline
+from .storage import additive_tables
 
 SCHEMA = (
     '''CREATE TABLE IF NOT EXISTS lesson_steps (
@@ -40,23 +40,8 @@ def anchor(lesson, index):
     return f'#step-{index}' if index <= steps else '#practice'
 
 
-def register_learning_loop(app, db, query, require_user, get_lesson, event):
-    ready = set()
-
-    def ensure():
-        # Once per process and database, on a connection of its own: inside a request the shared
-        # connection may already be in a transaction that never commits, taking the tables with it.
-        key = app.config['DATABASE']
-        if key in ready:
-            return
-        connection = sqlite3.connect(key, timeout=10)
-        try:
-            with connection:
-                for statement in SCHEMA:
-                    connection.execute(statement)
-        finally:
-            connection.close()
-        ready.add(key)
+def register_learning_loop(app, db, query, require_user, get_lesson, event, learning_activity):
+    ensure = additive_tables(app, SCHEMA)
 
     def step_progress(lesson_id):
         if not g.user:
@@ -71,7 +56,11 @@ def register_learning_loop(app, db, query, require_user, get_lesson, event):
         if type(step) is not int or not 1 <= step <= total:
             abort(400, f'Номер раздела — целое число от 1 до {total}.')
         ensure()
+        before = step_progress(lesson['id'])
         with db():
+            if step > (before['furthest'] if before else 0):   # a new section reached is learning activity
+                learning_activity(lesson['id'])
+                event('section_reached', lesson['id'])
             db().execute('''INSERT INTO lesson_steps(user_id,lesson_id,furthest,last) VALUES(?,?,?,?)
                 ON CONFLICT(user_id,lesson_id) DO UPDATE SET furthest=MAX(furthest,excluded.furthest),
                 last=excluded.last,updated_at=CURRENT_TIMESTAMP''', (g.user['id'], lesson['id'], step, step))
@@ -180,7 +169,9 @@ def register_learning_loop(app, db, query, require_user, get_lesson, event):
             if unfinished['status'] != 'draft':
                 url = unfinished['url'] + anchor(lesson, index)
         practice = query('SELECT body,status,updated_at FROM practice WHERE user_id=? AND lesson_id=?', (g.user['id'], lesson['id']), True)
-        last_day = query('SELECT MAX(day) day FROM learning_days WHERE user_id=?', (g.user['id'],), True)['day']
+        # Away = since the learner was last here at all (a visit counts, not only learning).
+        last_day = query('''SELECT MAX(day) day FROM (SELECT day FROM learning_days WHERE user_id=?
+            UNION ALL SELECT day FROM visit_days WHERE user_id=?)''', (g.user['id'], g.user['id']), True)['day']
         away = (datetime.now(timezone.utc).date() - date.fromisoformat(last_day)).days if last_day else None
         return dict(lesson_id=lesson['id'], title=lesson['title'], course=lesson['course_title'], status=unfinished['status'],
                     url=url, step=step, steps=titles, minutes=lesson['minutes'], away_days=away,

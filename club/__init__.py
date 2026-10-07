@@ -68,7 +68,7 @@ def create_app(config=None):
 
     def event(name, lesson_id=None):
         allowed = {'lesson_started', 'lesson_completed', 'practice_saved', 'practice_submitted', 'help_requested', 'onboarding_completed', 'course_started', 'meaningful_return',
-                   'plan_saved', 'plan_calendar', 'session_connected'}
+                   'plan_saved', 'plan_calendar', 'session_connected', 'section_reached', 'continue_opened'}
         if name not in allowed:
             raise ValueError('Unsupported event')
         if g.user['role'] != 'learner':
@@ -174,7 +174,7 @@ def create_app(config=None):
         return row
 
     from .learning_loop import register_learning_loop
-    loop = register_learning_loop(app, db, query, require_user, get_lesson, event)
+    loop = register_learning_loop(app, db, query, require_user, get_lesson, event, learning_activity)
 
     def cards():
         from .tree import catalog_index
@@ -262,6 +262,8 @@ def create_app(config=None):
     @require_user
     def continue_learning():
         # Calendar events and assistants link here: the next thing to do, resolved when the learner arrives.
+        with db():
+            event('continue_opened')
         return redirect(continue_url())
 
     @app.get('/')
@@ -337,7 +339,7 @@ def create_app(config=None):
 
     def record_visit(lesson_id):
         with db():
-            learning_activity(lesson_id)
+            learning_activity(lesson_id, meaningful=False)
             inserted = db().execute('INSERT OR IGNORE INTO progress(user_id,lesson_id) VALUES(?,?)', (g.user['id'], lesson_id)).rowcount
             # Navigation is independent of video polling, practice and completion writes.
             # A per-user sequence preserves ordering even for visits in the same second.

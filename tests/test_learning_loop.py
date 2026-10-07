@@ -50,6 +50,7 @@ def test_briefing_turns_into_a_welcome_back_after_a_break(legacy):
     assert c.get('/api/app/home').json['briefing']['returning'] is False
     with sqlite3.connect(legacy.config['DATABASE']) as db:
         db.execute("UPDATE learning_days SET day=date('now','-5 days') WHERE user_id='user-away'")
+        db.execute("UPDATE visit_days SET day=date('now','-5 days') WHERE user_id='user-away'")   # a visit counts as being here
     briefing = c.get('/api/app/home').json['briefing']
     assert briefing['returning'] and briefing['away_days'] == 5 and briefing['steps'][2] == briefing['step']['title']
     assert legacy.test_client().get('/api/app/home').json['briefing'] is None
@@ -92,3 +93,19 @@ def test_preferences_accept_any_number_of_plan_days(app):
     c = app.test_client(); csrf = login(c)
     assert c.post('/preferences', data={'csrf': csrf, 'goal': 'work', 'experience': 'beginner', 'weekly_goal': '4'}).status_code == 302
     assert c.post('/preferences', data={'csrf': csrf, 'goal': 'work', 'experience': 'beginner', 'weekly_goal': '8'}).status_code == 400
+
+
+def test_sections_and_continue_count_as_learning_and_show_on_the_dashboard(legacy):
+    c = legacy.test_client(); csrf = login(c, learner(legacy, 'counted', onboarded=True))
+    c.get('/lessons/' + LESSON)
+    with sqlite3.connect(legacy.config['DATABASE']) as db:
+        assert db.execute("SELECT COUNT(*) FROM learning_days WHERE user_id='user-counted'").fetchone()[0] == 0   # a visit isn't learning
+    step(c, csrf, LESSON, 2); step(c, csrf, LESSON, 1); step(c, csrf, LESSON, 2)
+    put_plan(c, csrf, days=[1], time='08:00'); c.get('/plan.ics'); c.get('/continue')
+    with sqlite3.connect(legacy.config['DATABASE']) as db:
+        assert db.execute("SELECT COUNT(*) FROM events WHERE user_id='user-counted' AND name='section_reached'").fetchone()[0] == 1   # new sections only
+        assert db.execute("SELECT COUNT(*) FROM learning_days WHERE user_id='user-counted'").fetchone()[0] == 1
+        assert db.execute("SELECT COUNT(*) FROM events WHERE user_id='user-counted' AND name='continue_opened'").fetchone()[0] == 1
+    admin = legacy.test_client(); login(admin, 'admin')
+    page = admin.get('/admin/measurement')
+    assert page.status_code == 200 and 'Петля обучения' in page.text and 'Выбрали план занятий: <strong>1</strong>' in page.text

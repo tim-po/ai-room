@@ -17,7 +17,6 @@ import hmac
 import json
 import re
 import secrets
-import sqlite3
 import time
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
@@ -28,6 +27,7 @@ from werkzeug.exceptions import HTTPException
 
 from .legacy_content import render_blocks
 from .learning_loop import checkpoints
+from .storage import additive_tables
 
 LINK_MINUTES = 15
 SESSION_DAYS = 7
@@ -84,20 +84,7 @@ def lesson_text(lesson):
 
 
 def register_attach(app, db, query, require_user, get_lesson, event, loop, store_practice, continue_url, continuation):
-    ready = set()
-
-    def ensure():
-        key = app.config['DATABASE']
-        if key in ready:
-            return
-        connection = sqlite3.connect(key, timeout=10)   # never inside a request's transaction
-        try:
-            with connection:
-                for statement in SCHEMA:
-                    connection.execute(statement)
-        finally:
-            connection.close()
-        ready.add(key)
+    ensure = additive_tables(app, SCHEMA)
 
     def public_base():
         return (app.config.get('PUBLIC_URL') or request.host_url).rstrip('/')
