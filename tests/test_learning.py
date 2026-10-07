@@ -73,11 +73,11 @@ def test_practice_progress_restart_and_cross_user_isolation(app):
     second_device = new_app.test_client()
     login(second_device)
     assert second_device.get(url+'/practice').json['body'] == 'Мой учебный результат'
-    assert 'Мой учебный результат' in second_device.get('/profile').text
+    assert 'Мой учебный результат' in [w['body'] for w in second_device.get('/api/app/profile').json['practices']]
     other = app.test_client()
     login(other,'member')
     assert other.get(url+'/practice').json is None
-    assert 'Мой учебный результат' not in other.get('/profile').text
+    assert other.get('/api/app/profile').json['practices'] == []
     db.close()
 
 
@@ -101,13 +101,13 @@ def test_rendered_learning_journey(app):
     c = app.test_client()
     for path in ['/', '/catalogue', '/catalogue?q=невозможныйзапрос', '/courses/ai-foundations', '/lessons/'+FREE, '/help', '/login']:
         assert c.get(path).status_code == 200, path
-    assert b'/lessons/foundations-start-01' in c.get('/').data
+    assert c.get('/api/app/home').json['next']['url'] == '/lessons/foundations-start-01'   # welcome page "try a free lesson"
     csrf = login(c)
     assert c.post('/preferences',data={'csrf':csrf,'goal':'work','experience':'beginner','weekly_goal':'0'}).status_code == 302
     assert 'Меньше рутины' in c.get('/routes/path-work').text
     assert c.post('/courses/ai-foundations/favourite',data={'csrf':csrf,'saved':'1'}).status_code == 302
     assert c.post('/help?lesson='+FREE,data={'csrf':csrf,'body':'Нужна помощь с примером'}).status_code == 302
-    assert 'Нужна помощь с примером' in c.get('/help').text
+    assert c.get('/api/app/help').json['tickets'][0]['body'] == 'Нужна помощь с примером'
     assert c.get('/profile').status_code == 200
     db = sqlite3.connect(app.config['DATABASE'])
     assert db.execute('SELECT COUNT(*) FROM lessons l JOIN modules m ON l.module_id=m.id WHERE m.course_id=?',('ai-foundations',)).fetchone()[0] == 37

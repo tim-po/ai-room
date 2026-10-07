@@ -1,0 +1,44 @@
+/* Abstract sky behind the frosted content (templates/_sky.html, masks from scripts/make_sky.py).
+   One scene serves both themes. Shapes are alpha masks filled with colour tokens, and --sun says how
+   high the sun is (0 = below the horizon, Сумерки; 1 = just risen, Рассвет). Tokens and --sun are
+   registered in themes.css, so switching theme plays a sunrise or a sunset. */
+.sky{display:none}
+:root[data-glass] .sky{
+  display:block;position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;
+  background:linear-gradient(180deg,var(--sky-0) 0%,var(--sky-1) 30%,var(--sky-2) 52%,var(--sky-3) 66%,var(--sky-4) 76%);
+}
+.sky>*,.sky-night>*,.sky-sun>*{position:absolute}
+.sky [class*="sky-band"],.sky-clouds,.sky-sun-rays{-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;mask-size:100% 100%}
+
+/* Night: a sparse star field, gone once the sun is up */
+.sky-night{inset:0;opacity:calc(1 - var(--sun) * 1.8)}
+.sky-stars{inset:0;background:url('/static/sky/stars.svg') center top/cover no-repeat;-webkit-mask-image:linear-gradient(#000 0,#000 34%,transparent 70%);mask-image:linear-gradient(#000 0,#000 34%,transparent 70%)}
+.sky-stars-bright{background-image:url('/static/sky/stars-bright.svg');animation:sky-twinkle 7s ease-in-out infinite alternate}
+
+/* The sun: rises from behind the horizon bands as --sun goes 0 -> 1 */
+.sky-sun{left:68%;top:71%;width:0;height:0;transform:translate(calc((1 - var(--sun)) * -3vw),calc((1 - var(--sun)) * 27vh))}
+.sky-sun-rays{width:190vh;height:190vh;left:-95vh;top:-95vh;background:var(--ray);-webkit-mask-image:url('/static/sky/rays.svg');mask-image:url('/static/sky/rays.svg');animation:sky-rays 36s ease-in-out infinite alternate}
+.sky-sun-halo{width:110vh;height:110vh;left:-55vh;top:-55vh;border-radius:50%;background:radial-gradient(circle,var(--sun-halo) 0,color-mix(in srgb,var(--sun-halo) 40%,transparent) 30%,transparent 68%)}
+.sky-sun-disc{width:9vh;height:9vh;left:-4.5vh;top:-4.5vh;border-radius:50%;background:var(--sun-core);box-shadow:0 0 0 1.2vh color-mix(in srgb,var(--sun-core) 22%,transparent),0 0 6vh 2vh color-mix(in srgb,var(--sun-halo) 70%,transparent)}
+
+/* Clouds: soft abstract forms, lit from below near the horizon */
+.sky-clouds{left:0;background:linear-gradient(180deg,var(--cloud-top),var(--cloud-bottom));will-change:transform}
+.sky-clouds-far{top:30vh;height:22vh;width:calc(100vw + 110vh);-webkit-mask-image:url('/static/sky/clouds-far.svg');mask-image:url('/static/sky/clouds-far.svg');-webkit-mask-size:110vh 100%;mask-size:110vh 100%;-webkit-mask-repeat:repeat-x;mask-repeat:repeat-x;animation:sky-drift-far 420s linear infinite}
+.sky-clouds-near{top:44vh;height:26vh;width:calc(100vw + 130vh);-webkit-mask-image:url('/static/sky/clouds-near.svg');mask-image:url('/static/sky/clouds-near.svg');-webkit-mask-size:130vh 100%;mask-size:130vh 100%;-webkit-mask-repeat:repeat-x;mask-repeat:repeat-x;animation:sky-drift-near 280s linear infinite}
+
+/* Horizon: haze and three smooth bands with a thin light edge */
+.sky-haze{left:-10%;right:-10%;top:58%;height:30%;background:radial-gradient(60% 50% at 62% 55%,var(--haze),transparent 75%)}
+.sky [class*="sky-band"]{left:0;right:0;bottom:0;height:34vh}
+.sky-band-far{background:linear-gradient(180deg,var(--band-far-top) 20%,var(--band-far-bottom) 70%);-webkit-mask-image:url('/static/sky/band-far.svg');mask-image:url('/static/sky/band-far.svg')}
+.sky-band-rim{background:var(--rim);-webkit-mask-image:url('/static/sky/band-rim.svg');mask-image:url('/static/sky/band-rim.svg')}
+.sky-band-mid{background:linear-gradient(180deg,var(--band-mid-top) 40%,var(--band-mid-bottom) 90%);-webkit-mask-image:url('/static/sky/band-mid.svg');mask-image:url('/static/sky/band-mid.svg')}
+.sky-band-near{background:linear-gradient(180deg,var(--band-near-top) 65%,var(--band-near-bottom));-webkit-mask-image:url('/static/sky/band-near.svg');mask-image:url('/static/sky/band-near.svg')}
+
+
+@keyframes sky-drift-far{to{transform:translateX(-110vh)}}
+@keyframes sky-drift-near{to{transform:translateX(-130vh)}}
+@keyframes sky-twinkle{from{opacity:.55}to{opacity:1}}
+@keyframes sky-rays{from{transform:rotate(-2deg)}to{transform:rotate(2deg)}}
+/* Scrolling, dragging and zooming hold the sky still (frosted blur would be redrawn every frame) */
+.sky-still .sky *{animation-play-state:paused!important}
+@media (prefers-reduced-motion:reduce){.sky *{animation:none!important}}

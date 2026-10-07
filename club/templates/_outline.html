@@ -1,0 +1,7 @@
+{# Full course outline from the catalogue: every module and lesson, with the learner's state. #}
+{% set state_label = {'done':'Пройден','progress':'В процессе','locked':'Клуб','coming':'Скоро'} %}
+<div class="outline">{% for m in outline.modules %}{% set has_current = current and (m.lessons|selectattr('id','equalto',current)|list) %}
+<details class="outline-module is-{{ m.state }}" {% if has_current or (not current and m.state != 'coming' and loop.index <= 2) %}open{% endif %}>
+<summary><span class="outline-index">{{ loop.index }}</span><span class="outline-title">{{ m.title }}</span><span class="outline-count">{{ m.lessons|length }}</span></summary>
+<ul>{% for l in m.lessons %}<li>{% if l.url %}<a class="outline-lesson is-{{ l.state }}" href="{{ l.url }}"{% if l.id == current %} aria-current="page"{% endif %}>{% else %}<span class="outline-lesson is-coming">{% endif %}<span class="tree-dot" aria-hidden="true"></span><span class="outline-name">{{ l.title }}</span><span class="outline-meta">{{ state_label.get(l.state) or (l.minutes ~ ' мин') }}</span>{% if l.url %}</a>{% else %}</span>{% endif %}</li>{% endfor %}</ul>
+</details>{% endfor %}</div>

@@ -4,3 +4,5 @@ __pycache__/
 instance/
 *.sqlite*
 .env
+node_modules/
+club/static/app/

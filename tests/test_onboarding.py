@@ -101,6 +101,10 @@ def test_roles_csrf_validation_and_unchanged_save_telemetry(onboard):
         assert db.execute('SELECT COUNT(*) FROM onboarding_events_v1').fetchone()[0] == 0
     assert c.get('/lessons/'+FREE).location == '/onboarding'
     assert c.get('/api/lessons/'+FREE).status_code == 200
+    # The app's page data waits for onboarding too; the app follows the redirect.
+    for path in ['/api/app/home', '/api/app/catalogue', '/api/app/discover', '/api/app/search?q=x', '/api/app/lessons/'+FREE, '/api/app/profile']:
+        response = c.get(path)
+        assert response.status_code == 409 and response.json['redirect'] == '/onboarding', path
 
 
 def test_paired_backup_backfill_and_idempotent_migration(skills, tmp_path):

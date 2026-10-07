@@ -1,0 +1,248 @@
+/* Colour themes. Every learner colour in atelier.css and tree.css reads these tokens.
+   Default = "Мастерская"; the picker stores a choice in localStorage (see theme.js). */
+:root{
+  color-scheme:light;
+  --bg:#f5f2e9;--canvas:#efede3;--grid:#d9dbcd;--panel:#fffdf7;--surface:#e9ebdf;--surface-warm:#ede8da;--hover:#eef1e6;--track:#e2e4d8;
+  --line:#d4d5c8;--line-soft:#e4e4d9;--line-strong:#a9b09d;
+  --text:#262b24;--muted:#4f554c;--faint:#8b9087;
+  --accent:#245646;--accent-hover:#1d4a3c;--accent-shadow:#183c31;--accent-line:#4b7464;--accent-soft:#e0eadb;--on-accent:#fffdf7;--on-accent-muted:#d4e2d6;
+  --cta:#b13c25;--cta-hover:#932d1b;--cta-soft:#fbe9e3;--cta-ring:#f4b9a8;
+  --gold:#c08a2c;--gold-soft:#f6e7c8;--gold-ink:#7a5414;
+  --edge:#a7ae9b;--edge-strong:#7d8a74;--edge-faint:#c4c8b9;
+  --radius-card:14px;--font-heading:'Golos Text',sans-serif;
+  --lime:var(--accent);--ink:var(--on-accent);--raised:var(--surface);--warm:var(--surface-warm);
+}
+:root[data-theme="paper"]{
+  color-scheme:light;
+  --bg:#f7f7f5;--canvas:#f1f1ef;--grid:#dcdcd7;--panel:#ffffff;--surface:#f1f1ef;--surface-warm:#f4f2ed;--hover:#eef2fd;--track:#e4e5e2;
+  --line:#e0e0dc;--line-soft:#ececea;--line-strong:#b4b5b0;
+  --text:#121416;--muted:#4a4f57;--faint:#8a8f97;
+  --accent:#1f4fd8;--accent-hover:#183fb0;--accent-shadow:#122f84;--accent-line:#7393ea;--accent-soft:#e7eefd;--on-accent:#ffffff;--on-accent-muted:#d5e0fb;
+  --cta:#121416;--cta-hover:#000000;--cta-soft:#eef2fd;--cta-ring:#b8c8f5;
+  --gold:#c2410c;--gold-soft:#fde9da;--gold-ink:#9a3412;
+  --edge:#c3c4bf;--edge-strong:#8e8f8a;--edge-faint:#d9d9d5;
+  --radius-card:6px;--font-heading:Georgia,'Times New Roman',serif;
+}
+:root[data-theme="forest"]{
+  color-scheme:dark;
+  --bg:#0f1512;--canvas:#121a16;--grid:#202b25;--panel:#18211c;--surface:#1d2822;--surface-warm:#222a22;--hover:#22302a;--track:#2a372f;
+  --line:#2c3a31;--line-soft:#233029;--line-strong:#4c6155;
+  --text:#e9efe9;--muted:#a9b7ad;--faint:#708278;
+  --accent:#8fd3aa;--accent-hover:#a9e1bf;--accent-shadow:#5f9c79;--accent-line:#3c6b52;--accent-soft:#1e3a2b;--on-accent:#0c1a12;--on-accent-muted:#24493a;
+  --cta:#f0915f;--cta-hover:#f5a87e;--cta-soft:#3a2219;--cta-ring:#8a4a2f;
+  --gold:#e3b65c;--gold-soft:#3a3018;--gold-ink:#f0cd85;
+  --edge:#55705f;--edge-strong:#79a089;--edge-faint:#3d5046;
+}
+:root[data-theme="dusk"]{
+  color-scheme:dark;
+  --bg:#0b0605;--canvas:rgba(16,10,8,.5);--grid:rgba(255,220,190,.05);--panel:rgba(40,27,21,.56);--surface:rgba(255,220,190,.06);--surface-warm:rgba(255,220,190,.07);--hover:rgba(255,220,190,.08);--track:rgba(255,220,190,.13);
+  --line:rgba(255,225,200,.10);--line-soft:rgba(255,225,200,.06);--line-strong:rgba(255,225,200,.22);
+  --text:#f7efe8;--muted:#c6b3a6;--faint:#8c796c;
+  --accent:#ff9f34;--accent-ink:#ffb15a;--accent-hover:#ffb45f;--accent-shadow:#b86a14;--accent-line:#7a4a16;--accent-soft:rgba(255,159,52,.12);--on-accent:#1b1207;--on-accent-muted:#5b3a12;
+  --cta:#ff9f34;--cta-hover:#ffb45f;--cta-soft:rgba(255,159,52,.14);--cta-ring:rgba(255,159,52,.45);
+  --gold:#e9cfa4;--gold-soft:rgba(233,207,164,.14);--gold-ink:#f2dcb9;
+  --edge:rgba(255,225,200,.2);--edge-strong:rgba(255,225,200,.34);--edge-faint:rgba(255,225,200,.12);
+  --radius-card:22px;
+  --sheet:rgba(20,12,9,.5);--header-bg:rgba(18,11,8,.56);--header-solid:#0d0806;--nav-bg:rgba(18,11,8,.84);
+  --glass:rgba(56,37,28,.38);--glass-strong:rgba(58,38,28,.6);--glass-border:rgba(255,225,200,.12);--glass-highlight:rgba(255,235,215,.14);
+  --soft-fill:rgba(255,225,200,.07);--soft-fill-hover:rgba(255,225,200,.12);--well:rgba(0,0,0,.26);
+  --node-fill:rgba(40,27,21,.95);--node-coming:rgba(30,20,16,.88);--viewport-bg:rgba(16,13,11,.95);
+  --shadow:rgba(0,0,0,.45);--blur:30px;
+
+  --sun:0;
+  --sky-0:#070606;--sky-1:#0b0908;--sky-2:#120e0c;--sky-3:#211712;--sky-4:#3d2619;
+  --sun-core:#e8a070;--sun-halo:rgba(200,110,60,.26);--ray:rgba(255,190,140,.05);
+  --cloud-top:rgba(40,32,28,.32);--cloud-bottom:rgba(150,100,74,.16);--haze:rgba(170,96,56,.12);
+  --band-far-top:#1f1712;--band-far-bottom:#14100d;--band-mid-top:#100c0a;--band-mid-bottom:#0c0908;--band-near-top:#090707;--band-near-bottom:#060505;
+  --rim:rgba(230,175,135,.22);--orb:rgba(0,0,0,0);
+  --popover:rgba(34,23,18,.97);
+  --highlight-edge:rgba(255,214,180,.16);
+  --highlight-tint:rgba(255,190,140,.05);
+  --link-underline:rgba(255,225,200,.32);
+}
+:root[data-theme="dawn"]{
+  color-scheme:light;
+  --bg:#fff6ec;--canvas:rgba(255,250,244,.5);--grid:rgba(120,60,20,.08);--panel:rgba(255,255,255,.66);--surface:rgba(120,60,20,.05);--surface-warm:rgba(120,60,20,.06);--hover:rgba(255,159,52,.10);--track:rgba(120,60,20,.12);
+  --line:rgba(110,55,20,.13);--line-soft:rgba(110,55,20,.08);--line-strong:rgba(110,55,20,.26);
+  --text:#2b1a12;--muted:#6c5245;--faint:#a08779;
+  --accent:#ff9f34;--accent-ink:#b95400;--accent-hover:#ff8c16;--accent-shadow:#c96b0c;--accent-line:#f3c38f;--accent-soft:rgba(255,159,52,.18);--on-accent:#2b1503;--on-accent-muted:#6d3b0a;
+  --cta:#ff9f34;--cta-hover:#ff8c16;--cta-soft:rgba(255,159,52,.14);--cta-ring:rgba(255,159,52,.45);
+  --gold:#cf5a7e;--gold-soft:rgba(207,90,126,.12);--gold-ink:#a63c62;
+  --edge:rgba(110,55,20,.24);--edge-strong:rgba(110,55,20,.4);--edge-faint:rgba(110,55,20,.15);
+  --radius-card:22px;
+  --sheet:rgba(255,251,246,.44);--header-bg:rgba(255,249,242,.6);--header-solid:#fff8f1;--nav-bg:rgba(255,249,242,.88);
+  --glass:rgba(255,255,255,.52);--glass-strong:rgba(255,255,255,.7);--glass-border:rgba(130,70,30,.13);--glass-highlight:rgba(255,255,255,.95);
+  --soft-fill:rgba(255,255,255,.55);--soft-fill-hover:rgba(255,255,255,.85);--well:rgba(255,255,255,.72);
+  --node-fill:rgba(255,253,250,.96);--node-coming:rgba(255,250,245,.84);--viewport-bg:rgba(255,250,245,.94);
+  --shadow:rgba(150,70,20,.14);--blur:30px;
+
+  --sun:1;
+  --sky-0:#fffaf2;--sky-1:#fff0de;--sky-2:#ffd8c6;--sky-3:#ffa98f;--sky-4:#ffc98a;
+  --sun-core:#fffef6;--sun-halo:rgba(255,236,186,.9);--ray:rgba(255,214,140,.3);
+  --cloud-top:rgba(255,255,255,.6);--cloud-bottom:rgba(255,196,176,.55);--haze:rgba(255,248,236,.75);
+  --band-far-top:#fbd4c2;--band-far-bottom:#f4bca6;--band-mid-top:#f2ae98;--band-mid-bottom:#e9a08b;--band-near-top:#e29381;--band-near-bottom:#d38473;
+  --rim:rgba(255,255,255,.9);--orb:rgba(255,253,238,.9);
+  --popover:rgba(255,251,247,.98);
+  --highlight-edge:rgba(255,159,52,.45);
+  --highlight-tint:rgba(255,159,52,.16);
+  --link-underline:rgba(185,84,0,.45);
+}
+:root[data-theme="midnight"]{
+  color-scheme:dark;
+  --bg:#0d1424;--canvas:#101a2e;--grid:#1d2942;--panel:#152038;--surface:#1a2742;--surface-warm:#1f2740;--hover:#1f2e4d;--track:#26345a;
+  --line:#28365a;--line-soft:#1f2b48;--line-strong:#46588a;
+  --text:#e8eef9;--muted:#a7b4cc;--faint:#6d7c9a;
+  --accent:#8ab4ff;--accent-hover:#a9c7ff;--accent-shadow:#5d82c7;--accent-line:#34528a;--accent-soft:#1c2f55;--on-accent:#0b1426;--on-accent-muted:#2c4677;
+  --cta:#ff8f6b;--cta-hover:#ffa78a;--cta-soft:#3a2026;--cta-ring:#8d4a3d;
+  --gold:#ffc861;--gold-soft:#3a3020;--gold-ink:#ffd98f;
+  --edge:#465d8f;--edge-strong:#6a86c4;--edge-faint:#33456d;
+}
+:root[data-theme="aurora"]{
+  color-scheme:dark;
+  --bg:#141020;--canvas:#181326;--grid:#271f38;--panel:#1e1830;--surface:#241d38;--surface-warm:#2a2036;--hover:#2c2442;--track:#352b4d;
+  --line:#352b4c;--line-soft:#2a2240;--line-strong:#584872;
+  --text:#f1ecfa;--muted:#b8adcc;--faint:#7d7194;
+  --accent:#63e2c6;--accent-hover:#88ebd6;--accent-shadow:#3fa38d;--accent-line:#2c6b5f;--accent-soft:#1c3a37;--on-accent:#0f1f1b;--on-accent-muted:#2a5a50;
+  --cta:#c792ff;--cta-hover:#d8b1ff;--cta-soft:#34244a;--cta-ring:#7a55a8;
+  --gold:#ffcf5c;--gold-soft:#3b3120;--gold-ink:#ffdf91;
+  --edge:#58497c;--edge-strong:#8572b3;--edge-faint:#3f335c;
+  --radius-card:18px;
+}
+/* Shared theme behaviour */
+body.learner-surface{color-scheme:inherit}
+.learner-surface h1,.learner-surface h2,.tree-topic strong,.tree-root strong,.tree-course strong{font-family:var(--font-heading)}
+.learner-surface .panel,.learner-surface .card,.me-work,.me-panel,.tree-course,.paywall-outline,.paywall-offer,.me-continue{border-radius:var(--radius-card)}
+.learner-surface .card,.learner-surface .panel{background:var(--panel);border-color:var(--line);color:var(--text)}
+.learner-surface .card h2,.learner-surface .card h3,.learner-surface .card a{color:var(--text)}
+.learner-surface .card p,.learner-surface .card .metadata,.learner-surface .progress-label{color:var(--muted)}
+.learner-surface .club-header{background:var(--bg);border-color:var(--line)}
+.learner-surface .club-header a,.learner-surface .club-header nav a{color:var(--text)}
+.learner-surface .club-header nav a[aria-current],.learner-surface .club-header nav a:hover{color:var(--accent)}
+.learner-surface footer{color:var(--muted)}
+.learner-surface .chip{background:var(--surface);color:var(--text);border-color:var(--line)}
+.learner-surface .button.secondary,.learner-surface .secondary{color:var(--text);border-color:var(--line-strong)}
+.learner-surface input,.learner-surface select,.learner-surface textarea{background:var(--panel);color:var(--text);border-color:var(--line-strong)}
+.learner-surface details.module,.learner-surface .lesson-row{background:var(--panel);border-color:var(--line);color:var(--text)}
+.learner-surface .lesson-row small{color:var(--muted)}
+.learner-surface .lesson-row[aria-current]{background:var(--accent-soft)}
+.learner-surface .lesson-content .lead,.learner-surface .reading p{color:var(--text)}
+.learner-surface .breadcrumb,.learner-surface a{color:var(--accent)}
+.learner-surface .button,.learner-surface .button:visited{color:var(--on-accent)}
+.learner-surface .resource{background:var(--panel);border-color:var(--line);color:var(--text)}
+/* Theme picker */
+.theme-picker{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.theme-picker select{min-height:36px;padding:4px 8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);color:var(--text);font:inherit;font-size:14px}
+/* Library and lesson sidebar: older styles defined their own palette; map them onto the theme */
+body.learner-surface:has(.library){--bg:inherit;--panel:inherit;--raised:inherit;--text:inherit;--muted:inherit;--line:inherit;--lime:inherit;--ink:inherit;background:var(--bg)}
+.learner-surface .library .eyebrow{color:var(--muted)}
+.learner-surface .library-search{border-color:var(--line)}
+.learner-surface .library input,.learner-surface .library select{background:var(--panel);border-color:var(--line-strong);color:var(--text)}
+.learner-surface .library input::placeholder{color:var(--faint)}
+.learner-surface .library .button{background:var(--cta);color:var(--on-accent)}.learner-surface .library .button:hover{background:var(--cta-hover)}
+.learner-surface .library .secondary{background:transparent;color:var(--text);border-color:var(--line-strong)}
+.learner-surface .library .card{background:var(--panel);color:var(--text);border-color:var(--line)}
+.learner-surface .library .card h3 a{color:var(--text)}
+.learner-surface .library .card p,.learner-surface .library .card .metadata,.learner-surface .library .progress-label{color:var(--muted)}
+.learner-surface .library .card .chip{color:var(--accent);border-color:var(--line-strong);background:transparent}
+.learner-surface .library .cover{background:var(--surface);color:var(--accent);border-color:var(--line)}
+.learner-surface .library .cover>span:first-child{color:var(--muted)}
+.learner-surface .library .cover-work{color:var(--cta)}.learner-surface .library .cover-agents{color:var(--accent)}.learner-surface .library .cover-build{color:var(--gold)}
+.learner-surface .library progress::-webkit-progress-bar{background:var(--track)}.learner-surface .library progress::-webkit-progress-value{background:var(--accent)}.learner-surface .library progress::-moz-progress-bar{background:var(--accent)}
+.learner-surface .lesson-sidebar,.learner-surface .lesson-sidebar summary{color:var(--text)}
+.learner-surface .lesson-content a,.learner-surface .lesson-sidebar a{color:var(--accent)}
+.learner-surface .lesson-sidebar .small,.learner-surface .lesson-sidebar .meta{color:var(--muted)}
+.learner-surface .lesson-content,.learner-surface .lesson-sidebar{color-scheme:inherit}
+.learner-surface .lesson-content :focus-visible,.learner-surface .lesson-sidebar :focus-visible{outline-color:var(--cta)}
+/* ---- UX review fixes ---- */
+/* Paywall: the free-lesson link was the same colour as the panel */
+.learner-surface .paywall-offer a:not(.button){color:var(--on-accent);text-decoration-color:var(--on-accent-muted)}
+/* Buttons on accent panels use the inverse style, so dark themes never put coral on mint */
+.learner-surface .paywall-offer .button:not(.secondary),.learner-surface .resume-strip .button{background:var(--on-accent);color:var(--accent);border-color:var(--on-accent)}
+.learner-surface .paywall-offer .button:not(.secondary):hover,.learner-surface .resume-strip .button:hover{background:var(--panel);color:var(--accent)}
+.learner-surface .paywall-offer .button.secondary{color:var(--on-accent);border-color:var(--on-accent);background:transparent}
+.learner-surface .paywall-offer p,.learner-surface .paywall-offer .small{color:var(--on-accent-muted)}
+.learner-surface .paywall-offer h2{color:var(--on-accent)}
+/* Theme picker: header on desktop, footer on phones so the header fits one row */
+.learner-surface footer{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px}
+.footer-theme{display:none}
+@media(max-width:800px){.header-theme{display:none}.footer-theme{display:flex}.learner-surface .header-account{gap:16px}.learner-surface .club-header{flex-wrap:nowrap}}
+/* Settings page */
+.settings{max-width:640px}.settings h1{font-size:40px;margin:6px 0 10px}
+.settings-form{display:grid;gap:18px;margin:28px 0 36px;padding:24px;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--panel)}
+.settings-form label{display:grid;gap:8px;font-weight:600;color:var(--text)}
+.settings-form select{min-height:46px;padding:8px 12px;font-size:16px;font-weight:400}
+.settings-more{padding-top:20px;border-top:1px solid var(--line)}.settings-more h2{font-size:20px;margin:0 0 6px}
+/* Active section in the main navigation */
+.learner-surface .club-header nav a[aria-current="page"]{color:var(--accent);font-weight:700;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}
+@media(max-width:800px){.learner-surface .club-header nav a[aria-current="page"]{text-underline-offset:5px}}
+/* Course outline (course page, lesson sidebar, paywall) — same states as the map */
+.outline{display:flex;flex-direction:column;gap:10px}
+.outline-module{border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+.outline-module.is-coming{border-style:dashed}
+.outline-module summary{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;list-style:none;font-weight:600;color:var(--text)}
+.outline-module summary::-webkit-details-marker{display:none}
+.outline-module summary:after{content:'▾';margin-left:auto;color:var(--muted);transition:transform .15s}.outline-module:not([open]) summary:after{transform:rotate(-90deg)}
+.outline-module.is-coming summary{color:var(--muted)}
+.outline-index{flex:0 0 24px;height:24px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-size:12px;color:var(--muted)}
+.outline-title{flex:1;min-width:0}.outline-count{font-size:12px;color:var(--muted);font-weight:400}
+.outline-module ul{list-style:none;margin:0;padding:4px 0 8px;border-top:1px solid var(--line-soft)}
+.outline-lesson{display:flex;align-items:flex-start;gap:10px;padding:7px 14px;color:var(--text);text-decoration:none;font-size:15px;line-height:1.35}
+a.outline-lesson:hover{background:var(--hover)}a.outline-lesson[aria-current="page"]{background:var(--accent-soft);font-weight:600}
+.outline-lesson .tree-dot{flex:0 0 14px;width:14px;height:14px;margin-top:2px;border-radius:50%;border:2px solid var(--accent);background:var(--panel);position:relative}
+.outline-name{flex:1;min-width:0}.outline-meta{flex:0 0 auto;font-size:12px;color:var(--muted);margin-top:2px}
+.outline-lesson.is-coming{color:var(--muted)}.outline-lesson.is-locked .outline-meta{color:var(--gold-ink);font-weight:600}
+.learner-surface .lesson-sidebar .outline-lesson{font-size:14px;padding:6px 12px}
+/* "В этом уроке" */
+.lesson-toc{margin:0 0 24px}.lesson-toc-title{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.lesson-toc ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+.lesson-toc a{display:block;padding:6px 0 6px 14px;margin-left:-2px;border-left:2px solid transparent;color:var(--muted);text-decoration:none;font-size:14px;line-height:1.35}
+.lesson-toc a:hover{color:var(--text)}.lesson-toc a[aria-current]{color:var(--text);font-weight:600;border-left-color:var(--accent)}
+.learner-surface .lesson-sidebar{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+.lesson-outline>summary{font-weight:700;color:var(--text);margin:0 0 10px;cursor:pointer}
+.lesson-toc-mobile{display:none;margin:16px 0 8px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.lesson-toc-mobile summary{padding:12px 16px;font-weight:600;cursor:pointer;color:var(--text)}
+.lesson-toc-mobile ol{margin:0;padding:0 16px 14px 34px}.lesson-toc-mobile li{margin:6px 0}
+@media(max-width:1100px){.lesson-toc{display:none}.lesson-toc-mobile{display:block}.learner-surface .lesson-sidebar{order:1;position:static;max-height:none;overflow:visible;border:0;border-top:1px solid var(--line);padding-top:20px}}
+/* Lesson ending: practice is the main action; marking complete is quieter beside it */
+.learner-surface .completion.is-secondary{background:transparent;border:1px dashed var(--line-strong);padding:18px 22px}
+.learner-surface .completion.is-secondary h2{font-size:18px;margin:0 0 4px}
+.learner-surface .completion.is-secondary .button{background:transparent;color:var(--text);border:1px solid var(--line-strong)}
+.learner-surface .completion.is-secondary .button:hover{background:var(--hover)}
+.lesson-figure img{aspect-ratio:16/10;object-fit:contain;background:var(--surface)}
+/* Course page */
+.course-meta{color:var(--muted)}.course-intro .actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px}.course-map-link{font-weight:600}
+/* Library: coming courses */
+.coming{margin:40px 0 0}.coming>h2{margin:0 0 4px}.coming>p{color:var(--muted);margin:0 0 16px}
+.coming-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.learner-surface .coming-card{display:flex;flex-direction:column;gap:6px;padding:18px;border:1px dashed var(--line-strong);border-radius:var(--radius-card);color:var(--text);text-decoration:none;background:transparent}
+.coming-card:hover{border-color:var(--accent);background:var(--panel)}
+.coming-topic{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.coming-card strong{font-size:18px;line-height:1.25}
+.coming-meta{font-size:14px;color:var(--muted)}.learner-surface .coming-link{color:var(--accent);font-weight:600;font-size:14px;margin-top:auto}
+/* Map: course reached from a link */
+.tree-course.is-linked{box-shadow:0 0 0 4px var(--accent-soft);border-color:var(--accent)}
+/* Onboarding */
+.onb-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:320px;margin:8px 0 18px}
+.onb-steps span{height:6px;border-radius:99px;background:var(--track)}.onb-steps span.is-done{background:var(--accent)}
+.onboarding[data-step]:not([data-step="welcome"]) .onboarding-art{display:none}
+.onboarding[data-step]:not([data-step="welcome"]){grid-template-columns:minmax(0,680px)}
+.onb-pick{margin:18px 0 6px;padding:20px 22px;border:2px solid var(--accent);border-radius:var(--radius-card);background:var(--panel)}
+.onb-pick span{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.onb-pick strong{display:block;font-size:24px;line-height:1.25;margin:6px 0;color:var(--text)}.learner-surface .onb-pick p{margin:0;color:var(--muted)}
+.learner-surface .link-button{background:none;border:0;padding:12px 6px;min-height:44px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:4px}
+.learner-surface .link-button:hover{color:var(--text)}
+.onboarding-choice:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+/* Welcome */
+.welcome-actions{display:flex;flex-wrap:wrap;gap:12px;margin:26px 0 14px}
+.welcome-topics{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:center}
+.learner-surface .welcome-topic{display:flex;flex-direction:column;gap:4px;padding:18px;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--panel);color:var(--text);text-decoration:none}
+.welcome-topic:hover{border-color:var(--accent)}
+.welcome-topic strong{font-size:22px;font-family:var(--font-heading)}.welcome-topic span{font-size:14px;color:var(--muted)}.welcome-topic em{font-style:normal;font-size:13px;font-weight:600;color:var(--accent);margin-top:6px}
+.welcome-free{margin:48px 0}.welcome-free h2{font-size:26px;margin:0 0 16px}
+.welcome-free-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.learner-surface .welcome-lesson{display:flex;flex-direction:column;gap:6px;padding:20px;border-radius:var(--radius-card);background:var(--panel);border:1px solid var(--line);color:var(--text);text-decoration:none}
+.welcome-lesson:hover{border-color:var(--accent)}
+.welcome-lesson span{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.welcome-lesson strong{font-size:19px;line-height:1.3}.welcome-lesson em{font-style:normal;font-size:14px;color:var(--muted)}
+.learner-surface .welcome-principles h2{font-size:22px}.learner-surface .welcome-principles p{font-size:16px}
+@media(max-width:800px){.welcome-topics{grid-template-columns:1fr 1fr;gap:10px}.welcome-topic{padding:14px}.welcome-topic strong{font-size:18px}}
+/* Illustrations are drawn for light paper; dim them on dark themes */
+:root:is([data-theme="forest"],[data-theme="graphite"],[data-theme="midnight"],[data-theme="aurora"],[data-theme="dusk"]) :is(.login-art,.onboarding-art,.welcome-art) svg{filter:brightness(.72) saturate(.85)}

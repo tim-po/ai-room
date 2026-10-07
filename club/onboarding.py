@@ -8,8 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import click
-from flask import abort, g, jsonify, redirect, render_template, request, url_for
-from jinja2 import TemplateNotFound
+from flask import abort, g, jsonify, redirect, request
 
 STEPS = ('welcome', 'interests', 'pace', 'start')
 FIELDS = {'interests', 'experience', 'available_minutes', 'diagnostic_choice'}
@@ -55,7 +54,7 @@ CREATE TABLE IF NOT EXISTS onboarding_events_v1 (
 '''
 
 
-def register_onboarding(app, db, query, require_user):
+def register_onboarding(app, db, query, require_user, shell):
     def installed():
         return bool(query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='onboarding_state'", one=True))
 
@@ -96,7 +95,7 @@ def register_onboarding(app, db, query, require_user):
         # Explicit route allowlist, no decoding/normalization ambiguities or arbitrary query redirects.
         if not isinstance(target, str) or len(target) > 256:
             return '/'
-        if target in ('/', '/catalogue', '/profile', '/preferences', '/practice', '/diagnostic', '/help'):
+        if target in ('/', '/catalogue', '/discover', '/profile', '/preferences', '/practice', '/diagnostic', '/help', '/oauth/consent'):
             return target
         course = re.fullmatch(r'/courses/([A-Za-z0-9_.-]+)', target)
         if course and query("SELECT 1 FROM courses WHERE id=? AND status='published'", (course[1],), True):
@@ -109,13 +108,60 @@ def register_onboarding(app, db, query, require_user):
                 return target
         return '/'
 
+    def recommend(prefs):
+        """Rank permitted lessons by chosen interests, experience and time.
+        Lessons without a profile (synthetic fixtures) only win when nothing else fits."""
+        profiled = bool(query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='lesson_profiles'", one=True))
+        rows = query(f"""SELECT l.id,l.title,l.minutes,{'p.branch,p.level,p.demo' if profiled else 'NULL AS branch,NULL AS level,0 AS demo'}
+            FROM lessons l JOIN modules m ON m.id=l.module_id JOIN courses c ON c.id=m.course_id
+            {'LEFT JOIN lesson_profiles p ON p.lesson_id=l.id' if profiled else ''}
+            WHERE l.status='published' AND c.status='published' AND (l.access='free' OR ?='member')
+            ORDER BY c.id,m.position,l.position,l.id""", (g.user['entitlement'],))
+        interests, minutes = set(prefs.get('interests') or []), prefs.get('available_minutes')
+        experienced = prefs.get('experience') == 'experienced'
+
+        def score(row):
+            if row['demo']:
+                return -100, ()
+            reasons, value = [], 0
+            if row['branch'] is not None:
+                value += 1
+                if row['branch'] in interests:
+                    value += 4
+                    reasons.append('interest')
+                elif row['branch'] == 'basic-ai':
+                    value += 1 if interests else 4
+                    reasons.append('foundation')
+            if row['level'] == 'beginner' and not experienced:
+                value += 3
+                reasons.append('level')
+            elif row['level'] == 'beginner':
+                value -= 1
+            elif row['level'] in ('intermediate', 'advanced'):
+                value += 2 if experienced else -3
+            if minutes:
+                if row['minutes'] <= minutes:
+                    value += 2
+                    reasons.append('time')
+                elif row['minutes'] > 2 * minutes:
+                    value -= 1
+            return value, tuple(reasons)
+
+        best, reasons = None, ()
+        for row in rows:  # rows arrive in stable catalogue order; first maximum wins ties
+            value, why = score(row)
+            if best is None or value > best[0]:
+                best, reasons = (value, row), why
+        if not best:
+            return None
+        lesson = best[1]
+        return dict(lesson_id=lesson['id'], title=lesson['title'], url='/lessons/'+lesson['id'], minutes=lesson['minutes'],
+                    branch=lesson['branch'], reasons=list(reasons), reason='available_learning')
+
     def response(value):
         result = json.loads(json.dumps(value))
         result['return_to'] = permitted(value['return_to'], g.user)
-        lesson = query("""SELECT l.id,l.title,l.access FROM lessons l JOIN modules m ON m.id=l.module_id
-            JOIN courses c ON c.id=m.course_id WHERE l.status='published' AND c.status='published'
-            AND (l.access='free' OR ?='member') ORDER BY c.id,m.position,l.position,l.id LIMIT 1""", (g.user['entitlement'],), True)
-        result['recommendation'] = dict(lesson_id=lesson['id'], title=lesson['title'], url='/lessons/'+lesson['id'], reason='available_learning') if lesson else None
+        result['recommendation'] = recommend(value.get('draft') or value['committed_preferences'])
         from .release_bindings import available_forms
         from .transfer_sources import form_content_access
         from .form_lifecycle import lifecycle
@@ -165,13 +211,18 @@ def register_onboarding(app, db, query, require_user):
                 persist(user, value)
         return '/onboarding'
 
+    # Learning pages, and the app data behind them, wait until onboarding is finished or skipped.
+    pages = {'home', 'catalogue', 'discover', 'course', 'lesson', 'profile', 'preferences', 'skill_tree'}
+    page_data = {'home_api', 'catalogue_api', 'discover_api', 'search_api', 'course_api', 'lesson_page_api', 'profile_api', 'preferences_api'}
+
     @app.before_request
     def learner_entry():
         if (request.method == 'GET' and g.user and g.user['role'] == 'learner'
-                and request.endpoint in {'home', 'catalogue', 'course', 'lesson', 'profile', 'preferences', 'skill_tree'}
-                and installed()):
+                and request.endpoint in pages | page_data and installed()):
             value = state(g.user)
             if value['status'] not in ('completed', 'skipped'):
+                if request.endpoint in page_data:
+                    return jsonify(error='onboarding', message='Сначала завершите или пропустите настройку.', redirect='/onboarding'), 409
                 return redirect(login_destination(g.user, request.path))
 
     def learner():
@@ -184,10 +235,7 @@ def register_onboarding(app, db, query, require_user):
     @require_user
     def onboarding():
         learner()
-        try:
-            return render_template('onboarding.html', onboarding=response(state(g.user)))
-        except TemplateNotFound:
-            abort(503, 'Onboarding screen is awaiting the UI integration.')
+        return shell()
 
     @app.route('/api/onboarding', methods=['GET', 'PUT'])
     @require_user

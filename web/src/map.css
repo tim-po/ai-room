@@ -1,0 +1,82 @@
+/* Skill map additions: ranks on course cards, control-point flags, labels that keep a row's course
+   in view, and the medals that celebrate a new rank (components/Ranks.tsx). */
+
+/* Rank levels: Новичок copper, Практик silver, Профи gold, Мастер amber with a glow */
+.is-level-1{--medal:#d2925f;--medal-ink:#2b1608}
+.is-level-2{--medal:#cdd3dc;--medal-ink:#1d2229}
+.is-level-3{--medal:#ffc94d;--medal-ink:#2e2000}
+.is-level-4{--medal:#ff9f34;--medal-ink:#2a1503}
+
+.tree-course .tree-rank{position:absolute;top:-11px;right:14px;padding:3px 10px;border-radius:99px;font-style:normal;font-size:12px;font-weight:800;
+  letter-spacing:.02em;white-space:nowrap;background:var(--medal);color:var(--medal-ink);box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.tree-course .tree-rank.is-level-4{box-shadow:0 0 0 3px color-mix(in srgb,var(--medal) 30%,transparent),0 4px 18px color-mix(in srgb,var(--medal) 55%,transparent)}
+.tree-canvas[data-lod="far"] .tree-course .tree-rank{font-size:24px;top:-22px;right:10px;padding:5px 16px}
+
+/* Control points: a flag in each module's corner */
+
+.tree-flag{position:absolute;top:10px;right:10px;width:22px;height:22px;padding:3px;box-sizing:border-box;border-radius:50%;
+  fill:none;stroke:var(--muted);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;background:var(--surface);transition:background .3s,stroke .3s}
+.tree-flag.is-reached{background:#ffc94d;stroke:#2e2000;fill:#2e2000;box-shadow:0 0 0 3px rgba(255,201,77,.25)}
+.tree-flag.is-reached path{fill:#2e2000}
+.tree-flag.is-coming{opacity:.45}
+.tree-module h3{padding-right:40px}
+.tree-canvas[data-lod="far"] .tree-module ul{padding-right:54px}
+.tree-canvas[data-lod="far"] .tree-flag{width:40px;height:40px;top:50%;margin-top:-20px;right:8px;padding:7px;stroke-width:1.8}
+.tree-module.is-done{box-shadow:0 0 0 2px rgba(255,201,77,.35),0 10px 30px var(--shadow)}
+
+/* Where am I: course labels pinned to the left edge while their rows are on screen */
+.tree-context{position:absolute;left:12px;top:0;bottom:0;width:0;z-index:2;pointer-events:none}
+.tree-pin{position:absolute;left:0;top:0;display:grid;gap:1px;width:max-content;max-width:240px;padding:7px 14px 8px;border-radius:14px;text-align:left;cursor:pointer;
+  font:inherit;color:var(--text);white-space:nowrap;border:1px solid var(--glass-border,var(--line));background:var(--glass-strong,var(--panel));
+  box-shadow:0 1px 0 var(--glass-highlight,transparent) inset,0 8px 22px var(--shadow,rgba(0,0,0,.25));
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:opacity .18s}
+.tree-pin.is-shown{opacity:1;pointer-events:auto}
+.tree-pin:hover{border-color:var(--accent)}
+.tree-pin:before{content:'';position:absolute;left:-1px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.tree-pin-topic{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tree-pin strong{font-size:14px;line-height:1.25;overflow:hidden;text-overflow:ellipsis}
+.tree-pin .tree-rank{justify-self:start;margin-top:3px;padding:1px 8px;border-radius:99px;font-style:normal;font-size:11px;font-weight:800;background:var(--medal);color:var(--medal-ink)}
+@media (prefers-reduced-motion:reduce){.tree-pin,.tree-flag{transition:none}}
+
+/* Legend: the flag */
+.tree-legend .legend-flag{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#ffc94d}
+.tree-legend .legend-flag svg{width:12px;height:12px;fill:#2e2000;stroke:#2e2000;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* Medal (Ranks.tsx) */
+.medal{display:block;width:64px;height:64px;flex:0 0 auto}
+.medal .ring{fill:var(--medal);stroke:color-mix(in srgb,var(--medal) 60%,#fff);stroke-width:2}
+.medal .face{fill:color-mix(in srgb,var(--medal) 78%,#000)}
+.medal .star{fill:var(--medal)}
+.medal .ribbon{fill:color-mix(in srgb,var(--medal) 70%,#000)}
+
+/* A new rank or control point: on the map and in the finish dialog */
+.achievement{display:flex;align-items:center;gap:16px}
+.achievement p{margin:0}
+.achievement-kicker{font-size:11.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--accent-ink)}
+.achievement-title{font-size:21px;line-height:1.2;font-weight:800;letter-spacing:-.3px;color:var(--text)}
+.achievement-next{font-size:14px;color:var(--muted);margin-top:4px!important}
+.achievement.is-checkpoint .medal{width:48px;height:48px}
+.achievement.is-checkpoint .achievement-title{font-size:17px}
+.map-celebrate{position:absolute;z-index:4;left:50%;top:50%;width:min(440px,calc(100% - 32px));transform:translate(-50%,-50%);padding:24px 24px 20px;box-sizing:border-box;
+  border-radius:22px;border:1px solid var(--glass-border,var(--line));background:var(--glass-strong,var(--panel));
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 30px 80px var(--shadow,rgba(0,0,0,.35));animation:celebrate-in .5s cubic-bezier(.2,.9,.2,1.2)}
+.map-celebrate .achievement + .achievement{margin-top:14px;padding-top:14px;border-top:1px solid var(--line-soft,var(--line))}
+.map-celebrate-actions{display:flex;gap:10px;margin-top:18px}
+.map-celebrate .medal{animation:medal-in .7s cubic-bezier(.2,.9,.2,1.3) .15s both}
+@keyframes celebrate-in{from{opacity:0;transform:translate(-50%,-46%) scale(.96)}}
+@keyframes medal-in{from{opacity:0;transform:scale(.4) rotate(-25deg)}}
+.finish-earned{margin:18px 0 6px;padding:16px;border-radius:16px;background:color-mix(in srgb,#ffc94d 12%,transparent);border:1px solid color-mix(in srgb,#ffc94d 45%,transparent)}
+.finish-earned .achievement + .achievement{margin-top:12px}
+.finish-earned .medal{animation:medal-in .7s cubic-bezier(.2,.9,.2,1.3) .3s both}
+@media (prefers-reduced-motion:reduce){.map-celebrate,.map-celebrate .medal,.finish-earned .medal{animation:none}}
+
+/* Профиль: Звания */
+.rank-list{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.rank-list li{display:flex;align-items:center;gap:12px}
+.rank-list .medal{width:40px;height:40px}
+.rank-list .medal.is-level-0 .ring{fill:var(--surface);stroke:var(--line-strong)}
+.rank-list .medal.is-level-0 .face,.rank-list .medal.is-level-0 .star,.rank-list .medal.is-level-0 .ribbon{fill:var(--line)}
+.rank-list strong{display:block;font-size:15px;line-height:1.3}
+.rank-list span{display:block;font-size:13px;line-height:1.35;color:var(--muted)}
+.rank-meter{display:block;height:4px;margin-top:6px;border-radius:99px;background:var(--track);overflow:hidden}
+.rank-meter span{height:100%;background:#ffc94d;border-radius:99px}

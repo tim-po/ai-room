@@ -16,11 +16,16 @@ def test_activity_deduplication_privacy_and_role_boundaries(app):
     assert counts == {'course_started':1,'lesson_started':1,'practice_submitted':1,'lesson_completed':1}
     assert db.execute('SELECT COUNT(*) FROM learning_days').fetchone()[0] == 1
     assert 'PRIVATE DRAFT' not in str(db.execute('SELECT * FROM events').fetchall())
-    # A prior learning day makes the next first daily activity a return, once only.
+    # Opening a lesson is presence, not learning: it never makes a return on its own.
     db.execute("UPDATE learning_days SET day=date('now','-1 day')")
     db.commit()
     for _ in range(3):
         client.get('/lessons/' + FREE)
+    assert db.execute("SELECT COUNT(*) FROM events WHERE name='meaningful_return'").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM visit_days WHERE user_id='user-learner'").fetchone()[0] == 1
+    # A prior learning day makes the next first daily learning action a return, once only.
+    for _ in range(3):
+        assert post(client, '/api/lessons/'+FREE+'/practice', {'body':'PRIVATE DRAFT v2','status':'draft'}, csrf).status_code == 200
     assert db.execute("SELECT COUNT(*) FROM events WHERE name='meaningful_return'").fetchone()[0] == 1
     assert db.execute('SELECT COUNT(*) FROM course_starts').fetchone()[0] == 1
     assert client.get('/lessons/' + PAID).status_code == 403

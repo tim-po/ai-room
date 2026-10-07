@@ -1,4 +1,5 @@
 """Tester access-help regression, made isolated and extended to privacy/submission."""
+import json
 import sqlite3
 import pytest
 from test_learning import app, login, token, PAID
@@ -17,21 +18,21 @@ def test_access_help_is_reachable_and_private(app, who):
     csrf = login(client, who)
     path = '/help?lesson=' + PAID
     response = client.get(path)
-    assert response.status_code == 200
-    assert title in response.text and 'Сохранить вопрос' in response.text
+    data = client.get('/api/app/help?lesson=' + PAID).json
+    assert response.status_code == 200 and data['lesson'] == {'id': PAID, 'title': title}
     for private in ['PRIVATE LESSON BODY', 'PRIVATE PROMPT', 'PRIVATE PRACTICE']:
-        assert private not in response.text
+        assert private not in response.text and private not in json.dumps(data, ensure_ascii=False)
     assert client.post(path, data={'body': 'missing csrf'}).status_code == 400
     assert client.post(path, data={'csrf': csrf, 'body': '  '}).status_code == 400
     question = 'Мой частный вопрос о доступе'
     assert client.post(path, data={'csrf': csrf, 'body': question}).status_code == 302
-    assert question in client.get('/help').text
+    assert [t['body'] for t in client.get('/api/app/help').json['tickets']] == [question]
     for boundary in ['/lessons/' + PAID, '/api/lessons/' + PAID,
                      '/lessons/' + PAID + '/media', '/lessons/' + PAID + '/resources/checklist.txt']:
         assert client.get(boundary).status_code == 403
     other = app.test_client()
     login(other, 'member')
-    assert question not in other.get('/help').text
+    assert other.get('/api/app/help').json['tickets'] == []
     assert client.get('/admin').status_code == 403
     login(other, 'admin')
     inbox = other.get('/admin').text
@@ -53,6 +54,7 @@ def test_help_cannot_disclose_unpublished_context(app, entity, status):
     path = '/help?lesson=' + PAID
     response = client.get(path)
     assert response.status_code == 404 and title not in response.text
+    assert client.get('/api/app/help?lesson=' + PAID).status_code == 404
     assert client.post(path, data={'csrf': csrf, 'body': 'hidden context'}).status_code == 404
     with sqlite3.connect(app.config['DATABASE']) as db:
         assert db.execute('SELECT COUNT(*) FROM help_requests').fetchone()[0] == 0
