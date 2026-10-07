@@ -75,7 +75,9 @@ def test_static_files_are_versioned_and_cached(legacy):
     assert '/static/ui.css?v=' in html and 'href="/static/fonts/GolosText.woff2"' in html
     url = html.split('/static/ui.css?v=')[1].split('"')[0]
     assert 'immutable' in c.get('/static/ui.css?v=' + url).headers['Cache-Control']
-    assert c.get('/static/fonts/GolosText.woff2').headers['Cache-Control'] == 'public, max-age=86400'
+    font = legacy.test_client().get('/static/fonts/GolosText.woff2')
+    assert font.headers['Cache-Control'] == 'public, max-age=86400'
+    assert 'Set-Cookie' not in font.headers and 'Cookie' not in font.headers.get('Vary', '')   # a cookie would stop edge caching
     assert c.get('/api/app/discover').headers['Cache-Control'] == 'private, no-store'
     assert 'immutable' not in c.get('/static/missing.css?v=1').headers.get('Cache-Control', '')   # errors aren't kept
 

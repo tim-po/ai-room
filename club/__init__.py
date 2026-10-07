@@ -99,6 +99,10 @@ def create_app(config=None):
 
     @app.before_request
     def load_user():
+        # Static files never touch the session: a Set-Cookie on them would stop browsers and Cloudflare caching them.
+        if request.endpoint == 'static':
+            g.user = None
+            return
         # Increase the limit only for teaching uploads, before form parsing.
         if request.endpoint == 'upload':
             request.max_content_length = app.config['TEACHING_UPLOAD_LIMIT'] + 64 * 1024
