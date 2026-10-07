@@ -127,7 +127,8 @@ def register_attach(app, db, query, require_user, get_lesson, event, loop, store
             if not g.get('agent_session'):
                 response = jsonify(error='unauthorized', message='Нужен действующий ключ AI Room: заголовок Authorization: Bearer as_…')
                 response.status_code = 401
-                response.headers['WWW-Authenticate'] = 'Bearer realm="ai-room"'
+                # Points OAuth clients (claude.ai, ChatGPT connectors) to discovery: club/oauth.py.
+                response.headers['WWW-Authenticate'] = f'Bearer realm="ai-room", resource_metadata="{public_base()}/.well-known/oauth-protected-resource/mcp"'
                 return response
             return fn(*args, **kwargs)
         wrapped.__name__ = fn.__name__

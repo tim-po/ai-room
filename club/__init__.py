@@ -102,7 +102,7 @@ def create_app(config=None):
         if request.endpoint == 'upload':
             request.max_content_length = app.config['TEACHING_UPLOAD_LIMIT'] + 64 * 1024
         # Connected assistants authenticate with their own key only: no cookies, so no CSRF to check.
-        if attach['is_agent_request']():
+        if attach['is_agent_request']() or oauth['is_machine_request']():
             attach['authenticate']()
             return
         g.user = query('SELECT * FROM users WHERE id=?', (session['user_id'],), True) if session.get('user_id') else None
@@ -214,8 +214,11 @@ def create_app(config=None):
                 return spa_shell(401)
             with db():
                 db().execute('DELETE FROM login_attempts WHERE identity=?', (email,))
+            pending_connection = session.get('oauth_request')   # an assistant waiting for consent (club/oauth.py)
             session.clear()
             session.update(user_id=user['id'], csrf=secrets.token_hex(32))
+            if pending_connection:
+                session['oauth_request'] = pending_connection
             session.permanent = True
             destination = request.args.get('next', '/')
             if not destination.startswith('/') or destination.startswith('//') or '\\' in destination:
@@ -751,5 +754,8 @@ def create_app(config=None):
 
     from .attach import register_attach
     attach = register_attach(app, db, query, require_user, get_lesson, event, loop, store_practice, continue_url, continuation_context)
+
+    from .oauth import register_oauth
+    oauth = register_oauth(app, db, query, require_user, spa_shell, event)
 
     return app

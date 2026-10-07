@@ -57,7 +57,7 @@ _Status 2026-10-06:_
 - _Phase 1 is built: a copy-prompt fallback (`web/src/components/AssistantHandoff.tsx`)._
 - _Phase 2 is built (`club/attach.py`). The owner asked for the link to run the other way, "a link I paste to Claude". So the lesson's main action is now **Скопировать ссылку для ассистента**, a one-time link the learner pastes into any assistant. It works with claude.ai and ChatGPT as long as they can open links and the address is public, as well as with Claude Code and other agents. A consumer chat reads the lesson from the document; an agent that can make HTTP requests or use MCP can also save work back. The text prompt is the fallback for apps that can't open links._
 - _2026-10-07 fix: the Claude app opened the link in its own browser, which looks like a person, so it got the "paste this into your assistant" page instead of the lesson. Browsers now get the lesson as an HTML page with a save form (the key goes in a hidden field); only HEAD requests and link-preview bots leave the link unused._
-- _Phase 3, OAuth for claude.ai and ChatGPT connectors, is still to do._
+- _Phase 3 is built (`club/oauth.py`, `web/src/pages/Consent.tsx`). It provides discovery (RFC 9728 and 8414 metadata, and the `WWW-Authenticate` resource_metadata on `/mcp`), dynamic registration of public clients, a consent page, PKCE-bound single-use codes, day-long access tokens that reuse `connected_sessions`, and refresh tokens that rotate. To connect claude.ai: Settings → Connectors → Add custom connector → `https://airoom.nolimlabs.uk/mcp`._
 
 | Phase | What | Effort |
 |---|---|---|

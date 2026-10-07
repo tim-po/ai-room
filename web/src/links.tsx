@@ -6,6 +6,7 @@ import {Link} from 'react-router';
 const SPA_PATHS = [
   /^\/$/, /^\/(profile|catalogue|membership|preferences|help|onboarding|login)$/,
   /^\/(lessons|courses|materials)\/[^/]+$/,
+  /^\/oauth\/consent$/,
 ];
 export const isSpaPath = (path: string) => SPA_PATHS.some(pattern => pattern.test(path));
 

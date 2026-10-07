@@ -95,7 +95,7 @@ def register_onboarding(app, db, query, require_user, shell):
         # Explicit route allowlist, no decoding/normalization ambiguities or arbitrary query redirects.
         if not isinstance(target, str) or len(target) > 256:
             return '/'
-        if target in ('/', '/catalogue', '/profile', '/preferences', '/practice', '/diagnostic', '/help'):
+        if target in ('/', '/catalogue', '/profile', '/preferences', '/practice', '/diagnostic', '/help', '/oauth/consent'):
             return target
         course = re.fullmatch(r'/courses/([A-Za-z0-9_.-]+)', target)
         if course and query("SELECT 1 FROM courses WHERE id=? AND status='published'", (course[1],), True):

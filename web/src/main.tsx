@@ -5,6 +5,7 @@ import './app.css';
 import './loop.css';
 import {NotFound, RouteError} from './ErrorPage';
 import Catalogue, {catalogueLoader} from './pages/Catalogue';
+import Consent, {consentLoader} from './pages/Consent';
 import Course, {courseLoader} from './pages/Course';
 import Help, {helpLoader} from './pages/Help';
 import Home, {homeLoader} from './pages/Home';
@@ -35,6 +36,7 @@ const router = createBrowserRouter([
         {path: '/help', element: <Help />, loader: helpLoader},
         {path: '/onboarding', element: <Onboarding />, loader: onboardingLoader, shouldRevalidate: onboardingShouldRevalidate},
         {path: '/login', element: <Login />},
+        {path: '/oauth/consent', element: <Consent />, loader: consentLoader},
         {path: '*', element: <NotFound />},
       ],
     }],

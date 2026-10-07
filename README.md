@@ -63,6 +63,8 @@ A learner can give their own AI assistant a one-time link from a lesson ("Ско
 - **Revoking.** Learners see and switch off connections in Моё обучение → Подключения.
 - **Storage.** Codes and keys are stored as hashes only.
 
+- **Connectors.** claude.ai and ChatGPT add AI Room as a custom MCP connector at `<public url>/mcp` and sign in with OAuth (`club/oauth.py`): dynamic client registration, PKCE, a consent page in AI Room, and rotating refresh tokens. These connections appear in the same Подключения list.
+
 Set `CLUB_PUBLIC_URL=https://…` on staging so links and calendar events carry the public address. claude.ai and ChatGPT fetch links from their own servers, so they can't reach a local `127.0.0.1` link; a local Claude Code can.
 
 ## Setup
