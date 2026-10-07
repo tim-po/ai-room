@@ -5,7 +5,10 @@ learner's lessons, save practice and mark sections reached. See docs/design/atta
 
 - Links and keys are stored as SHA-256 hashes only; a link lives 15 minutes and works once (the claim
   is a single conditional UPDATE, so two fetches can't both win).
-- HEAD requests, link-preview bots and ordinary browser visits don't use the link up.
+- HEAD requests and link-preview bots don't use the link up. Everything else does, browsers included:
+  assistants often open links in a real browser (the Claude app does), which looks just like a person.
+  Browsers get an HTML page with a save form (a browsing assistant can't send headers, but can submit a
+  form); other clients get Markdown.
 - A key belongs to one learner, expires after 7 days, can be revoked, and sees exactly what that
   learner can see now (entitlements are re-read on every request). It never grants the web session.
 """
@@ -20,8 +23,10 @@ from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 
 from flask import abort, g, jsonify, request
+from markupsafe import Markup, escape
 from werkzeug.exceptions import HTTPException
 
+from .legacy_content import render_blocks
 from .learning_loop import checkpoints
 
 LINK_MINUTES = 15
@@ -106,7 +111,10 @@ def register_attach(app, db, query, require_user, get_lesson, event, loop, store
     def authenticate():
         """Sets g.user and g.agent_session from a valid key; agents never use the browser session."""
         g.user = g.agent_session = None
-        match = KEY.fullmatch(request.headers.get('Authorization', ''))
+        header = request.headers.get('Authorization', '')
+        if not header and request.method == 'POST' and request.mimetype == 'application/x-www-form-urlencoded':
+            header = 'Bearer ' + request.form.get('key', '')   # the save form on the link page
+        match = KEY.fullmatch(header)
         if not match:
             return
         ensure()
@@ -235,13 +243,7 @@ def register_attach(app, db, query, require_user, get_lesson, event, loop, store
             return stub('Эта ссылка AI Room уже использована. Попросите ученика создать новую в уроке — кнопка «Скопировать ссылку для ассистента».', 409)
         if state == 410:
             return stub('Срок действия ссылки истёк (15 минут). Попросите ученика создать новую в уроке.', 410)
-        # A person opening the link, or a chat app drawing a preview, must not use it up.
-        if request.headers.get('Sec-Fetch-Mode') == 'navigate':
-            page = ('<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-                    '<title>Ссылка для ассистента · AI Room</title><body><h1>Эта ссылка — для вашего ИИ-ассистента</h1>'
-                    '<p>Вставьте её в чат с Claude, ChatGPT или в Claude Code: ассистент откроет урок по ней. '
-                    'Ссылка ещё не использована и действует 15 минут с момента создания.</p><p><a href="/">Вернуться в AI Room</a></p></body></html>')
-            return app.response_class(page, mimetype='text/html')
+        # A chat app drawing a link preview must not use it up.
         if PREVIEW_BOTS.search(request.headers.get('User-Agent', '')):
             return stub('AI Room: учебная ссылка для ИИ-ассистента. Откройте её в чате с ассистентом.')
         session_id = secrets.token_hex(6)
@@ -259,17 +261,22 @@ def register_attach(app, db, query, require_user, get_lesson, event, loop, store
         g.agent_session = query('SELECT * FROM connected_sessions WHERE id=?', (session_id,), True)
         with db():
             event('session_connected', link['lesson_id'])
-        return app.response_class(document(link, key, expires), mimetype='text/markdown', headers={'X-Robots-Tag': 'noindex'})
+        lesson = context(link)
+        if 'text/html' in request.headers.get('Accept', ''):
+            return app.response_class(page(lesson, key, expires), mimetype='text/html', headers={'X-Robots-Tag': 'noindex'})
+        return app.response_class(document(lesson, key, expires), mimetype='text/markdown', headers={'X-Robots-Tag': 'noindex'})
 
-    def document(link, key, expires):
-        base = public_base()
+    def context(link):
         lesson_id = link['lesson_id'] or (continuation()['unfinished'] or {}).get('lesson_id')
-        lesson = None
-        if lesson_id:
-            try:
-                lesson = lesson_payload(lesson_id, link['draft'])
-            except HTTPException:
-                lesson = None
+        if not lesson_id:
+            return None
+        try:
+            return lesson_payload(lesson_id, link['draft'])
+        except HTTPException:   # e.g. the learner lost access to a club lesson meanwhile
+            return None
+
+    def document(lesson, key, expires):
+        base = public_base()
         out = [f'# AI Room: учебная ссылка от ученика ({g.user["name"]})', '',
                'Ученик учебной платформы AI Room прислал вам эту ссылку, чтобы вы помогли ему с обучением. '
                'Ниже — его урок и ключ доступа, через который можно сохранить результат в его аккаунт.', '']
@@ -322,6 +329,73 @@ def register_attach(app, db, query, require_user, get_lesson, event, loop, store
             out += ['', '## Текст урока', '', lesson['text']]
         return '\n'.join(out) + '\n'
 
+    def page(lesson, key, expires):
+        """The link as a web page, for assistants that open links in a browser: the same content as the
+        Markdown document plus a form that saves the work (the key travels in the form)."""
+        base = public_base()
+        h = lambda value: escape(value)
+        parts = ['<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">',
+                 '<meta name="robots" content="noindex"><title>Урок для ИИ-ассистента · AI Room</title><link rel="stylesheet" href="/static/attach.css"></head>',
+                 '<body><main>', '<p class="eyebrow">AI Room · страница для ИИ-ассистента</p>',
+                 f'<h1>{h(lesson["title"]) if lesson else "Обучение в AI Room"}</h1>',
+                 f'<p class="lead">Ученик ({h(g.user["name"])}) открыл эту страницу для своего ИИ-ассистента, чтобы тот помог с уроком: '
+                 'ниже урок, задание и форма, которой можно сохранить работу ученика в AI Room.</p>',
+                 '<p class="note">Если вы ученик и открыли страницу сами — ничего страшного: в уроке можно создать новую ссылку для ассистента, '
+                 'а это подключение отключается в «Моё обучение → Подключения».</p>']
+        if lesson:
+            parts.append(f'<p class="meta">Курс «{h(lesson["course"])}» · около {lesson["minutes"]} минут · <a href="{h(lesson["url"])}">урок на сайте</a></p>')
+            parts.append(f'<p><strong>Цель урока:</strong> {h(lesson["objective"])}</p>')
+            if lesson['sections']:
+                items = ''.join(f'<li>{h(s["title"])}{" ✓" if s["reached"] else ""}{" <em>← ученик здесь</em>" if s["number"] == lesson["current_section"] else ""}</li>'
+                                for s in lesson['sections'])
+                parts.append(f'<h2>Разделы урока</h2><ol>{items}</ol>')
+            draft = lesson['unsaved_draft'] or (lesson['practice'] or {}).get('body') or ''
+            if lesson['task']:
+                parts.append(f'<h2>Задание</h2><p>{h(lesson["task"])}</p>')
+                if lesson['checklist']:
+                    parts.append('<h2>Критерии хорошего результата</h2><ul>' + ''.join(f'<li>{h(c)}</li>' for c in lesson['checklist']) + '</ul>')
+                if draft:
+                    parts.append(f'<h2>Черновик ученика</h2><pre>{h(draft)}</pre>')
+                parts.append('<h2>Как помочь</h2><ol><li>Спросите, к какой своей задаче ученик применяет урок, — по одному вопросу за раз.</li>'
+                             '<li>Помогайте шаг за шагом; не делайте работу целиком за него.</li>'
+                             '<li>Проверьте результат по критериям и подскажите, что улучшить.</li>'
+                             '<li>Когда ученик доволен итогом, сохраните его формой ниже (с согласия ученика).</li></ol>')
+                parts.append(f'<section class="save" id="save"><h2>Сохранить работу в AI Room</h2>'
+                             f'<p>Работа появится у ученика в «Моих работах» с пометкой, что её сохранил ассистент.</p>'
+                             f'<form method="post" action="/api/agent/lessons/{h(lesson["id"])}/practice">'
+                             f'<input type="hidden" name="key" value="{h(key)}">'
+                             f'<label for="body">Текст работы</label><textarea id="body" name="body" rows="10" maxlength="12000" required>{h(draft)}</textarea>'
+                             '<fieldset><legend>Это</legend><label><input type="radio" name="status" value="draft" checked> черновик</label>'
+                             '<label><input type="radio" name="status" value="submitted"> итоговая версия</label></fieldset>'
+                             '<button type="submit">Сохранить в AI Room</button></form></section>')
+            else:
+                parts.append('<h2>Как помочь</h2><p>Спросите, над чем ученик работает, и объясните главное из урока на его примере. Вопросы задавайте по одному.</p>')
+        else:
+            parts.append('<p>Сейчас у ученика нет начатого урока. Спросите, чему он хочет научиться.</p>')
+        parts.append(f'<details><summary>Доступ через API и MCP</summary><p>Ключ действует до {h(expires)} UTC; используйте его только для этой учебной работы.</p>'
+                     f'<pre>Authorization: Bearer {h(key)}</pre><ul>'
+                     f'<li><code>GET {h(base)}/api/agent/status</code> — где ученик сейчас</li>'
+                     f'<li><code>GET {h(base)}/api/agent/lessons/&lt;id&gt;</code> — урок</li>'
+                     f'<li><code>POST {h(base)}/api/agent/lessons/&lt;id&gt;/practice</code> с JSON <code>{{"body": "…", "status": "draft"}}</code></li>'
+                     f'<li>MCP: <code>{h(base)}/mcp</code> с тем же заголовком</li></ul></details>')
+        parts.append('<p class="note">Завершить урок ученик отмечает сам на сайте; ассистент этого не делает.</p>')
+        if lesson:
+            lesson_row = get_lesson(lesson['id'])
+            blocks = 'body_format' in lesson_row.keys() and lesson_row['body_format'] == 'blocks'
+            body = render_blocks(lesson_row['body']) if blocks else Markup(''.join(f'<p>{h(p)}</p>' for p in lesson_row['body'].split('\n\n')))
+            parts.append(f'<h2>Текст урока</h2><article class="lesson">{body}</article>')
+        parts.append('</main></body></html>')
+        return ''.join(str(x) for x in parts)
+
+    def saved_page(result):
+        saved = result['saved']
+        return ('<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+                '<meta name="robots" content="noindex"><title>Работа сохранена · AI Room</title><link rel="stylesheet" href="/static/attach.css"></head>'
+                f'<body><main><p class="eyebrow">AI Room</p><h1>Работа сохранена ✓</h1>'
+                f'<p>{"Итоговая версия" if saved["status"] == "submitted" else "Черновик"} теперь в «Моих работах» ученика. '
+                'Чтобы обновить её, вернитесь на предыдущую страницу и сохраните ещё раз.</p>'
+                f'<pre>{escape(saved["body"])}</pre></main></body></html>')
+
     # ---- Agent HTTP API ----
     def body_of():
         data = request.get_json(silent=True)
@@ -342,6 +416,9 @@ def register_attach(app, db, query, require_user, get_lesson, event, loop, store
     @app.post('/api/agent/lessons/<lesson_id>/practice')
     @require_agent
     def agent_practice(lesson_id):
+        if request.mimetype == 'application/x-www-form-urlencoded':   # the form on the link page
+            result = save(lesson_id, request.form.get('body'), request.form.get('status', 'draft'))
+            return app.response_class(saved_page(result), mimetype='text/html')
         data = body_of()
         return jsonify(save(lesson_id, data.get('body'), data.get('status', 'draft')))
 

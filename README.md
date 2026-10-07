@@ -57,7 +57,8 @@ The two tables (`lesson_steps`, `learning_plans`) are additive and created on fi
 ## Attached assistants
 
 A learner can give their own AI assistant a one-time link from a lesson ("Скопировать ссылку для ассистента", `club/attach.py`; design in `docs/design/attached-sessions.md`).
-- **The link.** The assistant's first fetch of `/attach/<code>` returns a Markdown document: the lesson, the task, the criteria, the draft, and a 7-day key. HEAD requests, link-preview bots and ordinary browser visits don't use the link up. It works once and expires after 15 minutes.
+- **The link.** The assistant's first visit to `/attach/<code>` returns the lesson, the task, the criteria, the draft and a 7-day key. It works once and expires after 15 minutes; HEAD requests and link-preview bots don't use it up.
+- **Browsers.** Assistants that open links in a real browser (the Claude app, browser agents) get an HTML page with a "Сохранить в AI Room" form, since they can't send headers. Other clients get Markdown.
 - **The key.** It authenticates `GET/POST /api/agent/*` and the MCP endpoint `POST /mcp`. Through them the assistant can read the learner's lessons (with live entitlements), save practice and mark sections reached. Lesson completion stays with the learner.
 - **Revoking.** Learners see and switch off connections in Моё обучение → Подключения.
 - **Storage.** Codes and keys are stored as hashes only.

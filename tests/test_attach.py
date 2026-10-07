@@ -44,7 +44,6 @@ def test_link_works_once_and_previews_do_not_use_it(legacy):
     guest = legacy.test_client()
     assert guest.head(path).status_code == 200                                              # HEAD validates only
     assert 'учебная ссылка' in guest.get(path, headers={'User-Agent': 'TelegramBot (like TwitterBot)'}).text   # preview stub
-    assert 'для вашего ИИ-ассистента' in guest.get(path, headers={'Sec-Fetch-Mode': 'navigate'}).text       # a person's browser
     document = claim(legacy, path)
     assert document.status_code == 200 and document.mimetype == 'text/markdown'
     text = document.text
@@ -154,3 +153,27 @@ def test_link_without_lesson_falls_back_to_status(app):
     c = app.test_client(); csrf = login(c)
     text = claim(app, new_link(c, csrf)).text
     assert 'нет начатого урока' in text and '/api/agent/status' in text
+
+
+BROWSER = {'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8', 'Sec-Fetch-Mode': 'navigate',
+           'User-Agent': 'Mozilla/5.0 (Macintosh) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141 Safari/537.36'}
+
+
+def test_browsing_assistant_gets_a_page_and_can_save_with_the_form(legacy):
+    # Assistants often open links in a real browser (the Claude app does): it must work there too.
+    c = legacy.test_client(); csrf = login(c, learner(legacy, 'browser', onboarded=True))
+    path = new_link(c, csrf, lesson_id=LESSON)
+    page = legacy.test_client().get(path, headers=BROWSER)
+    assert page.status_code == 200 and page.mimetype == 'text/html'
+    html = page.text
+    assert 'Первый полезный результат за 20 минут' in html and 'Критерии хорошего результата' in html and 'Текст урока' in html
+    assert f'action="/api/agent/lessons/{LESSON}/practice"' in html
+    key = re.search(r'name="key" value="(as_[\w-]+)"', html)[1]
+    assert legacy.test_client().get(path, headers=BROWSER).status_code == 409          # used up by the browser visit
+    saved = legacy.test_client().post(f'/api/agent/lessons/{LESSON}/practice', data={'key': key, 'body': 'Итог из браузера', 'status': 'submitted'})
+    assert saved.status_code == 200 and 'Работа сохранена' in saved.text
+    practice = c.get('/api/app/lessons/' + LESSON).json['practice']
+    assert practice['body'] == 'Итог из браузера' and practice['status'] == 'submitted' and practice['via'] == 'ИИ-ассистент'
+    # the form needs the key: the learner's own cookies don't count on agent endpoints
+    assert c.post(f'/api/agent/lessons/{LESSON}/practice', data={'body': 'x', 'status': 'draft', 'csrf': csrf}).status_code == 401
+    assert legacy.test_client().post(f'/api/agent/lessons/{LESSON}/practice', data={'key': key[:-3] + 'abc', 'body': 'x'}).status_code == 401

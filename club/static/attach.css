@@ -1,0 +1,19 @@
+/* The assistant link page (club/attach.py): plain, readable, light and dark. */
+:root{color-scheme:light dark;--text:#1f1a16;--muted:#6b6058;--line:#e4dbd2;--accent:#d97a1e;--panel:#fbf7f2}
+@media(prefers-color-scheme:dark){:root{--text:#f1e9e1;--muted:#b3a79c;--line:#3a312a;--accent:#ff9f34;--panel:#1d1814}}
+body{margin:0;background:var(--panel);color:var(--text);font:17px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:40px 20px 80px}
+h1{font-size:32px;line-height:1.2;margin:8px 0 12px}h2{font-size:21px;margin:32px 0 10px}
+a{color:var(--accent)}.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.lead{font-size:19px}.note,.meta{color:var(--muted);font-size:15px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(127,127,127,.1);padding:12px 14px;border-radius:10px;font-size:14px}
+em{color:var(--accent);font-style:normal;font-weight:600}
+.save{margin:32px 0;padding:20px;border:1px solid var(--line);border-radius:14px}
+.save h2{margin-top:0}label{display:block;font-weight:600;margin:12px 0 6px}
+textarea{width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit}
+fieldset{border:0;padding:0;margin:12px 0;display:flex;gap:18px;align-items:center}legend{float:left;margin-right:6px;color:var(--muted)}
+fieldset label{display:flex;gap:6px;align-items:center;font-weight:500;margin:0}
+button{font:inherit;font-weight:600;padding:10px 18px;border-radius:999px;border:0;background:var(--accent);color:#1f1a16;cursor:pointer}
+details{margin:32px 0;padding:12px 16px;border:1px solid var(--line);border-radius:12px}summary{cursor:pointer;font-weight:600}
+.lesson img{max-width:100%;height:auto;border-radius:10px}.lesson iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:10px}
+.lesson figure{margin:16px 0}.lesson button{display:none}
