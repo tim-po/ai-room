@@ -57,7 +57,7 @@ export default function Consent() {
       </div>
       <p className="small">
         После ответа вы вернётесь в {data.redirect_host}. Доступ продлевается, пока ассистент им пользуется, и заканчивается через {data.access_days} дней без использования.
-        Отключить можно в любой момент: <AppLink to="/profile#connections">«Моё обучение» → Подключения</AppLink>.
+        Отключить можно в любой момент: <AppLink to="/profile#connections">«Профиль» → Подключения</AppLink>.
       </p>
       {error && <p className="notice error" role="alert">{error}</p>}
       <div className="actions">

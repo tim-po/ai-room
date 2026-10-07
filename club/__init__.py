@@ -1,3 +1,4 @@
+import hashlib
 import hmac
 import mimetypes
 import re
@@ -122,7 +123,29 @@ def create_app(config=None):
             response.headers['Content-Security-Policy'] = response.headers['Content-Security-Policy'].replace("style-src 'self'", "style-src 'self' 'unsafe-inline'")
         if not request.path.startswith('/static/'):
             response.headers['Cache-Control'] = 'private, no-store'
+        elif response.status_code in (200, 304):
+            # Hashed bundle files and versioned URLs (?v=, added by url_for) never change: browsers and
+            # Cloudflare keep them. Files referenced from CSS (fonts, sky art) are kept for a day.
+            versioned = request.path.startswith('/static/app/assets/') or request.args.get('v')
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable' if versioned else 'public, max-age=86400'
         return response
+
+    static_versions = {}
+
+    @app.url_defaults
+    def static_version(endpoint, values):
+        # ?v=<content hash> on every static URL the templates build, so a changed file gets a new URL.
+        if endpoint != 'static' or 'v' in values or 'filename' not in values:
+            return
+        path = Path(app.static_folder) / values['filename']
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            return
+        cached = static_versions.get(values['filename'])
+        if not cached or cached[0] != mtime:
+            cached = static_versions[values['filename']] = (mtime, hashlib.sha1(path.read_bytes()).hexdigest()[:10])
+        values['v'] = cached[1]
 
     @app.template_filter('plural_ru')
     def plural_ru(value, one, few, many):
@@ -175,6 +198,8 @@ def create_app(config=None):
 
     from .learning_loop import register_learning_loop
     loop = register_learning_loop(app, db, query, require_user, get_lesson, event, learning_activity)
+    from .ranks import register_ranks
+    ranks = register_ranks(app, db, query, require_user)
 
     def cards():
         from .tree import catalog_index
@@ -254,7 +279,8 @@ def create_app(config=None):
         tree = build_tree(query, g.user, can_access, unfinished['lesson_id'] if unfinished else None)
         free_lessons = [dict(l, course=c['title'], topic=t['title']) for t in tree['topics'] for c in t['courses']
                         for m in c['modules'] for l in m['lessons'] if l['state'] == 'open'][:3] if not g.user else []
-        return dict(tree=tree, continuation=continuation, free_lessons=free_lessons, briefing=loop['briefing'](unfinished),
+        achievements = ranks['sync'](tree)   # course ranks and control points on the map; new ones to celebrate
+        return dict(tree=tree, continuation=continuation, free_lessons=free_lessons, briefing=loop['briefing'](unfinished), achievements=achievements,
                     next=dict(id=next_lesson['id'], title=next_lesson['title'], url='/lessons/' + next_lesson['id']) if next_lesson else None)
 
     def continue_url():
@@ -304,7 +330,10 @@ def create_app(config=None):
 
     @app.get('/catalogue')
     def catalogue():
-        return spa_shell()
+        return spa_shell()   # the app shows Обзор here too; old links keep working
+
+    from .discover import register_discover
+    register_discover(app, query, can_access, cards, continuation_context, spa_shell)
 
     @app.get('/api/app/catalogue')
     def catalogue_api():
@@ -455,6 +484,11 @@ def create_app(config=None):
             if completed and (not old or not old['completed']):
                 if not query("SELECT 1 FROM events WHERE user_id=? AND lesson_id=? AND name='lesson_completed'", (g.user['id'], lesson_id), True):
                     event('lesson_completed', lesson_id)
+        if request.is_json:
+            # A control point or a rank earned by this lesson is shown in the finish dialog.
+            from .tree import build_tree
+            earned = ranks['sync'](build_tree(query, g.user, can_access)) if completed else []
+            return jsonify(ok=True, earned=earned)
         return saved_response(lesson_id, 'Урок завершён. Прогресс сохранён.' if completed else 'Урок снова в работе.')
 
     @app.route('/api/lessons/<lesson_id>/practice', methods=['GET', 'POST'])
@@ -599,7 +633,21 @@ def create_app(config=None):
         material_favourites = query('''SELECT m.id,m.title FROM material_favourites f JOIN materials m ON m.id=f.material_id WHERE f.user_id=? AND m.status='published' ''', (g.user['id'],))
         user = g.user
         continuation = continuation_context()
-        return dict(user=dict(name=user['name'], email=user['email'], entitlement=user['entitlement'], weekly_goal=user['weekly_goal']),
+        from .tree import build_tree
+        tree = build_tree(query, user, can_access)
+        ranks['sync'](tree)
+        titles = [dict(course=c['id'], course_title=c['title'], topic=t['title'], **c['standing']) for t in tree['topics'] for c in t['courses']
+                  if c['standing']['level'] or c['id'] in started_ids]
+        # The profile took over the club page: membership status and what the club adds live here.
+        lessons = membership['counts']()
+        club = dict(member_lessons=lessons['member'] or 0, free_lessons=lessons['free'] or 0, demo=bool(app.config['DEMO_CHECKOUT']))
+        stats = dict(
+            lessons_done=query('''SELECT COUNT(*) n FROM progress p JOIN lessons l ON l.id=p.lesson_id
+                WHERE p.user_id=? AND p.completed=1 AND l.status='published' ''', (user['id'],), True)['n'],
+            works=len(practices),
+            days=query("SELECT COUNT(*) n FROM learning_days WHERE user_id=? AND day>=date('now','-29 days')", (user['id'],), True)['n'])
+        return dict(user=dict(name=user['name'], email=user['email'], entitlement=user['entitlement'], weekly_goal=user['weekly_goal'], role=user['role']),
+                    club=club, stats=stats, ranks=sorted(titles, key=lambda r: -r['level']),
                     continuation=continuation, briefing=loop['briefing'](continuation['unfinished']), plan=loop['plan'](),
                     weekly=weekly_completed(),
                     practices=[dict(p) | dict(via=attach['origin'](p['lesson_id'])) for p in practices],
@@ -726,7 +774,7 @@ def create_app(config=None):
     register_legacy_content(app, db)
 
     from .membership import register_membership
-    register_membership(app, db, query, require_user, spa_shell)
+    membership = register_membership(app, db, query, require_user, spa_shell)
 
     from .routes import register_routes
     selected_route, choose_route_goal = register_routes(app, db, query, can_access, require_user, GOALS)

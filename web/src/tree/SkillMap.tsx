@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {ReturnBriefing, stepLabel} from '../components/Briefing';
+import {MapCelebration} from '../components/Ranks';
 import {AppLink} from '../Shell';
 import type {HomeData} from '../types';
 // The canvas engine is imperative DOM code (layout, pan/zoom, level-of-detail tweens); React owns
@@ -20,7 +21,9 @@ export default function SkillMap({data}: {data: HomeData}) {
   // After a break the strip opens into a briefing over the map; hiding it lasts for this visit.
   const hideKey = `briefing-hidden:${briefing?.lesson_id}`;
   const [briefingHidden, setBriefingHidden] = useState(() => { try { return sessionStorage.getItem(hideKey) === '1'; } catch { return false; } });
-  const showBriefing = !!briefing?.returning && !briefingHidden;
+  // A new rank or control point since the last visit is celebrated once, before the briefing.
+  const [celebrating, setCelebrating] = useState(() => (data.achievements ?? []).length > 0);
+  const showBriefing = !!briefing?.returning && !briefingHidden && !celebrating;
   const step = stepLabel(briefing);
   const resume = unfinished
     ? {label: unfinished.status === 'draft' ? 'Черновик ждёт вас' : 'Вы остановились на уроке', title: unfinished.title + (step ? ` · ${step}` : ''),
@@ -52,6 +55,7 @@ export default function SkillMap({data}: {data: HomeData}) {
       )}
       <p className="tree-status" role="status" data-tree-status />
       <div className="tree-viewport"><div className="tree-canvas" /></div>
+      {celebrating && <MapCelebration items={data.achievements} onClose={() => setCelebrating(false)} />}
       {showBriefing && (
         <ReturnBriefing briefing={briefing!} className="map-briefing"
           onHide={() => { setBriefingHidden(true); try { sessionStorage.setItem(hideKey, '1'); } catch { /* per-visit nicety only */ } }} />
@@ -60,6 +64,7 @@ export default function SkillMap({data}: {data: HomeData}) {
         {LEGEND.map(([state, label]) => (
           <li key={state}><span className={`tree-lesson is-${state}`}><span className="tree-dot" /></span>{label}</li>
         ))}
+        <li><span className="legend-flag"><svg viewBox="0 0 16 16"><path d="M4.5 14V2.5M4.5 3h7.5l-2 3 2 3H4.5" /></svg></span>Контрольная точка</li>
       </ul>
     </section>
   );

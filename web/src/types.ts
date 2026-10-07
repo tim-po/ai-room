@@ -15,7 +15,23 @@ export interface TreeModule {
   title: string;
   state: 'done' | 'active' | 'coming';
   lessons: TreeLesson[];
+  /** Control point reached: every lesson of the module completed (club/ranks.py). */
+  checkpoint?: boolean;
 }
+
+/** The learner's rank on a course: Новичок → Практик → Профи → Мастер (club/ranks.py). */
+export interface Standing {
+  level: 0 | 1 | 2 | 3 | 4;
+  title: string | null;
+  rank: string | null;
+  checkpoints: number;
+  reached: number;
+  next: string;
+}
+
+export type Achievement =
+  | {kind: 'rank'; id: string; course: string; course_title: string; topic: string; level: number; rank: string; title: string; next: string}
+  | {kind: 'checkpoint'; id: string; course: string; course_title: string; module: string; number: number; of: number};
 
 export interface TreeCourse {
   id: string;
@@ -29,6 +45,8 @@ export interface TreeCourse {
   next: {title: string; url: string} | null;
   current: boolean;
   topic?: string;
+  rank_name?: string | null;
+  standing?: Standing;
 }
 
 export interface TreeTopic {
@@ -80,6 +98,8 @@ export interface HomeData {
   briefing: Briefing | null;
   next: {id: string; title: string; url: string} | null;
   free_lessons: (TreeLesson & {course: string; topic: string})[];
+  /** Earned and not yet celebrated. */
+  achievements: Achievement[];
 }
 
 export interface LessonInfo {
@@ -152,7 +172,10 @@ export interface CourseProgress {
 }
 
 export interface ProfileData {
-  user: {name: string; email: string; entitlement: string; weekly_goal: number};
+  user: {name: string; email: string; entitlement: string; weekly_goal: number; role: string};
+  club: {member_lessons: number; free_lessons: number; demo: boolean};
+  stats: {lessons_done: number; works: number; days: number};
+  ranks: (Standing & {course: string; course_title: string; topic: string})[];
   continuation: Continuation;
   briefing: Briefing | null;
   plan: Plan;
@@ -163,50 +186,6 @@ export interface ProfileData {
   completed_courses: CourseProgress[];
   favourites: {id: string; title: string}[];
   material_favourites: {id: string; title: string}[];
-}
-
-// Library (/api/app/catalogue)
-export interface CourseCard {
-  id: string;
-  title: string;
-  description: string;
-  goal: string;
-  level: string;
-  topic: string;
-  total: number;
-  catalog_total: number;
-  minutes: number;
-  free: number;
-  done: number;
-}
-
-export interface MaterialCard {
-  id: string;
-  title: string;
-  description: string;
-  outcome: string;
-  format: string;
-  goal: string;
-  level: string;
-  tools: string;
-  minutes: number;
-  access: 'free' | 'member';
-}
-
-export interface ComingCourse {
-  id: string;
-  title: string;
-  topic: string;
-  level: string;
-  modules: number;
-  total: number | null;
-}
-
-export interface CatalogueData {
-  courses: CourseCard[];
-  materials: MaterialCard[];
-  coming: ComingCourse[];
-  filters: {goals: [string, string][]; levels: string[]; formats: [string, string][]};
 }
 
 // Course page (/api/app/courses/<id>)
@@ -250,6 +229,9 @@ export interface MaterialInfo {
   author: string;
   updated_at: string;
   paragraphs?: string[];
+  /** Guides from the original platform: server-rendered from an escaped Markdown subset. */
+  body_html?: string;
+  steps?: string[];
   prompt?: string | null;
   video?: {url: string; type: string; fixture: boolean} | null;
 }
@@ -311,4 +293,72 @@ export interface OnboardingState {
   next_url: string | null;
   recommendation: {lesson_id: string; title: string; url: string; minutes: number; branch: string | null; reasons: string[]} | null;
   diagnostic: {available: boolean; start_url: string | null};
+}
+
+// Обзор (Discover) and search: uniform items for lessons, courses, materials and what's coming.
+export type ItemKind = 'lesson' | 'course' | 'guide' | 'use_case' | 'workshop' | 'coming';
+
+export interface DiscoverItem {
+  kind: ItemKind;
+  /** 'lesson' for a coming lesson (kind 'coming'); undefined for a coming course. */
+  sub?: 'lesson';
+  id: string | null;
+  title: string;
+  url: string;
+  text?: string;
+  topic?: string;
+  topic_id?: string;
+  level?: string;
+  minutes?: number;
+  state: LessonState;
+  access: 'free' | 'member' | 'mixed' | null;
+  course?: {id: string; title: string};
+  lessons?: number;
+  catalog_total?: number;
+  done?: number;
+  free?: number;
+  practice?: boolean;
+  learners: number;
+  new: boolean;
+  next?: {title: string; url: string} | null;
+  resume?: 'draft' | 'started' | 'next';
+  course_done?: number;
+  course_total?: number;
+  cta?: string;
+}
+
+export interface Shelf {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  style: 'row' | 'top' | 'wide' | 'coming';
+  link: string | null;
+  items: DiscoverItem[];
+}
+
+export interface DiscoverTopic {
+  id: string;
+  title: string;
+  subtitle: string;
+  interest: boolean;
+  available: number;
+  coming: number;
+}
+
+export interface DiscoverData {
+  hero: DiscoverItem[];
+  shelves: Shelf[];
+  topics: DiscoverTopic[];
+  suggestions: string[];
+  classes: {id: ItemKind; title: string; count: number}[];
+}
+
+export interface SearchData {
+  query: string;
+  stems: string[];
+  total: number;
+  items: DiscoverItem[];
+  topics: DiscoverTopic[];
+  classes: {id: ItemKind; title: string; count: number}[];
+  suggestions: string[];
 }

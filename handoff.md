@@ -135,6 +135,19 @@ Deployment checks:
 
 These checks establish deployment health and bounded behavior, NOT visual/product acceptance or full authenticated journey coverage.
 
+## Since 7f9b053 (on the branch, not yet on staging)
+
+- **Обзор** replaces the library: a store front of shelves over lessons, courses, materials and coming courses, and an instant search (header dialog, `/`, ⌘K, and inline). See README "Обзор and search".
+- **Профиль** replaces Моё обучение and took over the club page. The nav is now Карта навыков · Обзор · Профиль.
+- **Skill map:** the stacked cards stay; the map card is nearly the window's height, and the wheel scrolls the page down to it before panning.
+- **Theme switch:** the sunrise is unchanged, but the map holds its colours and fades through the switch, because repainting its ~60 composited nodes every frame was the stutter.
+- **Speed:** first-page data is embedded in the HTML, links prefetch their data, static files are versioned and immutable, and fonts are WOFF2.
+- **Staging slowness (measured 2026-10-07):** the app answers in 3–11 ms on the VPS. Each request takes 0.5–1.6 s through Cloudflare (owner's route via Oslo, tunnel to Almaty/Warsaw); direct ping to the VPS is 60 ms. Serving the hostname directly from the VPS (unproxied DNS plus Caddy) is the owner's decision.
+- **Skill map gamification:** control points per module, ranks Новичок → Мастер per course, a one-time celebration, Звания in Профиль; pinned row labels show where you are when zoomed in.
+- **Theme switch:** with view transitions the interface cross-fades and only the sky animates (smooth everywhere); the token animation remains the fallback.
+- **Imported materials:** 4 free guides and 2 free use cases from app.airoom.club (`club/content/legacy/materials/`), without the old club's promotion. «Регистрация и оплата Claude / ChatGPT из РФ» was deliberately not imported: it teaches evading the providers' region and ban checks. Five more free guides (language tutor, Codex for beginners, Claude Code tokens, website in an evening, YouTube research agent) still need the owner's signed-in browser session to convert.
+- **Direct serving from the VPS** is blocked without root: port 443 is taken by `xray` and nginx on 80 is root-owned. Options: root access for a Caddy/nginx vhost, or a high port with a Cloudflare DNS-01 certificate.
+
 ## Verdict on the real work
 
 Reviewed the 54 actual report entries, relevant code and commit history, selected prototype, and independent rendered screenshots. This was not a full security audit or a new exhaustive acceptance run.

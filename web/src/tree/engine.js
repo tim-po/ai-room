@@ -70,6 +70,13 @@ export function mountTree(root, data) {
       fill.style.width = (course.total ? 100 * course.done / course.total : 0) + '%'; bar.append(fill);
       card.append(el('span', 'tree-level', course.level), el('strong', null, course.title), bar,
         el('span', 'tree-course-meta', `Пройдено ${course.done} из ${course.total}` + (course.available < course.total ? ` · открыто ${course.available}` : '')));
+      // Rank on the course (club/ranks.py): a badge on the card, the full title for screen readers.
+      const standing = course.standing;
+      if (standing && standing.level) {
+        const badge = el('em', `tree-rank is-level-${standing.level}`, standing.rank);
+        badge.title = `${standing.title}. ${standing.next}`;
+        card.append(badge, el('span', 'visually-hidden', ` Ваше звание: ${standing.title}.`));
+      }
       const cardNode = add(card, 'course', COL.course);
       link(node, cardNode, 'branch');
       let previous = cardNode;
@@ -91,13 +98,19 @@ export function mountTree(root, data) {
           const item = el('li'); item.append(row); list.append(item);
         }
         box.append(head, list);
+        // Every module is a control point: a flag that lights up once all its lessons are done.
+        const flag = document.createElementNS(NS, 'svg');
+        flag.setAttribute('viewBox', '0 0 16 16'); flag.setAttribute('class', 'tree-flag' + (module.checkpoint ? ' is-reached' : module.state === 'coming' ? ' is-coming' : ''));
+        flag.innerHTML = '<path d="M4.5 14V2.5M4.5 3h7.5l-2 3 2 3H4.5"/>';
+        const flagLabel = el('span', 'visually-hidden', module.checkpoint ? ` Контрольная точка ${index + 1} пройдена.` : ` Контрольная точка ${index + 1}.`);
+        box.append(flag, flagLabel);
         const moduleNode = add(box, 'module', COL.module + index * MODULE_STEP);
         link(previous, moduleNode, 'path is-' + module.state);
         previous = moduleNode;
         return moduleNode;
       });
       width = Math.max(width, previous.x + previous.w + PAD);
-      return {card: cardNode, modules};
+      return {card: cardNode, modules, course, topic};
     });
     return {node, lanes};
   });
@@ -164,9 +177,43 @@ export function mountTree(root, data) {
 
   // ---- camera ------------------------------------------------------------
   const view = {x: 0, y: 0, k: 0.3};
+  let pins = null;   // labels for rows whose course is off screen; built below
   function applyView() {
     canvas.style.transform = `translate3d(${view.x}px,${view.y}px,0) scale(${view.k})`;
     zoomLabel.textContent = Math.round(view.k * 100) + '%';
+    if (pins) placePins();
+  }
+
+  // ---- where am I: once a course's card is off the left edge, its row keeps a label there --------
+  const context = el('div', 'tree-context');
+  context.setAttribute('aria-hidden', 'true');   // a pointer shortcut; the cards themselves stay in the tab order
+  viewport.append(context);
+  pins = topics.flatMap(topic => topic.lanes.map(lane => {
+    const pin = el('button', 'tree-pin');
+    pin.type = 'button'; pin.tabIndex = -1;
+    pin.append(el('span', 'tree-pin-topic', lane.topic.title), el('strong', null, lane.course.title));
+    if (lane.course.standing && lane.course.standing.level) pin.append(el('em', `tree-rank is-level-${lane.course.standing.level}`, lane.course.standing.rank));
+    pin.addEventListener('pointerdown', event => event.stopPropagation(), on);
+    pin.addEventListener('click', () => flyToCourse(lane.card, Math.max(view.k, 0.62)), on);
+    context.append(pin);
+    return {lane, pin, shown: false};
+  }));
+  function placePins() {
+    const vh = viewport.clientHeight, k = view.k, taken = [];
+    for (const item of pins) {
+      const {card, modules} = item.lane, p = shown.pos.get(card);
+      let show = view.x + (card.x + card.w * 0.6) * k < 0, y = 0;
+      if (show) {
+        let top = p.y, bottom = p.y + p.h;
+        for (const m of modules) { const q = shown.pos.get(m); top = Math.min(top, q.y); bottom = Math.max(bottom, q.y + q.h); }
+        const sTop = view.y + top * k, sBottom = view.y + bottom * k;
+        y = Math.min(Math.max(view.y + (p.y + p.h / 2) * k, sTop + 24, 34), sBottom - 24, vh - 80);
+        show = sBottom > 40 && sTop < vh - 80 && taken.every(other => Math.abs(other - y) > 52);
+        if (show) taken.push(y);
+      }
+      if (show !== item.shown) { item.pin.classList.toggle('is-shown', show); item.shown = show; }
+      if (show) item.pin.style.transform = `translate3d(0,${y.toFixed(1)}px,0) translateY(-50%)`;
+    }
   }
   // Hysteresis: thresholds overlap so the level does not flicker at a boundary.
   function levelFor(k) {
@@ -275,7 +322,9 @@ export function mountTree(root, data) {
 
   // ---- input -------------------------------------------------------------
   viewport.addEventListener('wheel', event => {
+    if (pageFirst(event)) { pageScrolledAt = event.timeStamp; return; }
     event.preventDefault();
+    if (event.timeStamp - pageScrolledAt < 220) { pageScrolledAt = event.timeStamp; return; }
     const box = viewport.getBoundingClientRect();
     if (event.ctrlKey || event.metaKey) zoomAt(view.k * Math.exp(-event.deltaY * 0.01), event.clientX - box.left, event.clientY - box.top);
     else panBy(-event.deltaX, -event.deltaY);
@@ -373,12 +422,29 @@ export function mountTree(root, data) {
   // ---- sizing and start ----------------------------------------------------
   // The canvas fills the rest of the window, so the page itself never needs to scroll past it.
   function size() {
-    // Fill to the bottom of the window, leaving the same small gap the card has at its sides.
-    // On phones the navigation is a fixed bar at the bottom: stop above it.
-    const nav = document.querySelector('.club-header nav');
+    // Nearly the window's height: scrolled to the bottom, the map fills the screen under the sticky
+    // header, with the same small gap the card has at its sides. On phones the navigation is a
+    // fixed bar at the bottom: the card stops above it (--map-nav-bar keeps room for it below the page).
+    const header = document.querySelector('.club-header'), nav = header && header.querySelector('nav');
     const bar = nav && getComputedStyle(nav).position === 'fixed' ? nav.offsetHeight : 0;
-    const gap = (document.documentElement.hasAttribute('data-glass') ? 16 : 64) + bar;
-    viewport.style.height = Math.max(420, window.innerHeight - viewport.getBoundingClientRect().top - window.scrollY - gap) + 'px';
+    const top = header && getComputedStyle(header).position === 'sticky' ? header.offsetHeight : 0;
+    const gap = document.documentElement.hasAttribute('data-glass') ? 16 : 64;
+    document.documentElement.style.setProperty('--map-nav-bar', bar + 'px');
+    // Phones pan the map with every touch, so there the page doesn't scroll: the card fills the
+    // rest of the screen from where it starts.
+    const below = window.matchMedia('(max-width: 800px)').matches ? viewport.getBoundingClientRect().top + window.scrollY : top + gap;
+    viewport.style.height = Math.max(420, window.innerHeight - below - bar - gap) + 'px';
+  }
+  // Until the card has scrolled fully into view, the wheel scrolls the page down to it instead of
+  // panning the map.
+  // The rest of that gesture (trackpad momentum) is absorbed rather than flinging the map.
+  let pageScrolledAt = -1e9;
+  function pageFirst(event) {
+    if (event.ctrlKey || event.metaKey || event.deltaY <= 0 || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return false;
+    const header = document.querySelector('.club-header');
+    const top = header && getComputedStyle(header).position === 'sticky' ? header.offsetHeight : 0;
+    const left = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+    return left > 1 && viewport.getBoundingClientRect().top > top + 8;
   }
   function remeasure() {
     if (tween || flight) return;
@@ -409,11 +475,15 @@ export function mountTree(root, data) {
   }
   const onResize = () => { size(); remeasure(); };
   window.addEventListener('resize', onResize, on);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (!destroyed) remeasure(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (!destroyed) { size(); remeasure(); } });
+  // The toolbar above can change height (fonts arriving, the continue strip wrapping): keep the card's bottom in place.
+  const above = 'ResizeObserver' in window ? new ResizeObserver(() => { if (!destroyed) size(); }) : null;
+  root.querySelectorAll('.tree-bar-top, .resume-strip').forEach(node => above && above.observe(node));
   root.classList.add('is-ready');
   return () => {
     destroyed = true;
     listeners.abort();
+    if (above) above.disconnect();
     canvas.replaceChildren();
     if (frame) cancelAnimationFrame(frame);
     clearTimeout(fadeTimer);

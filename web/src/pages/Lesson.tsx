@@ -2,7 +2,7 @@ import {useEffect, useState, type FormEvent} from 'react';
 import {useBlocker, useLoaderData, useLocation, type LoaderFunctionArgs} from 'react-router';
 import {ApiError, bootstrap, getJson, postJson} from '../api';
 import AssistantHandoff from '../components/AssistantHandoff';
-import {copyText, PromptPanel, Resources, Video} from '../components/Media';
+import {PromptPanel, Resources, RichBody, Video} from '../components/Media';
 import Outline from '../components/Outline';
 import {humanTime, plural} from '../format';
 import {AppLink} from '../Shell';
@@ -28,19 +28,7 @@ function useRecordVisit(lessonId: string, locked: boolean) {
 function Body({lesson}: {lesson: LessonData['lesson']}) {
   // Rich lessons are rendered on the server from an escaped Markdown subset (legacy_content.py),
   // so the HTML contains only allowlisted tags, links and media.
-  if (lesson.body_html) {
-    return (
-      <section className="reading lesson-rich" id="lesson-reading" tabIndex={-1}
-        onClick={event => {
-          const button = (event.target as Element).closest('[data-copy-block]');
-          if (!button) return;
-          const figure = button.parentElement!;
-          const status = figure.querySelector('.copy-status');
-          copyText(figure.querySelector('pre')?.textContent || '', message => { if (status) status.textContent = message; });
-        }}
-        dangerouslySetInnerHTML={{__html: lesson.body_html}} />
-    );
-  }
+  if (lesson.body_html) return <RichBody id="lesson-reading" html={lesson.body_html} />;
   return (
     <section className="reading" id="lesson-reading">
       <h2 tabIndex={-1}>Разбираемся на примере</h2>

@@ -95,7 +95,7 @@ def register_onboarding(app, db, query, require_user, shell):
         # Explicit route allowlist, no decoding/normalization ambiguities or arbitrary query redirects.
         if not isinstance(target, str) or len(target) > 256:
             return '/'
-        if target in ('/', '/catalogue', '/profile', '/preferences', '/practice', '/diagnostic', '/help', '/oauth/consent'):
+        if target in ('/', '/catalogue', '/discover', '/profile', '/preferences', '/practice', '/diagnostic', '/help', '/oauth/consent'):
             return target
         course = re.fullmatch(r'/courses/([A-Za-z0-9_.-]+)', target)
         if course and query("SELECT 1 FROM courses WHERE id=? AND status='published'", (course[1],), True):
@@ -212,8 +212,8 @@ def register_onboarding(app, db, query, require_user, shell):
         return '/onboarding'
 
     # Learning pages, and the app data behind them, wait until onboarding is finished or skipped.
-    pages = {'home', 'catalogue', 'course', 'lesson', 'profile', 'preferences', 'skill_tree'}
-    page_data = {'home_api', 'catalogue_api', 'course_api', 'lesson_page_api', 'profile_api', 'preferences_api'}
+    pages = {'home', 'catalogue', 'discover', 'course', 'lesson', 'profile', 'preferences', 'skill_tree'}
+    page_data = {'home_api', 'catalogue_api', 'discover_api', 'search_api', 'course_api', 'lesson_page_api', 'profile_api', 'preferences_api'}
 
     @app.before_request
     def learner_entry():

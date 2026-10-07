@@ -102,7 +102,7 @@ def test_roles_csrf_validation_and_unchanged_save_telemetry(onboard):
     assert c.get('/lessons/'+FREE).location == '/onboarding'
     assert c.get('/api/lessons/'+FREE).status_code == 200
     # The app's page data waits for onboarding too; the app follows the redirect.
-    for path in ['/api/app/home', '/api/app/catalogue', '/api/app/lessons/'+FREE, '/api/app/profile']:
+    for path in ['/api/app/home', '/api/app/catalogue', '/api/app/discover', '/api/app/search?q=x', '/api/app/lessons/'+FREE, '/api/app/profile']:
         response = c.get(path)
         assert response.status_code == 409 and response.json['redirect'] == '/onboarding', path
 

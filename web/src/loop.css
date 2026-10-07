@@ -125,7 +125,7 @@
   -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 24px 60px var(--shadow,rgba(0,0,0,.3));animation:briefing-in .4s cubic-bezier(.2,.8,.2,1)}
 @keyframes briefing-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media(max-width:800px){.map-briefing{left:12px;right:12px;width:auto;bottom:calc(96px - var(--spill-bottom,0px));padding:16px 18px;max-height:60dvh;overflow:auto}}
-/* In Моё обучение: in place of "Продолжить урок". */
+/* In Профиль: in place of "Продолжить урок". */
 .me-briefing{margin:0 0 36px;padding:24px;border-radius:var(--radius-card,20px);border:1px solid var(--accent-line,var(--line));background:var(--accent-soft,var(--panel))}
 
 @media (prefers-reduced-motion:reduce){

@@ -3,10 +3,13 @@ import {createRoot} from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from 'react-router';
 import './app.css';
 import './loop.css';
+import './discover.css';
+import './profile.css';
+import './map.css';
 import {NotFound, RouteError} from './ErrorPage';
-import Catalogue, {catalogueLoader} from './pages/Catalogue';
 import Consent, {consentLoader} from './pages/Consent';
 import Course, {courseLoader} from './pages/Course';
+import Discover, {discoverLoader} from './pages/Discover';
 import Help, {helpLoader} from './pages/Help';
 import Home, {homeLoader} from './pages/Home';
 import LessonPage, {lessonLoader} from './pages/Lesson';
@@ -26,7 +29,8 @@ const router = createBrowserRouter([
       errorElement: <RouteError />,
       children: [
         {path: '/', element: <Home />, loader: homeLoader},
-        {path: '/catalogue', element: <Catalogue />, loader: catalogueLoader},
+        {path: '/discover', element: <Discover />, loader: discoverLoader},
+        {path: '/catalogue', element: <Discover />, loader: discoverLoader},
         {path: '/courses/:id', element: <Course />, loader: courseLoader},
         {path: '/lessons/:id', element: <LessonPage />, loader: lessonLoader},
         {path: '/materials/:id', element: <Material />, loader: materialLoader},

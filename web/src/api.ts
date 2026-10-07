@@ -27,10 +27,12 @@ export interface Bootstrap {
   notices: Notice[];
   /** Set when the server answered this page load with an error status. */
   error: {code: number; description: string} | null;
+  /** The first page's data (what its loader would fetch), so a fresh load renders without waiting. */
+  page: {url: string; data: unknown} | null;
 }
 
 const element = document.getElementById('bootstrap');
-export const bootstrap: Bootstrap = {csrf: '', demo_checkout: false, user: null, recorded_visit: null, notices: [], error: null,
+export const bootstrap: Bootstrap = {csrf: '', demo_checkout: false, user: null, recorded_visit: null, notices: [], error: null, page: null,
   ...(element ? JSON.parse(element.textContent || '{}') : {})};
 
 export class ApiError extends Error {
@@ -44,13 +46,20 @@ interface Options {
   loginOn401?: boolean;
 }
 
-async function request<T>(path: string, init: RequestInit = {}, {loginOn401 = true}: Options = {}): Promise<T> {
+const fetchJson = (path: string, init: RequestInit = {}) =>
+  fetch(path, {credentials: 'same-origin', ...init, headers: {Accept: 'application/json', ...(init.headers || {})}});
+
+async function request<T>(path: string, init: RequestInit = {}, options: Options = {}): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(path, {credentials: 'same-origin', ...init, headers: {Accept: 'application/json', ...(init.headers || {})}});
+    response = await fetchJson(path, init);
   } catch {
     throw new ApiError(0, 'Нет связи с сервером. Проверьте подключение и повторите.');
   }
+  return handle<T>(response, options);
+}
+
+async function handle<T>(response: Response, {loginOn401 = true}: Options = {}): Promise<T> {
   if (response.status === 401 && loginOn401) {
     // Session ended: the login page brings the learner back here afterwards.
     window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
@@ -72,10 +81,38 @@ async function request<T>(path: string, init: RequestInit = {}, {loginOn401 = tr
   return response.json() as Promise<T>;
 }
 
-export const getJson = <T>(path: string, signal?: AbortSignal) => request<T>(path, {signal});
+// Page data fetched ahead: when the pointer rests on a link (or a finger touches it), its page's data
+// starts loading, and the loader picks it up if the learner follows within half a minute. Any change
+// the learner makes drops what was fetched ahead, so a page never shows data from before it.
+const PREFETCH_MS = 30_000;
+const ahead = new Map<string, {at: number; response: Promise<Response | null>}>();
 
-const send = <T>(method: string, path: string, body: unknown, options?: Options) =>
-  request<T>(path, {method, headers: {'Content-Type': 'application/json', 'X-CSRF-Token': bootstrap.csrf}, body: JSON.stringify(body)}, options);
+export function prefetchJson(path: string) {
+  const hit = ahead.get(path);
+  if (hit && Date.now() - hit.at < PREFETCH_MS) return;
+  ahead.set(path, {at: Date.now(), response: fetchJson(path).catch(() => null)});
+}
+
+export async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+  // The first page's data came with the page itself.
+  if (bootstrap.page?.url === path) {
+    const data = bootstrap.page.data as T;
+    bootstrap.page = null;
+    return data;
+  }
+  const hit = ahead.get(path);
+  ahead.delete(path);
+  if (hit && Date.now() - hit.at < PREFETCH_MS) {
+    const response = await hit.response;
+    if (response) return handle<T>(response);
+  }
+  return request<T>(path, {signal});
+}
+
+const send = <T>(method: string, path: string, body: unknown, options?: Options) => {
+  ahead.clear();
+  return request<T>(path, {method, headers: {'Content-Type': 'application/json', 'X-CSRF-Token': bootstrap.csrf}, body: JSON.stringify(body)}, options);
+};
 
 export const postJson = <T>(path: string, body: unknown, options?: Options) => send<T>('POST', path, body, options);
 export const putJson = <T>(path: string, body: unknown, options?: Options) => send<T>('PUT', path, body, options);

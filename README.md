@@ -25,7 +25,7 @@ Protected course/module/lesson authoring, draft preview, publish/unpublish/archi
 
 ## Learner frontend (React)
 
-Every learner page (the map at `/`, library, course, lesson, material, Моё обучение, settings, Клуб,
+Every learner page (the map at `/`, Обзор, course, lesson, material, Профиль, settings, membership,
 help, login, onboarding and error pages) is a React + TypeScript app in `web/` (Vite, React Router), so
 moving between them never reloads the page. Flask still owns these URLs: it handles sessions,
 onboarding redirects and status codes (403 for a locked lesson, 404 for a missing one), then serves
@@ -44,15 +44,52 @@ server itself does not need Node. Deployments must run the build before restarti
 learner pages show a "frontend not built" notice. Styles are the shared stylesheets in `club/static`
 (included through `templates/_styles.html`), so React and server pages look the same.
 
+**Speed on slow links.** A page load is one round trip: `spa.html` embeds the first page's data (what
+its loader would fetch, `club/spa.py` `page_data_url`, mirrored in `web/src/prefetch.ts`). Hovering,
+touching or focusing a link fetches that page's data ahead, so the click usually needs no request.
+Hashed bundle files and versioned static URLs (`url_for` adds `?v=<content hash>`) are cached for a
+year, `immutable`, so Cloudflare serves them from its edge; fonts and sky art referenced from CSS are
+cached for a day. Fonts are subset WOFF2 (`club/static/fonts/README.md`), and the reading font is
+preloaded.
+
+## Обзор and search
+
+`/discover` (`club/discover.py`, `web/src/pages/Discover.tsx`) is a store front over one index of
+lessons, courses, materials (guides, use cases, workshops) and what is coming from the old platform's
+outline: a hero, Продолжить, Начните бесплатно, Топ in each topic, Курсы, one shelf per material
+class, quick lessons, club lessons for free learners, Скоро and Мой список. `/catalogue` shows the same
+page. Search (`/api/app/search`) matches word stems in titles first, then course and topic, then
+descriptions, and filters by class, topic, level and free access. It runs as you type in the header
+dialog (button, `/`, ⌘K or Ctrl+K) and inline on Обзор, with recent searches kept on the device.
+Everything exposes metadata only. Профиль took over the club page: membership status, what the club
+adds and the demo switch live there; `/membership` remains for paywall links.
+
 ## Learning loop
 
 Around each lesson (`club/learning_loop.py`, `web/src/pages/lesson/FinishLine.tsx`):
 - **Progress through the lesson.** Sections reached are saved per learner, and continue links open the section where the learner stopped.
 - **A finish moment.** It leads into the next lesson.
 - **A plan.** The learner chooses days and a time, which also sets the weekly goal. They can download it as an `.ics` file or add it to Google Calendar; each event links to `/continue`, which opens their next step.
-- **A return briefing.** It appears on the map and in Моё обучение after 3 or more days away.
+- **A return briefing.** It appears on the map and in Профиль after 3 or more days away.
 
 The two tables (`lesson_steps`, `learning_plans`) are additive and created on first use, so no migration is needed.
+
+## Skill map: control points and ranks
+
+Every module is a control point (`club/ranks.py`): reached when all its lessons are completed, so a
+module with lessons still coming can't be reached yet. A course rank follows from them — Новичок (the
+first lesson), Практик (the first control point), Профи (half of them), Мастер (all) — and reads
+«Практик Claude», «Мастер вайбкодинга» (the catalogue's `rank` word per course). Earned ranks and
+control points are stored in `achievements` (additive table), never taken back, and celebrated once:
+in the lesson's finish dialog, otherwise on the next map visit, then listed in Профиль → Звания. The
+map shows a flag per module and a rank badge per course; once a course's card is off the left edge,
+its row keeps a pinned label with the course and topic, which flies back to the course.
+
+## Theme switch
+
+Where the browser has view transitions, switching Сумерки/Рассвет cross-fades the interface from a
+snapshot (a GPU blend) while only the sky animates its tokens — the same sunrise or sunset at a
+fraction of the cost. Elsewhere every token animates as before (`scripts/make_theme_motion.py`).
 
 ## Attached assistants
 
@@ -60,7 +97,7 @@ A learner can give their own AI assistant a one-time link from a lesson ("Ско
 - **The link.** The assistant's first visit to `/attach/<code>` returns the lesson, the task, the criteria, the draft and a 7-day key. It works once and expires after 15 minutes; HEAD requests and link-preview bots don't use it up.
 - **Browsers.** Assistants that open links in a real browser (the Claude app, browser agents) get an HTML page with a "Сохранить в AI Room" form, since they can't send headers. Other clients get Markdown.
 - **The key.** It authenticates `GET/POST /api/agent/*` and the MCP endpoint `POST /mcp`. Through them the assistant can read the learner's lessons (with live entitlements), save practice and mark sections reached. Lesson completion stays with the learner.
-- **Revoking.** Learners see and switch off connections in Моё обучение → Подключения.
+- **Revoking.** Learners see and switch off connections in Профиль → Подключения.
 - **Storage.** Codes and keys are stored as hashes only.
 
 - **Connectors.** claude.ai and ChatGPT add AI Room as a custom MCP connector at `<public url>/mcp` and sign in with OAuth (`club/oauth.py`): dynamic client registration, PKCE, a consent page in AI Room, and rotating refresh tokens. These connections appear in the same Подключения list.
@@ -215,6 +252,10 @@ controlled by `CLUB_EVIDENCE_DIR`. Final-build acceptance is recorded at the top
 
 
 ## Standalone materials (schema v6)
+
+Free guides and use cases from the original platform live in `club/content/legacy/materials/` and are
+installed as materials by `flask install-legacy-lessons` (rich bodies like lessons, a topic in
+`material_profiles`). Only free items are imported; the old club's promotion is left out.
 
 `/catalogue` combines courses, guides, use cases and workshop recordings. Search,
 goal, level, format and tool filters combine in query parameters, retaining state

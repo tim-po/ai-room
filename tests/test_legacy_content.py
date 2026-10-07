@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 from club import create_app
-from club.legacy_content import render_blocks
+from club.legacy_content import legacy_materials, render_blocks
 from werkzeug.security import generate_password_hash
 from test_learning import app, login, post, token, PASSWORD
 from test_skills import skills
@@ -42,6 +42,28 @@ def test_install_is_repeatable_and_keeps_learner_work(legacy):
         assert db.execute('SELECT body FROM practice WHERE lesson_id=?', (FIRST,)).fetchone()[0] == 'мой рабочий запрос'
         assert db.execute("SELECT status FROM courses WHERE id='ai-foundations'").fetchone()[0] == 'archived'
         assert db.execute("SELECT COUNT(*) FROM lessons WHERE access='member' AND id IN (SELECT lesson_id FROM lesson_profiles WHERE demo=0)").fetchone()[0] == 0
+        # Synthetic materials are archived; the imported free guides and use cases stay published.
+        published = {r[0] for r in db.execute("SELECT id FROM materials WHERE status='published'")}
+        assert published == {meta['id'] for meta, _ in legacy_materials()} and published
+        assert {r[0] for r in db.execute("SELECT DISTINCT access FROM materials WHERE status='published'")} == {'free'}
+
+
+def test_imported_guides_render_and_link_inside_the_platform(legacy):
+    c = legacy.test_client()
+    guide = c.get('/api/app/materials/claude-for-beginners').json
+    assert not guide['locked'] and guide['item']['format'] == 'guide'
+    html = guide['item']['body_html']
+    assert '<h2 id="step-1">' in html and 'data-copy-block' in html and '<script' not in html
+    assert '<a href="/courses/claude-basics">' in html            # the old platform's course link points here now
+    assert guide['item']['steps'][0].startswith('01.')
+    case = c.get('/api/app/materials/case-higgsfield').json['item']
+    assert case['format'] == 'use_case' and 'kinescope.io/embed/' in case['body_html']
+    # Old-club promotion (payment links, the old price) is not carried over.
+    for meta, body in legacy_materials():
+        assert 'tribute' not in body and 'AI Room Club' not in body and '1490 руб' not in body, meta['id']
+    shelves = {s['id']: s for s in c.get('/api/app/discover').json['shelves']}
+    assert {'guide', 'use_case'} <= set(shelves)
+    assert next(i for i in shelves['use_case']['items'] if i['id'] == 'case-higgsfield')['topic_id'] == 'content'
 
 
 def test_rich_lesson_renders_blocks_and_embeds(legacy):

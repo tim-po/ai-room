@@ -75,7 +75,7 @@ def build_tree(query, user, can_access, current_lesson=None):
                 module['state'] = 'coming' if states == {'coming'} else ('done' if states == {'done'} else 'active')
             next_lesson = next((l for l in flat if l['state'] in ('progress', 'open')), None)
             courses.append(dict(
-                id=spec['id'], title=title, level=LEVELS.get(level, level), url='/courses/' + spec['id'] if db_course else None,
+                id=spec['id'], title=title, rank_name=spec.get('rank'), level=LEVELS.get(level, level), url='/courses/' + spec['id'] if db_course else None,
                 modules=modules, total=len(flat), done=sum(l['state'] == 'done' for l in flat),
                 available=sum(l['state'] != 'coming' for l in flat),
                 next=dict(title=next_lesson['title'], url=next_lesson['url']) if next_lesson else None,

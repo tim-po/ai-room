@@ -9,7 +9,7 @@ export const membershipLoader = ({request}: LoaderFunctionArgs) =>
   getJson<MembershipData>(withSearch('/api/app/membership', request), request.signal);
 
 /** Staging only (CLUB_DEMO_CHECKOUT=1): switches the learner's own access without billing. */
-function DemoSwitch({data}: {data: MembershipData}) {
+export function DemoSwitch({next}: {next: string}) {
   const navigate = useNavigate();
   const {pathname} = useLocation();
   const [busy, setBusy] = useState(false);
@@ -19,7 +19,7 @@ function DemoSwitch({data}: {data: MembershipData}) {
     setBusy(true); setError('');
     try {
       const result = await postJson<{entitlement: Entitlement; next: string; message: string}>(
-        member ? '/membership/demo/cancel' : '/membership/demo', {next: data.return_to});
+        member ? '/membership/demo/cancel' : '/membership/demo', {next});
       bootstrap.user!.entitlement = result.entitlement;
       if (isSpaPath(result.next)) navigate(result.next, {replace: result.next === pathname, state: {notice: result.message}});
       else window.location.assign(result.next);
@@ -63,7 +63,7 @@ export default function Membership() {
         ) : user.role !== 'learner' ? (
           <p>У вашей роли уже есть доступ ко всем урокам.</p>
         ) : data.demo ? (
-          <DemoSwitch data={data} />
+          <DemoSwitch next={data.return_to} />
         ) : member ? (
           <p>Доступ активен. <AppLink to="/catalogue">Перейти к урокам →</AppLink></p>
         ) : (

@@ -10,7 +10,7 @@ from flask import abort, flash, g, jsonify, redirect, request
 
 
 def safe_return(target):
-    if isinstance(target, str) and re.fullmatch(r'/(lessons|courses|materials)/[A-Za-z0-9_.-]{1,120}', target):
+    if isinstance(target, str) and (target == '/profile' or re.fullmatch(r'/(lessons|courses|materials)/[A-Za-z0-9_.-]{1,120}', target)):
         return target
     return '/membership'
 
@@ -54,3 +54,5 @@ def register_membership(app, db, query, require_user, shell):
     @require_user
     def membership_demo_cancel():
         return switch('free', 'Демо-доступ выключен. Вы снова на бесплатном доступе.')
+
+    return dict(counts=counts)

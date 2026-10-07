@@ -21,7 +21,7 @@ function Recap({briefing}: {briefing: Briefing}) {
   );
 }
 
-/** "С возвращением": shown after a break of a few days, on the map and in Моё обучение. */
+/** "С возвращением": shown after a break of a few days, on the map and in Профиль. */
 export function ReturnBriefing({briefing, onHide, className = ''}: {briefing: Briefing; onHide?: () => void; className?: string}) {
   const draft = briefing.status === 'draft';
   const away = briefing.away_days ?? 0;

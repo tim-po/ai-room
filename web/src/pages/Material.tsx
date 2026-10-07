@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useLoaderData, useLocation, type LoaderFunctionArgs} from 'react-router';
 import {ApiError, bootstrap, getJson, postJson} from '../api';
-import {PromptPanel, Resources, Video} from '../components/Media';
+import {PromptPanel, Resources, RichBody, Video} from '../components/Media';
 import {AppLink} from '../Shell';
 import type {MaterialData} from '../types';
 import {useTitle} from '../useTitle';
@@ -39,7 +39,7 @@ export default function Material() {
   useTitle(item.title);
   return (
     <>
-      <AppLink className="breadcrumb" to="/catalogue">← Все курсы и материалы</AppLink>
+      <AppLink className="breadcrumb" to={`/discover?class=${item.format}`}>← {item.format_label === 'Кейс' ? 'Все кейсы' : item.format_label === 'Воркшоп' ? 'Все воркшопы' : 'Все гайды'}</AppLink>
       <article className="material-content">
         <span className="chip">{item.format_label} · {item.access === 'free' ? 'Бесплатно' : 'Материал клуба'}</span>
         <h1>{item.title}</h1>
@@ -65,15 +65,17 @@ export default function Material() {
                 </div>
               </>
             )}
-            <p className="paywall-free">Бесплатные материалы — в <AppLink to="/catalogue">библиотеке →</AppLink></p>
+            <p className="paywall-free">Бесплатные материалы — в <AppLink to="/discover?access=free">обзоре →</AppLink></p>
           </section>
         ) : (
           <>
             {item.video && <Video video={item.video} resume={data.seconds ?? 0} saveUrl={`/api/materials/${encodeURIComponent(item.id)}/video`} readingAnchor="material-reading" />}
-            <section className="reading" id="material-reading">
-              <h2>Разбираем задачу</h2>
-              {(item.paragraphs ?? []).map((paragraph, i) => <p key={i} className="preserve">{paragraph}</p>)}
-            </section>
+            {item.body_html ? <RichBody id="material-reading" html={item.body_html} /> : (
+              <section className="reading" id="material-reading">
+                <h2>Разбираем задачу</h2>
+                {(item.paragraphs ?? []).map((paragraph, i) => <p key={i} className="preserve">{paragraph}</p>)}
+              </section>
+            )}
             {item.prompt && <PromptPanel prompt={item.prompt} title="Запрос для вашей задачи" />}
             <Resources resources={data.resources ?? []} title="Ресурсы" />
             {bootstrap.user

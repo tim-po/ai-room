@@ -33,7 +33,7 @@ export default function Preferences() {
   }
   return (
     <section className="settings">
-      <p className="eyebrow">Моё обучение</p>
+      <p className="eyebrow">Профиль</p>
       <h1>Настройки обучения</h1>
       <p className="lead">План и опыт помогают подобрать уроки. Пропущенная неделя ничего не обнуляет.</p>
       <section className="settings-form settings-plan" id="plan" aria-labelledby="plan-title">

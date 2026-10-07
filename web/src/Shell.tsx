@@ -1,8 +1,10 @@
-import {useEffect, useLayoutEffect, useState, type ReactNode} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useState, type ReactNode} from 'react';
 import {Outlet, ScrollRestoration, useLocation, useNavigate, useNavigation} from 'react-router';
 import {bootstrap, type Notice} from './api';
+import {SearchDialog, useSearchShortcut} from './components/Search';
 import ErrorPage from './ErrorPage';
 import {AppLink, isSpaPath} from './links';
+import {prefetchPage} from './prefetch';
 
 export {AppLink, isSpaPath};
 
@@ -24,6 +26,33 @@ function useLinkInterception() {
   }, [navigate]);
 }
 
+/** A link's page data starts loading when the pointer rests on it, a finger touches it or it gets focus. */
+function useLinkPrefetch() {
+  useEffect(() => {
+    let timer = 0;
+    const link = (event: Event) => {
+      const anchor = (event.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
+      return anchor && !anchor.target && !anchor.hasAttribute('download') ? anchor : null;
+    };
+    const onOver = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse') return;
+      window.clearTimeout(timer);
+      const anchor = link(event);
+      if (anchor) timer = window.setTimeout(() => prefetchPage(anchor.href), 70);
+    };
+    const now = (event: Event) => { const anchor = link(event); if (anchor) prefetchPage(anchor.href); };
+    document.addEventListener('pointerover', onOver);
+    document.addEventListener('touchstart', now, {passive: true});
+    document.addEventListener('focusin', now);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('pointerover', onOver);
+      document.removeEventListener('touchstart', now);
+      document.removeEventListener('focusin', now);
+    };
+  }, []);
+}
+
 function NavLink({to, active, children}: {to: string; active: boolean; children: ReactNode}) {
   return <AppLink to={to} aria-current={active ? 'page' : undefined}>{children}</AppLink>;
 }
@@ -42,7 +71,9 @@ function ThemeToggle() {
   );
 }
 
-function Header() {
+const SHORTCUT = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘K' : 'Ctrl K';
+
+function Header({onSearch}: {onSearch: () => void}) {
   const {pathname, search} = useLocation();
   const user = bootstrap.user;
   const onMap = pathname === '/' && (!!user || new URLSearchParams(search).get('view') === 'map');
@@ -51,14 +82,18 @@ function Header() {
       <AppLink className="brand" to="/">AI ROOM</AppLink>
       <nav aria-label="Главная навигация">
         <NavLink to="/?view=map" active={onMap}>Карта навыков</NavLink>
-        <NavLink to="/catalogue" active={/^\/(catalogue|courses\/|lessons\/|materials\/)/.test(pathname)}>Библиотека</NavLink>
-        <NavLink to="/profile" active={pathname === '/profile' || pathname === '/preferences'}>Моё обучение</NavLink>
-        <NavLink to="/membership" active={pathname === '/membership'}>Клуб</NavLink>
+        <NavLink to="/discover" active={/^\/(discover|catalogue|courses\/|lessons\/|materials\/)/.test(pathname)}>Обзор</NavLink>
+        {/* the profile took over the club page: membership lives there now */}
+        <NavLink to="/profile" active={/^\/(profile|preferences|membership)$/.test(pathname)}>Профиль</NavLink>
         {user && user.role !== 'learner' && <a href="/admin">Мастерская</a>}
       </nav>
       <div className="header-account">
+        <button type="button" className="header-search" onClick={onSearch} aria-keyshortcuts="Meta+K Control+K /">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+          <span>Поиск</span><kbd aria-hidden="true">{SHORTCUT}</kbd>
+        </button>
         <ThemeToggle />
-        <AppLink to={user ? '/help' : '/login'} aria-current={pathname === '/help' ? 'page' : undefined}>{user ? 'Помощь' : 'Войти'}</AppLink>
+        <AppLink to={user ? '/help' : '/login'} className={user ? 'header-help' : 'header-login'} aria-current={pathname === '/help' ? 'page' : undefined}>{user ? 'Помощь' : 'Войти'}</AppLink>
         {user && (
           <form className="session-exit" method="post" action="/logout">
             <input type="hidden" name="csrf" value={bootstrap.csrf} />
@@ -108,7 +143,7 @@ function InstantPageScroll() {
 export function ShellFallback() {
   return (
     <>
-      <Header />
+      <Header onSearch={() => {}} />
       <div className="shell"><main id="main" /></div>
     </>
   );
@@ -135,14 +170,19 @@ function useHeaderHeight() {
 
 export default function Shell() {
   useLinkInterception();
+  useLinkPrefetch();
   useHeaderHeight();
   const location = useLocation();
   const navigation = useNavigation();
   const {notices, error} = usePageMessages();
+  const [searching, setSearching] = useState(false);
+  const openSearch = useCallback(() => setSearching(true), []);
+  useSearchShortcut(openSearch);
   return (
     <>
       <a className="skip" href="#main">К содержимому</a>
-      <Header />
+      <Header onSearch={openSearch} />
+      <SearchDialog open={searching} onClose={() => setSearching(false)} />
       <div className={'route-progress' + (navigation.state === 'loading' ? ' is-loading' : '')} aria-hidden="true" />
       <div className="shell">
         <main id="main">

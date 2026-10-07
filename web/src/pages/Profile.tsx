@@ -1,12 +1,14 @@
 import {useLoaderData} from 'react-router';
 import {useState} from 'react';
-import {ApiError, deleteJson, getJson, postJson} from '../api';
+import {ApiError, bootstrap, deleteJson, getJson, postJson} from '../api';
 import {copyAsync, type Link} from '../components/AssistantHandoff';
 import {ReturnBriefing, stepLabel} from '../components/Briefing';
 import {CalendarLinks} from '../components/PlanEditor';
 import {humanTime, plural} from '../format';
 import {formatDays, formatSession, nextSession} from '../plan';
 import {AppLink} from '../Shell';
+import {DemoSwitch} from './Membership';
+import {RanksPanel} from '../components/Ranks';
 import type {Connection, CourseProgress, ProfileData} from '../types';
 import {useTitle} from '../useTitle';
 
@@ -17,6 +19,29 @@ const ACCESS_TEXT: Record<string, string> = {
   free: 'Бесплатные уроки открыты.', member: 'Уроки клуба доступны.',
   revoked: 'Доступ участника отозван. Бесплатные уроки остаются доступны.', expired: 'Срок доступа истёк. Бесплатные уроки остаются доступны.',
 };
+
+/** The club page lives here now: status, what the club adds, and the way in (or out). */
+function Club({data}: {data: ProfileData}) {
+  const {user, club} = data;
+  const member = user.entitlement === 'member' || user.role !== 'learner';
+  return (
+    <section className={'me-panel me-club' + (member ? ' is-member' : '')} id="club" aria-labelledby="club-title">
+      <h2 id="club-title">Клуб</h2>
+      <p className="me-club-status">{member ? 'Вы в клубе' : ACCESS_LABEL[user.entitlement]}</p>
+      <p>{ACCESS_TEXT[user.entitlement]}</p>
+      <ul className="me-club-list">
+        <li><strong>{club.member_lessons}</strong> {plural(club.member_lessons, 'урок', 'урока', 'уроков')} клуба в дополнение к {club.free_lessons} бесплатным</li>
+        <li>Полные курсы, практика с сохранением и новые материалы</li>
+        <li>Отменить можно в любой момент — сохранённое останется</li>
+      </ul>
+      {user.entitlement === 'revoked' ? <AppLink to="/help">Написать в поддержку →</AppLink>
+        : user.role !== 'learner' ? <p className="small">У вашей роли есть доступ ко всем урокам.</p>
+        : club.demo ? <DemoSwitch next="/profile" />
+        : member ? <AppLink to="/help">Вопрос по доступу →</AppLink>
+        : <AppLink to="/membership">Как получить доступ →</AppLink>}
+    </section>
+  );
+}
 
 function CourseRow({course, entitlement}: {course: CourseProgress; entitlement: string}) {
   const remaining = course.done < course.total;
@@ -87,16 +112,33 @@ function Connections({initial}: {initial: Connection[]}) {
 
 export default function Profile() {
   const data = useLoaderData() as ProfileData;
-  useTitle('Моё обучение');
+  useTitle('Профиль');
   const {user, briefing, plan} = data;
   const unfinished = data.continuation.unfinished;
   const next = nextSession(plan);
   return (
     <div className="me">
-      <header className="me-head">
-        <div><p className="eyebrow">Моё обучение</p><h1>{user.name}</h1></div>
-        <p className="me-head-links"><AppLink to="/onboarding">Интересы и темп</AppLink><AppLink to="/membership">{ACCESS_LABEL[user.entitlement]}</AppLink></p>
+      <header className="me-hero">
+        <span className="me-avatar" aria-hidden="true">{(user.name.trim()[0] ?? '·').toUpperCase()}</span>
+        <div className="me-id">
+          <p className="eyebrow">Профиль</p>
+          <h1>{user.name}</h1>
+          <p className="me-id-meta">
+            <AppLink to="#club" className={`me-status is-${user.entitlement === 'member' || user.role !== 'learner' ? 'member' : user.entitlement}`}>{user.role !== 'learner' ? 'Полный доступ' : ACCESS_LABEL[user.entitlement]}</AppLink>
+            <span>{user.email}</span>
+          </p>
+        </div>
+        <nav className="me-hero-actions" aria-label="Настройки">
+          <AppLink className="button secondary" to="/onboarding">Интересы и темп</AppLink>
+          <AppLink className="button secondary" to="/preferences">Настройки обучения</AppLink>
+        </nav>
       </header>
+      <ul className="me-stats" aria-label="Итоги">
+        <li><strong>{data.stats.lessons_done}</strong><span>{plural(data.stats.lessons_done, 'урок пройден', 'урока пройдено', 'уроков пройдено')}</span></li>
+        <li><strong>{data.stats.works}</strong><span>{plural(data.stats.works, 'работа сохранена', 'работы сохранено', 'работ сохранено')}</span></li>
+        <li><strong>{data.stats.days}</strong><span>{plural(data.stats.days, 'день', 'дня', 'дней')} с обучением за месяц</span></li>
+        <li><strong>{data.active_courses.length}</strong><span>{plural(data.active_courses.length, 'курс', 'курса', 'курсов')} в работе</span></li>
+      </ul>
       <div className="me-grid">
         <div className="me-main">
           {briefing?.returning ? (
@@ -146,6 +188,7 @@ export default function Profile() {
         </div>
 
         <aside className="me-side">
+          <RanksPanel ranks={data.ranks} />
           <section className="me-panel" aria-labelledby="pace-title" id="plan">
             <h2 id="pace-title">План</h2>
             {next ? (
@@ -172,12 +215,7 @@ export default function Profile() {
             </div>
             )}
           </section>
-          <section className="me-panel" aria-labelledby="access-title">
-            <h2 id="access-title">Доступ</h2>
-            <p>{ACCESS_TEXT[user.entitlement]}</p>
-            <p className="me-note">{user.email}</p>
-            {user.entitlement !== 'member' ? <AppLink to="/membership">Подробнее о клубе →</AppLink> : <AppLink to="/help">Вопрос по доступу →</AppLink>}
-          </section>
+          <Club data={data} />
           <Connections initial={data.connections} />
           {(data.favourites.length > 0 || data.material_favourites.length > 0) && (
             <section className="me-panel" aria-labelledby="fav-title">
@@ -186,6 +224,15 @@ export default function Profile() {
               {data.favourites.map(c => <p key={c.id}><AppLink to={`/courses/${c.id}`}>{c.title}</AppLink></p>)}
             </section>
           )}
+          <section className="me-panel me-account" aria-labelledby="account-title">
+            <h2 id="account-title">Аккаунт</h2>
+            <p className="me-note">{user.email}</p>
+            <AppLink to="/help">Помощь и поддержка →</AppLink>
+            <form className="me-logout" method="post" action="/logout">
+              <input type="hidden" name="csrf" value={bootstrap.csrf} />
+              <button type="submit" className="link-button">Выйти из аккаунта</button>
+            </form>
+          </section>
         </aside>
       </div>
     </div>

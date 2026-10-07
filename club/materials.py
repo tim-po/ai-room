@@ -69,7 +69,12 @@ def register_materials(app, db, query, can_access, require_user, goals, shell):
                      fixture=item['video'] == 'fixture.webm') if item['video'] else None
         resources = [dict(id=r['id'], title=r['title'], kind=r['kind'], url=f'/material-resources/{r["id"]}') for r in
                      query("SELECT id,title,kind FROM material_resources WHERE material_id=? AND status='published' ORDER BY id", (identity,))]
-        return jsonify(locked=False, item=public | dict(paragraphs=item['body'].split('\n\n'), prompt=item['prompt'], video=video),
+        body = dict(paragraphs=item['body'].split('\n\n'))
+        if 'body_format' in item.keys() and item['body_format'] == 'blocks':
+            # Guides from the original platform: the same escaped Markdown subset as rich lessons.
+            from .legacy_content import outline, render_blocks
+            body = dict(body_html=str(render_blocks(item['body'])), steps=outline(item['body']))
+        return jsonify(locked=False, item=public | body | dict(prompt=item['prompt'], video=video),
                        resources=resources, favourite=bool(saved), seconds=position['seconds'] if position else 0)
 
     @bp.get('/api/materials/<identity>')

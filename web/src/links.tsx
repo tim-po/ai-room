@@ -4,7 +4,7 @@ import {Link} from 'react-router';
 // Paths the React app renders. Anything else (admin, authoring, routes, assessments) is a server
 // page and loads normally.
 const SPA_PATHS = [
-  /^\/$/, /^\/(profile|catalogue|membership|preferences|help|onboarding|login)$/,
+  /^\/$/, /^\/(profile|discover|catalogue|membership|preferences|help|onboarding|login)$/,
   /^\/(lessons|courses|materials)\/[^/]+$/,
   /^\/oauth\/consent$/,
 ];

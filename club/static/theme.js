@@ -32,11 +32,20 @@
   function toggle() {
     theme = theme === 'dawn' ? 'dusk' : 'dawn';
     try { localStorage.setItem('airoom-theme', theme); } catch (_) { /* private mode: lasts for this page */ }
-    // Tokens are animatable (theme-motion.css), but only while .theme-shift is set: the sun rises
-    // or sets for this switch, and ordinary page loads never animate the theme.
+    // The sun rises or sets for this switch only; ordinary page loads never animate the theme.
+    // Where the browser has view transitions, the interface cross-fades from a snapshot while the sky
+    // alone animates (.theme-fade, cheap); elsewhere every token animates (.theme-shift).
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    clearTimeout(shiftTimer);
+    if (document.startViewTransition && !reduced && GLASS.includes(theme)) {
+      root.classList.remove('theme-shift');
+      root.classList.add('theme-fade');
+      document.startViewTransition(() => apply(theme));
+      shiftTimer = setTimeout(() => root.classList.remove('theme-fade'), 2600);
+      return;
+    }
     root.classList.add('theme-shift');
     apply(theme);
-    clearTimeout(shiftTimer);
     shiftTimer = setTimeout(() => root.classList.remove('theme-shift'), 3600);
   }
   // Delegated, so a toggle rendered later (the React app) works too.

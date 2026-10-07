@@ -81,3 +81,22 @@ export function Resources({resources, title}: {resources: {id: string; title: st
     </section>
   );
 }
+
+/**
+ * A rich lesson or guide body, rendered on the server from an escaped Markdown subset
+ * (legacy_content.py), so the HTML holds only allowlisted tags, links and media. Prompt blocks get
+ * a copy button.
+ */
+export function RichBody({id, html}: {id: string; html: string}) {
+  return (
+    <section className="reading lesson-rich" id={id} tabIndex={-1}
+      onClick={event => {
+        const button = (event.target as Element).closest('[data-copy-block]');
+        if (!button) return;
+        const figure = button.parentElement!;
+        const status = figure.querySelector('.copy-status');
+        copyText(figure.querySelector('pre')?.textContent || '', message => { if (status) status.textContent = message; });
+      }}
+      dangerouslySetInnerHTML={{__html: html}} />
+  );
+}

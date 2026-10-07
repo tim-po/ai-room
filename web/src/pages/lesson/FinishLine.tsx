@@ -4,10 +4,11 @@ import {useEffect, useRef, useState} from 'react';
 import {useLocation, useRevalidator} from 'react-router';
 import {ApiError, bootstrap, postJson} from '../../api';
 import PlanEditor from '../../components/PlanEditor';
+import {AchievementView, markSeen} from '../../components/Ranks';
 import {plural} from '../../format';
 import {AppLink} from '../../links';
 import {formatSession, nextSession} from '../../plan';
-import type {LessonData, Plan} from '../../types';
+import type {Achievement, LessonData, Plan} from '../../types';
 
 export interface Checkpoints {
   titles: string[];
@@ -158,12 +159,13 @@ function PlanNote({plan}: {plan: Plan}) {
 }
 
 /** The finish moment: what was done, course progress, the next lesson and when it will happen. */
-function FinishDialog({data, points, practiceSaved, onClose}: {data: LessonData; points: Checkpoints; practiceSaved: boolean; onClose: () => void}) {
+function FinishDialog({data, points, practiceSaved, earned, onClose}: {data: LessonData; points: Checkpoints; practiceSaved: boolean; earned: Achievement[]; onClose: () => void}) {
   const ref = useRef<HTMLDialogElement>(null);
   const [filled, setFilled] = useState(false);
   useEffect(() => {
     const dialog = ref.current;
     if (dialog && !dialog.open) dialog.showModal();
+    markSeen(earned);   // celebrated here, so the map won't repeat it
     const frame = requestAnimationFrame(() => setFilled(true));   // let the course bar grow into place
     return () => cancelAnimationFrame(frame);
   }, []);
@@ -182,6 +184,11 @@ function FinishDialog({data, points, practiceSaved, onClose}: {data: LessonData;
         {sections && `Вы прошли ${sections}`}{sections && practiceSaved ? ' и сохранили практику' : !sections && practiceSaved ? 'Практика сохранена' : ''}.
         {' '}Урок отмечен на карте.
       </p>
+      {earned.length > 0 && (
+        <div className="finish-earned">
+          {[...earned].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'rank' ? -1 : 1)).map(item => <AchievementView key={item.id} item={item} />)}
+        </div>
+      )}
       {outline && available > 0 && (
         <div className="finish-course">
           <p><span>{data.course.title}</span><span>{Math.min(done, available)} из {available} {plural(available, 'открытого урока', 'открытых уроков', 'открытых уроков')}</span></p>
@@ -214,13 +221,15 @@ function FinishDialog({data, points, practiceSaved, onClose}: {data: LessonData;
 export function FinishPanel({data, points, practiceSaved}: {data: LessonData; points: Checkpoints; practiceSaved: boolean}) {
   const [completed, setCompleted] = useState(!!data.progress?.completed);
   const [celebrate, setCelebrate] = useState(false);
+  const [earned, setEarned] = useState<Achievement[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const revalidator = useRevalidator();
   async function mark(value: boolean) {
     setBusy(true); setError('');
     try {
-      await postJson(`/api/lessons/${encodeURIComponent(data.lesson.id)}/completion`, {completed: value});
+      const result = await postJson<{earned?: Achievement[]}>(`/api/lessons/${encodeURIComponent(data.lesson.id)}/completion`, {completed: value});
+      setEarned(result.earned ?? []);
       setCompleted(value);
       setCelebrate(value);
       revalidator.revalidate();   // course outline and map states
@@ -267,7 +276,7 @@ export function FinishPanel({data, points, practiceSaved}: {data: LessonData; po
         </>
       )}
       {error && <p className="small" role="alert">{error}</p>}
-      {celebrate && <FinishDialog data={data} points={points} practiceSaved={practiceSaved} onClose={() => setCelebrate(false)} />}
+      {celebrate && <FinishDialog data={data} points={points} practiceSaved={practiceSaved} earned={earned} onClose={() => setCelebrate(false)} />}
     </section>
   );
 }

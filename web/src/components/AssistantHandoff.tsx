@@ -103,7 +103,7 @@ export default function AssistantHandoff({data, section, draft}: {data: LessonDa
               <button type="button" className="button secondary" onClick={() => copy(link.url, 'Ссылка скопирована.')}>Скопировать</button>
               <p className="small">
                 Ссылка сработает один раз в течение {link.minutes} минут. Ассистент получит доступ к вашему обучению на 7 дней:
-                читать уроки и сохранять работу. Отключить можно в <AppLink to="/profile#connections">«Моё обучение» → Подключения</AppLink>.
+                читать уроки и сохранять работу. Отключить можно в <AppLink to="/profile#connections">«Профиль» → Подключения</AppLink>.
               </p>
             </div>
           )}

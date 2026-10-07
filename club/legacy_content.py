@@ -1,5 +1,5 @@
-"""Real free lessons from the original AI Room platform, plus labelled demo
-member lessons that exercise the paywall. No paid legacy content is imported.
+"""Real free lessons, guides and use cases from the original AI Room platform, plus
+labelled demo member lessons that exercise the paywall. No paid legacy content is imported.
 
 Lesson bodies use a small Markdown subset (see ``parse_blocks``) and are
 rendered through ``render_blocks``, which escapes everything and only emits
@@ -14,6 +14,7 @@ import click
 from markupsafe import Markup, escape
 
 CONTENT_DIR = Path(__file__).with_name('content') / 'legacy'
+MATERIALS_DIR = CONTENT_DIR / 'materials'   # free guides and use cases (materials, not lessons)
 IMAGE_HOSTS = ('https://airoom-storage.s3.twcstorage.ru/',)
 VIDEO_EMBED = re.compile(r'https://kinescope\.io/embed/[A-Za-z0-9]+(\?[A-Za-z0-9_=&]*)?')
 IMAGE_SOURCES = ' '.join(h.rstrip('/') for h in IMAGE_HOSTS)
@@ -67,11 +68,15 @@ PRACTICE = {
 }
 
 
-def read_lesson(lesson_id):
-    text = (CONTENT_DIR / (lesson_id + '.md')).read_text(encoding='utf-8')
+def read_lesson(lesson_id, folder=CONTENT_DIR):
+    text = (folder / (lesson_id + '.md')).read_text(encoding='utf-8')
     _, header, body = text.split('---\n', 2)
     meta = dict(line.split(': ', 1) for line in header.strip().splitlines())
     return meta, body.strip()
+
+
+def legacy_materials():
+    return [read_lesson(path.stem, MATERIALS_DIR) for path in sorted(MATERIALS_DIR.glob('*.md'))]
 
 
 def parse_blocks(body):
@@ -125,11 +130,13 @@ def _chunks(body):
 
 
 def inline(text):
-    """Escape, then allow **bold** and [label](https://…) links only."""
+    """Escape, then allow **bold**, [label](https://…) links and links to this platform's own
+    lessons, courses and materials ([label](/materials/id))."""
     html = str(escape(text))
     html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
     html = re.sub(r'\[([^\]]+)\]\((https?://[^\s)&]+(?:&amp;[^\s)&]+)*)\)',
                   r'<a href="\2" rel="noopener noreferrer" target="_blank">\1 ↗</a>', html)
+    html = re.sub(r'\[([^\]]+)\]\((/(?:lessons|courses|materials)/[A-Za-z0-9_.-]+)\)', r'<a href="\2">\1</a>', html)
     return Markup(html.replace('\n', '<br>'))
 
 
@@ -174,6 +181,11 @@ def ensure_schema(db):
         lesson_id TEXT PRIMARY KEY REFERENCES lessons(id), branch TEXT NOT NULL,
         level TEXT NOT NULL CHECK(level IN ('beginner','intermediate','advanced')),
         format TEXT NOT NULL, source_url TEXT, demo INTEGER NOT NULL DEFAULT 0)''')
+    material_columns = {r[1] for r in db.execute('PRAGMA table_info(materials)')}
+    if 'body_format' not in material_columns:
+        db.execute("ALTER TABLE materials ADD COLUMN body_format TEXT NOT NULL DEFAULT 'text'")
+    db.execute('''CREATE TABLE IF NOT EXISTS material_profiles (
+        material_id TEXT PRIMARY KEY REFERENCES materials(id), branch TEXT NOT NULL, source_url TEXT)''')
 
 
 def install(db, retire_synthetic=False):
@@ -206,10 +218,23 @@ def install(db, retire_synthetic=False):
                 db.execute('''INSERT INTO lesson_profiles VALUES(?,?,?,?,?,?) ON CONFLICT(lesson_id) DO UPDATE SET
                     branch=excluded.branch,level=excluded.level,format=excluded.format,source_url=excluded.source_url,demo=excluded.demo''',
                     (lesson_id, branch, level if not demo else 'beginner', fmt, source, demo))
+    materials = legacy_materials()
     if retire_synthetic:
         legacy_ids = [c[0] for c in COURSES]
         db.execute(f"UPDATE courses SET status='archived' WHERE id NOT IN ({','.join('?' * len(legacy_ids))}) AND status='published'", legacy_ids)
-        db.execute("UPDATE materials SET status='archived' WHERE status='published'")
+        material_ids = [meta['id'] for meta, _ in materials] or ['']
+        db.execute(f"UPDATE materials SET status='archived' WHERE status='published' AND id NOT IN ({','.join('?' * len(material_ids))})", material_ids)
+    for meta, body in materials:
+        assert meta['access'] == 'free', meta['id']   # only free legacy content is ever installed
+        db.execute('''INSERT INTO materials(id,title,description,outcome,format,goal,level,tools,prerequisites,author,minutes,body,prompt,video,access,status,updated_at,body_format)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,'free','published',?,'blocks') ON CONFLICT(id) DO UPDATE SET title=excluded.title,
+            description=excluded.description,outcome=excluded.outcome,format=excluded.format,goal=excluded.goal,level=excluded.level,
+            tools=excluded.tools,prerequisites=excluded.prerequisites,minutes=excluded.minutes,body=excluded.body,access='free',
+            status='published',updated_at=excluded.updated_at,body_format='blocks' ''',
+            (meta['id'], meta['title'], meta['summary'], meta['outcome'], meta['format'], meta['goal'], LEVELS[meta['level']], meta['tools'],
+             meta['prerequisites'], 'AI Room', int(meta['minutes']), body, meta['published']))
+        db.execute('''INSERT INTO material_profiles VALUES(?,?,?) ON CONFLICT(material_id) DO UPDATE SET
+            branch=excluded.branch,source_url=excluded.source_url''', (meta['id'], meta['branch'], meta['source']))
 
 
 def register_legacy_content(app, db):
@@ -219,7 +244,7 @@ def register_legacy_content(app, db):
     @app.cli.command('install-legacy-lessons')
     @click.option('--retire-synthetic', is_flag=True, help='Archive synthetic fixture courses (learner rows are kept).')
     def install_legacy_lessons(retire_synthetic):
-        """Install selected free lessons from the original platform and demo member lessons."""
+        """Install selected free lessons, guides and use cases from the original platform and demo member lessons."""
         database = Path(app.config['DATABASE'])
         backup = database.with_name(database.name + '.before-legacy-' + datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f') + '.sqlite')
         with sqlite3.connect(backup) as dest:
@@ -227,4 +252,4 @@ def register_legacy_content(app, db):
         backup.chmod(0o600)
         with db():
             install(db(), retire_synthetic)
-        click.echo('Legacy lessons installed. Backup: ' + str(backup))
+        click.echo('Legacy lessons and materials installed. Backup: ' + str(backup))
