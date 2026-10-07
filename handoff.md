@@ -77,16 +77,17 @@ Use disposable databases for tests. Never seed/reset the installed staging datab
 - Login: https://airoom.nolimlabs.uk/login
 - Skill map for anonymous visitors: https://airoom.nolimlabs.uk/?view=map
 - Health: https://airoom.nolimlabs.uk/health
-- Current health build: `7f9b053fe6db5291af6e945242f3dcbfcd5ea79c` (deployed 2026-10-07; PR tim-po/ai-room#1), schema 6, status `ok`. Previously `548e724`.
+- Current health build: `6f9eea9168449287a46c3e08f7ac81237396a85f` (deployed 2026-10-08; PR tim-po/ai-room#1), schema 6, status `ok`. Before it `f0b4bd1` (same day), then `7f9b053`.
 - Local listener: `127.0.0.1:8098` behind the existing proxy.
 - User systemd service: `ai-room.service`.
 - Service override: `/home/claude/.config/systemd/user/ai-room.service.d/staging.conf`.
-- WorkingDirectory now `/home/claude/ai-room-releases/7f9b053`. It includes the built React bundle in `club/static/app/` (built locally with `cd web && npm ci && npm run build`; Node isn't needed at runtime).
+- WorkingDirectory now `/home/claude/ai-room-releases/6f9eea9`. It includes the built React bundle in `club/static/app/` (built locally with `cd web && npm ci && npm run build`; Node isn't needed at runtime).
 - ExecStart uses `/home/claude/ai-room/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8098 club:create_app()`.
-- EnvironmentFile now `/home/claude/ai-room-staging-private/state-dae0217/frontend-7f9b053.env`: the same values as `frontend-548e724.env`, plus `CLUB_PUBLIC_URL=https://airoom.nolimlabs.uk` (assistant links, calendar events, OAuth issuer) and `CLUB_DEMO_CHECKOUT=1` (the staging-only demo membership switch).
+- EnvironmentFile now `/home/claude/ai-room-staging-private/state-dae0217/frontend-6f9eea9.env` (same keys as `frontend-7f9b053.env`, new build id), originally the same values as `frontend-548e724.env`, plus `CLUB_PUBLIC_URL=https://airoom.nolimlabs.uk` (assistant links, calendar events, OAuth issuer) and `CLUB_DEMO_CHECKOUT=1` (the staging-only demo membership switch).
 - `ai-room-teaching.service` still runs release `dae0217` with `staging.env`; it was only paused during the switch.
 - 2026-10-07 content: ran `install-legacy-lessons --retire-synthetic`, which added 3 real courses, 6 modules and 8 lessons and archived the synthetic fixture courses. Learner rows were kept and no rows were lost; this was rehearsed twice on copies. Its own backup is `club.sqlite.before-legacy-20261007094544300190.sqlite`.
 - 2026-10-07 rollback checkpoint: `/home/claude/ai-room-staging-private/rollback-7f9b053-20261007094542/`, containing the previous `staging.conf` and a database backup taken while writes were paused. To roll back the code, restore that `staging.conf` and restart; the new tables are additive.
+- 2026-10-08: `install-legacy-lessons --retire-synthetic` on `f0b4bd1` published 6 free materials (4 guides, 2 use cases); rehearsed on a database copy first, no learner rows changed. Rollback checkpoints: `/home/claude/ai-room-staging-private/rollback-f0b4bd1-20261007233254/` (back to `7f9b053`) and `rollback-6f9eea9-20261007234114/` (back to `f0b4bd1`); each holds the previous `staging.conf` and a database backup. Static files are now cached at Cloudflare's edge (`cf-cache-status: HIT`).
 - Network caveat, observed 2026-10-07: from a Russian ISP, responses through the Cloudflare tunnel often stall after about 16–19 KB. This affects old files too (for example `atlas.css`), and the 435 KB React bundle stalls on most attempts. From the VPS itself or other networks, everything loads in about 2 seconds. Learners in Russia need a path that doesn't go through Cloudflare.
 - Persistent state stays at `/home/claude/ai-room-staging-private/state-dae0217`. Its old name does NOT mean old code is deployed.
 - Release `instance` is a symlink to that persistent state directory. Preserve it: media and session signing key depend on this layout.
