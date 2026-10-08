@@ -23,7 +23,9 @@ def test_discover_shows_metadata_only_shelves(legacy):
     found = shelves(data)
     assert {'free', 'courses', 'coming', 'club'} <= set(found) and 'continue' not in found
     assert data['hero'] and data['topics'] and {c['id'] for c in data['classes']} >= {'lesson', 'course', 'coming'}
-    assert any(s['style'] == 'top' for s in data['shelves'])
+    assert not any(s['style'] == 'top' for s in data['shelves'])           # no ranking without learners
+    placed = [(i['kind'], i.get('id') or i['title']) for s in data['shelves'] for i in s['items']]
+    assert len(placed) == len(set(placed))                                   # each item on one shelf
     assert FIRST in {i['id'] for i in found['free']['items']}
     assert all(i['state'] == 'locked' for i in found['club']['items']) and MEMBER in {i['id'] for i in found['club']['items']}
     for item in items(data):

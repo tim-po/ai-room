@@ -26,12 +26,17 @@ function Welcome({data}: {data: HomeData}) {
         </div>
         <div className="welcome-topics" aria-label="Что внутри">
           {data.tree.topics.map(topic => {
-            const lessons = topic.courses.reduce((sum, course) => sum + course.total, 0);
+            const total = topic.courses.reduce((sum, course) => sum + course.total, 0);
+            const open = topic.courses.reduce((sum, course) => sum + course.available, 0);
             return (
               <AppLink key={topic.id} className="welcome-topic" to={`/map#course-${topic.courses[0].id}`}>
                 <strong>{topic.title}</strong>
                 <span>{topic.subtitle}</span>
-                <em>{topic.courses.length} {plural(topic.courses.length, 'курс', 'курса', 'курсов')} · {lessons} {plural(lessons, 'урок', 'урока', 'уроков')}</em>
+                <em className={open ? undefined : 'is-soon'}>
+                  {open
+                    ? `${open} ${plural(open, 'урок открыт', 'урока открыто', 'уроков открыто')} · ещё ${total - open} скоро`
+                    : `Скоро · ${total} ${plural(total, 'урок', 'урока', 'уроков')} в подготовке`}
+                </em>
               </AppLink>
             );
           })}

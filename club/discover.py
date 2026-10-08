@@ -147,9 +147,13 @@ def register_discover(app, query, can_access, cards, continuation_context, shell
         lessons = [i for i in visible if i['kind'] == 'lesson']
         by_popularity = lambda i: -i['learners']
         shelves = []
+        shown = set()   # each item sits on one shelf only; a small catalogue must not look padded
 
-        def shelf(key, title, entries, style='row', subtitle=None, link=None):
+        def shelf(key, title, entries, style='row', subtitle=None, link=None, repeat=False):
+            if not repeat:
+                entries = [e for e in entries if (e['kind'], e.get('id') or e['title']) not in shown]
             if entries:
+                shown.update((e['kind'], e.get('id') or e['title']) for e in entries)
                 shelves.append(dict(id=key, title=title, subtitle=subtitle, style=style, link=link, items=[public(e) for e in entries]))
 
         # Continue: the unfinished lesson first, then the next lesson of every course in progress.
@@ -169,22 +173,22 @@ def register_discover(app, query, can_access, cards, continuation_context, shell
         started = {c['id'] for c in continuing}
         free = [i for i in lessons if i['access'] == 'free' and i['state'] == 'open' and i['id'] not in started]
         shelf('free', 'Начните бесплатно', free, subtitle='Короткие уроки с практикой на вашей задаче')
-        for topic in topics:
-            ranked = sorted((i for i in visible if i['topic_id'] == topic['id'] and i['kind'] != 'coming'), key=by_popularity)[:10]
-            if len(ranked) >= 3:
-                shelf(f'top-{topic["id"]}', f'Топ в «{topic["title"]}»', ranked, style='top', link=f'/discover?topic={topic["id"]}')
+        # A ranking is shown only when there is a real crowd behind it.
+        ranked = sorted((i for i in visible if i['kind'] != 'coming' and i['learners'] > 0
+                         and (i['kind'], i.get('id')) not in shown), key=by_popularity)[:10]
+        if len(ranked) >= 5:
+            shelf('popular', 'Популярное', ranked, style='top')
         shelf('courses', 'Курсы', [i for i in visible if i['kind'] == 'course'], subtitle='Программы от первого запуска до результата', link='/discover?class=course')
         for kind in ('guide', 'use_case', 'workshop'):
             shelf(kind, CLASSES[kind], [i for i in visible if i['kind'] == kind], link=f'/discover?class={kind}')
-        shelf('quick', 'Быстро: до 15 минут', [i for i in lessons if i.get('minutes', 99) <= 15 and i['state'] in ('open', 'progress')])
-        if not (user and (user['entitlement'] == 'member' or user['role'] != 'learner')):
-            shelf('club', 'В клубе', [i for i in lessons if i['state'] == 'locked'], subtitle='Полные курсы и практика — для участников клуба', link='/membership')
+        shelf('lessons', 'Уроки', [i for i in lessons if i['state'] != 'locked'], link='/discover?class=lesson')
+        shelf('club', 'В клубе', [i for i in lessons if i['state'] == 'locked'], subtitle='Полные курсы и практика — для участников клуба', link='/membership')
         shelf('coming', 'Скоро в AI Room', [i for i in visible if i['kind'] == 'coming'], style='coming',
               subtitle='Уже на карте навыков — уроки появятся по мере переноса')
         if user:
             listed = {r['course_id'] for r in query('SELECT course_id FROM favourites WHERE user_id=?', (user['id'],))}
             listed |= {r['material_id'] for r in query('SELECT material_id FROM material_favourites WHERE user_id=?', (user['id'],))}
-            shelf('list', 'Мой список', [i for i in visible if i['id'] in listed and i['kind'] != 'lesson'])
+            shelf('list', 'Мой список', [i for i in visible if i['id'] in listed and i['kind'] != 'lesson'], repeat=True)
 
         # Hero: what to start next (the Продолжить shelf already holds what's begun): the strongest
         # free lesson, the most followed course, and something new.
