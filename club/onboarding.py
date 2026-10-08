@@ -211,9 +211,10 @@ def register_onboarding(app, db, query, require_user, shell):
                 persist(user, value)
         return '/onboarding'
 
-    # Learning pages, and the app data behind them, wait until onboarding is finished or skipped.
-    pages = {'home', 'skill_map', 'catalogue', 'discover', 'course', 'lesson', 'profile', 'preferences', 'skill_tree'}
-    page_data = {'home_api', 'catalogue_api', 'discover_api', 'search_api', 'course_api', 'lesson_page_api', 'profile_api', 'preferences_api'}
+    # Entry pages, and the app data behind them, wait until onboarding is finished or skipped.
+    # A direct link to a course or lesson opens it: a shared link must never land on a questionnaire.
+    pages = {'home', 'skill_map', 'catalogue', 'discover', 'profile', 'preferences', 'skill_tree'}
+    page_data = {'home_api', 'catalogue_api', 'discover_api', 'search_api', 'profile_api', 'preferences_api'}
 
     @app.before_request
     def learner_entry():

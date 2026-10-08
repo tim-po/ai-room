@@ -99,10 +99,13 @@ def test_roles_csrf_validation_and_unchanged_save_telemetry(onboard):
     s = put(c,csrf,s,'save').json
     with sqlite3.connect(onboard.config['DATABASE']) as db:
         assert db.execute('SELECT COUNT(*) FROM onboarding_events_v1').fetchone()[0] == 0
-    assert c.get('/lessons/'+FREE).location == '/onboarding'
+    assert c.get('/').location == '/onboarding'
+    # Direct links to a lesson or course open it even before onboarding.
+    assert c.get('/lessons/'+FREE).status_code == 200
+    assert c.get('/api/app/lessons/'+FREE).status_code == 200
     assert c.get('/api/lessons/'+FREE).status_code == 200
-    # The app's page data waits for onboarding too; the app follows the redirect.
-    for path in ['/api/app/home', '/api/app/catalogue', '/api/app/discover', '/api/app/search?q=x', '/api/app/lessons/'+FREE, '/api/app/profile']:
+    # The app's entry data waits for onboarding; the app follows the redirect.
+    for path in ['/api/app/home', '/api/app/catalogue', '/api/app/discover', '/api/app/search?q=x', '/api/app/profile']:
         response = c.get(path)
         assert response.status_code == 409 and response.json['redirect'] == '/onboarding', path
 
