@@ -212,7 +212,7 @@ export default function Onboarding() {
   const body: ReactNode[] = [], actions: ReactNode[] = [];
 
   if (done) {
-    heading = 'Ваше начало — в вашем темпе';
+    heading = 'Настройки сохранены';
     progress = 'Настройки обучения';
     body.push(<p key="p">Можно изменить интересы и время. Уроки, работы и результаты сохранятся.</p>);
     actions.push(button('Изменить интересы и темп', () => send('edit')),
@@ -221,9 +221,9 @@ export default function Onboarding() {
   } else {
     progress = `${state.editing ? 'Настройки · ' : ''}Шаг ${index + 1} из 4`;
     if (state.step === 'welcome') {
-      heading = 'Небольшой шаг. Полезный результат.';
-      body.push(<p key="a">Разберите одну идею, попробуйте её на своей задаче и сохраните работу. Здесь можно учиться сразу в нескольких направлениях.</p>,
-        <p key="b">Пара необязательных вопросов поможет сохранить ваши пожелания. Их можно изменить позже.</p>);
+      heading = 'Расскажите о себе — или пропустите';
+      body.push(<p key="a">Четыре коротких вопроса, чтобы подобрать первый урок. Все вопросы можно пропустить и выбрать урок самому.</p>,
+        <p key="b">Ответы сохраняются в аккаунте и меняются позже в настройках.</p>);
     } else if (state.step === 'interests') {
       heading = 'Что хочется попробовать?';
       body.push(<p key="p">Выберите несколько направлений или ни одного. Вся карта останется открытой.</p>,
@@ -262,7 +262,7 @@ export default function Onboarding() {
         actions.push(button('Сначала проверить знания', () => send('complete', {diagnostic_choice: 'start'}, '/diagnostic'), 'secondary'));
       }
     }
-    if (state.step !== 'start') actions.push(button(state.step === 'welcome' ? 'Найти своё начало →' : 'Сохранить и дальше →', () => send('next')));
+    if (state.step !== 'start') actions.push(button(state.step === 'welcome' ? 'Дальше →' : 'Сохранить и дальше →', () => send('next')));
     if (state.step !== 'welcome') actions.push(button('← Назад', () => send('back'), 'quiet'));
     actions.push(button(state.editing ? 'Отменить изменения' : 'Пропустить настройку', () => send(state.editing ? 'cancel' : 'skip'), 'quiet'));
   }
@@ -270,7 +270,6 @@ export default function Onboarding() {
   return (
     <section className="onboarding" data-step={index < 0 ? 'done' : STEPS[index]}>
       <div className="onboarding-copy">
-        <p className="eyebrow">AI Room · Ваше начало</p>
         <p id="onboarding-progress">{progress}</p>
         <div className="onb-steps" aria-hidden="true" hidden={index < 0}>
           {STEPS.map((step, i) => <span key={step} className={i <= index ? 'is-done' : undefined} />)}
@@ -282,7 +281,7 @@ export default function Onboarding() {
           <div id="onboarding-actions" className="development-actions">{actions}</div>
         </div>
       </div>
-      <aside className="onboarding-art" aria-hidden="true"><p>Пробуйте. Сохраняйте.<br />Возвращайтесь к своему.</p></aside>
+      <aside className="onboarding-art" aria-hidden="true"><p>Ответы сохраняются в аккаунте<br />и меняются в настройках.</p></aside>
     </section>
   );
 }

@@ -47,8 +47,7 @@ export default function Membership() {
   const member = !!user && (user.entitlement === 'member' || user.role !== 'learner');
   return (
     <section className="membership">
-      <span className="eyebrow">AI Room Club</span>
-      <h1>{member ? 'Вы в клубе' : 'Учитесь дальше вместе с клубом'}</h1>
+      <h1>{member ? 'Вы в клубе' : 'Клуб AI Room'}</h1>
       <p className="lead">Бесплатные уроки помогают начать. В клубе открыты полные курсы, практика с сохранением и новые материалы.</p>
       <ul className="membership-list">
         <li><strong>{data.member_lessons}</strong> уроков клуба в дополнение к {data.free_lessons} бесплатным</li>

@@ -121,7 +121,6 @@ export default function Profile() {
       <header className="me-hero">
         <span className="me-avatar" aria-hidden="true">{(user.name.trim()[0] ?? '·').toUpperCase()}</span>
         <div className="me-id">
-          <p className="eyebrow">Профиль</p>
           <h1>{user.name}</h1>
           <p className="me-id-meta">
             <AppLink to="#club" className={`me-status is-${user.entitlement === 'member' || user.role !== 'learner' ? 'member' : user.entitlement}`}>{user.role !== 'learner' ? 'Полный доступ' : ACCESS_LABEL[user.entitlement]}</AppLink>
@@ -131,14 +130,26 @@ export default function Profile() {
         <nav className="me-hero-actions" aria-label="Настройки">
           <AppLink className="button secondary" to="/onboarding">Интересы и темп</AppLink>
           <AppLink className="button secondary" to="/preferences">Настройки</AppLink>
+          <AppLink className="button secondary" to="/help">Помощь</AppLink>
+          <form className="me-logout" method="post" action="/logout">
+            <input type="hidden" name="csrf" value={bootstrap.csrf} />
+            <button type="submit" className="link-button">Выйти</button>
+          </form>
         </nav>
       </header>
-      <ul className="me-stats" aria-label="Итоги">
-        <li><strong>{data.stats.lessons_done}</strong><span>{plural(data.stats.lessons_done, 'урок пройден', 'урока пройдено', 'уроков пройдено')}</span></li>
-        <li><strong>{data.stats.works}</strong><span>{plural(data.stats.works, 'работа сохранена', 'работы сохранено', 'работ сохранено')}</span></li>
-        <li><strong>{data.stats.days}</strong><span>{plural(data.stats.days, 'день', 'дня', 'дней')} с обучением за месяц</span></li>
-        <li><strong>{data.active_courses.length}</strong><span>{plural(data.active_courses.length, 'курс', 'курса', 'курсов')} в работе</span></li>
-      </ul>
+      {[[data.stats.lessons_done, plural(data.stats.lessons_done, 'урок пройден', 'урока пройдено', 'уроков пройдено')],
+        [data.stats.works, plural(data.stats.works, 'работа сохранена', 'работы сохранено', 'работ сохранено')],
+        [data.stats.days, plural(data.stats.days, 'день', 'дня', 'дней') + ' с обучением за месяц'],
+        [data.active_courses.length, plural(data.active_courses.length, 'курс', 'курса', 'курсов') + ' в работе'],
+      ].some(([n]) => n) && (
+        <ul className="me-stats" aria-label="Итоги">
+          {[[data.stats.lessons_done, plural(data.stats.lessons_done, 'урок пройден', 'урока пройдено', 'уроков пройдено')],
+            [data.stats.works, plural(data.stats.works, 'работа сохранена', 'работы сохранено', 'работ сохранено')],
+            [data.stats.days, plural(data.stats.days, 'день', 'дня', 'дней') + ' с обучением за месяц'],
+            [data.active_courses.length, plural(data.active_courses.length, 'курс', 'курса', 'курсов') + ' в работе'],
+          ].filter(([n]) => n).map(([n, label]) => <li key={String(label)}><strong>{n}</strong><span>{label}</span></li>)}
+        </ul>
+      )}
       <div className="me-grid">
         <div className="me-main">
           {briefing?.returning ? (
@@ -183,19 +194,19 @@ export default function Profile() {
             <h2 id="active-learning">Курсы в работе{data.active_courses.length > 0 && <span>{data.active_courses.length}</span>}</h2>
             {data.active_courses.length
               ? data.active_courses.map(course => <CourseRow key={course.id} course={course} entitlement={user.entitlement} />)
-              : <p className="me-note">Пока нет курсов в работе. Откройте интересующий урок — здесь появится ваш прогресс.</p>}
+              : <p className="me-note">{data.practices.length ? 'Сохранённые работы — выше. Курс появится здесь, когда вы пройдёте урок.' : 'Пока нет курсов в работе. Откройте интересующий урок — здесь появится ваш прогресс.'}</p>}
           </section>
 
-          <section className="me-section" aria-labelledby="completed-learning">
-            <h2 id="completed-learning">Завершённые курсы{data.completed_courses.length > 0 && <span>{data.completed_courses.length}</span>}</h2>
-            {data.completed_courses.length
-              ? data.completed_courses.map(course => <CourseRow key={course.id} course={course} entitlement={user.entitlement} />)
-              : <p className="me-note">Здесь появятся курсы, которые вы завершите.</p>}
-          </section>
+          {data.completed_courses.length > 0 && (
+            <section className="me-section" aria-labelledby="completed-learning">
+              <h2 id="completed-learning">Завершённые курсы<span>{data.completed_courses.length}</span></h2>
+              {data.completed_courses.map(course => <CourseRow key={course.id} course={course} entitlement={user.entitlement} />)}
+            </section>
+          )}
         </div>
 
         <aside className="me-side">
-          <RanksPanel ranks={data.ranks} />
+          {data.ranks.length > 0 && <RanksPanel ranks={data.ranks} />}
           <section className="me-panel" aria-labelledby="pace-title" id="plan">
             <h2 id="pace-title">План</h2>
             {next ? (
@@ -231,15 +242,6 @@ export default function Profile() {
               {data.favourites.map(c => <p key={c.id}><AppLink to={`/courses/${c.id}`}>{c.title}</AppLink></p>)}
             </section>
           )}
-          <section className="me-panel me-account" aria-labelledby="account-title">
-            <h2 id="account-title">Аккаунт</h2>
-            <p className="me-note">{user.email}</p>
-            <AppLink to="/help">Помощь и поддержка →</AppLink>
-            <form className="me-logout" method="post" action="/logout">
-              <input type="hidden" name="csrf" value={bootstrap.csrf} />
-              <button type="submit" className="link-button">Выйти из аккаунта</button>
-            </form>
-          </section>
         </aside>
       </div>
     </div>

@@ -48,14 +48,15 @@ function Lock() {
   return <svg className="lock" viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5" /><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7" /></svg>;
 }
 
+/** One badge per card: the state first, then «Бесплатно», then «Новое». */
 export function Badges({item}: {item: DiscoverItem}) {
-  const badges: ReactNode[] = [];
-  if (item.state === 'done') badges.push(<span key="done" className="badge is-done">Пройдено</span>);
-  else if (item.state === 'locked') badges.push(<span key="lock" className="badge is-club"><Lock />Клуб</span>);
-  else if (item.state === 'progress' && item.kind === 'lesson') badges.push(<span key="prog" className="badge is-progress">Начат</span>);
-  if (item.kind !== 'coming' && item.access === 'free' && item.state !== 'done') badges.push(<span key="free" className="badge is-free">Бесплатно</span>);
-  if (item.new && item.state !== 'done') badges.push(<span key="new" className="badge is-new">Новое</span>);
-  return badges.length ? <span className="badges">{badges}</span> : null;
+  const badge = item.state === 'done' ? <span className="badge is-done">Пройдено</span>
+    : item.state === 'locked' ? <span className="badge is-club"><Lock />Клуб</span>
+    : item.state === 'progress' && item.kind === 'lesson' ? <span className="badge is-progress">Начат</span>
+    : item.kind !== 'coming' && item.access === 'free' ? <span className="badge is-free">Бесплатно</span>
+    : item.new ? <span className="badge is-new">Новое</span>
+    : null;
+  return badge ? <span className="badges">{badge}</span> : null;
 }
 
 /** Marks the query's stems in a title (е and ё match each other). */

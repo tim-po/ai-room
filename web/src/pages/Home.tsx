@@ -15,11 +15,10 @@ function Welcome({data}: {data: HomeData}) {
     <>
       <section className="welcome-hero">
         <div>
-          <p className="eyebrow">AI Room · учиться через практику</p>
-          <h1>От первого<br />«а что, если»<br /><em>к своей работе.</em></h1>
-          <p className="welcome-lead">Короткие практические уроки по ИИ: делаете на своей задаче, сохраняете результат, возвращаетесь, когда удобно.</p>
+          <h1>Короткие уроки по&nbsp;ИИ.<br />Три из них — бесплатно.</h1>
+          <p className="welcome-lead">Claude, ChatGPT и ИИ-агенты: урок, пример и задание на вашей задаче. Результат сохраняется в аккаунте.</p>
           <div className="welcome-actions">
-            {start && <AppLink className="button" to={start}>Попробовать бесплатный урок →</AppLink>}
+            {start && <AppLink className="button" to={start}>Начать бесплатный урок →</AppLink>}
             <AppLink className="button secondary" to="/map">Открыть карту навыков</AppLink>
           </div>
           <p className="small">Тестовая версия · доступ по приглашению. <AppLink to="/login">Есть приглашение — войти</AppLink></p>
@@ -56,11 +55,6 @@ function Welcome({data}: {data: HomeData}) {
           </div>
         </section>
       )}
-      <section className="welcome-principles" aria-label="Как устроено обучение">
-        <div><span className="eyebrow">01 / Поймите</span><h2>Одна идея за раз</h2><p>Объяснение, пример и задание рядом.</p></div>
-        <div><span className="eyebrow">02 / Попробуйте</span><h2>Сделайте что-то своё</h2><p>Сохраните работу и вернитесь к ней позже.</p></div>
-        <div><span className="eyebrow">03 / Выбирайте</span><h2>Интересов может быть много</h2><p><AppLink to="/map">Все направления на карте →</AppLink></p></div>
-      </section>
     </>
   );
 }

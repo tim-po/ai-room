@@ -27,8 +27,7 @@ export default function Login() {
   return (
     <div className="login-layout">
       <section>
-        <p className="eyebrow">Ваша мастерская</p>
-        <h1>Начатое<br />ждёт вас.</h1>
+        <h1>Вход в аккаунт</h1>
         <p className="welcome-lead">Войдите, чтобы сохранять работы и продолжать обучение с другого устройства.</p>
       </section>
       <section className="panel login-form">

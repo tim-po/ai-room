@@ -34,7 +34,6 @@ export default function Preferences() {
   }
   return (
     <section className="settings">
-      <p className="eyebrow">Профиль</p>
       <h1>Настройки</h1>
       <p className="lead">Оформление, план и опыт. Пропущенная неделя ничего не обнуляет.</p>
       <Appearance />

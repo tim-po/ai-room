@@ -8,7 +8,7 @@
 }
 :root[data-glass] body.learner-surface{background:var(--bg)}
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  :root[data-glass] .club-header,:root[data-glass] .learner-surface .shell main{
+  :root[data-glass] .club-header{
     -webkit-backdrop-filter:blur(var(--blur)) saturate(150%);backdrop-filter:blur(var(--blur)) saturate(150%);
   }
 }
@@ -24,11 +24,10 @@
 
 /* Content sheet: every page's text sits on one frosted layer above the sky. */
 :root[data-glass] .learner-surface .shell main{
-  max-width:min(1240px,calc(100vw - 160px));margin:36px auto 56px;background:var(--sheet);border:1px solid var(--glass-border);border-radius:32px;
-  box-shadow:0 1px 0 var(--glass-highlight) inset,0 30px 80px var(--shadow);
+  max-width:min(1240px,calc(100vw - 160px));margin:28px auto 56px;background:none;border:0;border-radius:0;box-shadow:none;
 }
 :root[data-glass] .learner-surface .shell main:has(> .tree, > .page > .tree){padding-top:24px}
-@media(max-width:800px){:root[data-glass] .learner-surface .shell main{max-width:none;margin:10px 8px 90px;border-radius:24px}}
+@media(max-width:800px){:root[data-glass] .learner-surface .shell main{max-width:none;margin:8px 8px 90px}}
 
 /* Surfaces inside the sheet */
 :root[data-glass] :is(.learner-surface .panel,.learner-surface .card,.me-work,.me-panel,.settings-form,.outline-module,.lesson-toc-mobile,.welcome-topic,.welcome-lesson,.onb-pick,.paywall-outline,.learner-surface .resource){
@@ -48,8 +47,8 @@
 :root[data-glass] .learner-surface .paywall-offer .button.secondary{color:var(--text);border-color:var(--glass-border)}
 :root[data-glass] .learner-surface .paywall-offer p.paywall-free{border-color:var(--glass-border)}
 
-/* Buttons: pills. Primary = solid orange with a soft inner highlight; secondary = glass. */
-:root[data-glass] .learner-surface :is(.button,.development button){border-radius:var(--pill);background:var(--accent);color:var(--on-accent);border:1px solid transparent;box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 6px 20px color-mix(in srgb,var(--accent) 28%,transparent);font-weight:700}
+/* Buttons: pills. Primary = flat accent fill; secondary = glass. */
+:root[data-glass] .learner-surface :is(.button,.development button){border-radius:var(--pill);background:var(--accent);color:var(--on-accent);border:1px solid transparent;box-shadow:none;font-weight:700}
 :root[data-glass] .learner-surface :is(.button,.development button):hover{background:var(--accent-hover)}
 :root[data-glass] .learner-surface :is(.button.secondary,.secondary){background:var(--soft-fill);color:var(--text);border:1px solid var(--glass-border);box-shadow:0 1px 0 var(--glass-highlight) inset}
 :root[data-glass] .learner-surface :is(.button.secondary,.secondary):hover{background:var(--soft-fill-hover)}

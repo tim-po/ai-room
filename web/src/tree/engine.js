@@ -478,16 +478,13 @@ export function mountTree(root, data) {
   size();
   measure();
   const linked = location.hash.startsWith('#course-') && document.getElementById(location.hash.slice(1));
-  // A learner with a course under way starts on it, readable; everyone else gets the whole map.
-  const current = !linked && canvas.querySelector('.tree-course.is-current');
-  const start = linked || current;
   // Choose the starting zoom first, so the first frame is already at the right level of detail.
-  lod = start ? levelFor(0.62) : 'far';
+  lod = linked ? levelFor(0.62) : 'far';
   canvas.dataset.lod = canvas.dataset.detail = lod;
   shown = copy(layouts[lod]); paint();
-  if (start) {
-    flyToCourse(nodeOf.get(start), 0.62, 0);
-    if (linked) linked.classList.add('is-linked');
+  if (linked) {
+    flyToCourse(nodeOf.get(linked), 0.62, 0);
+    linked.classList.add('is-linked');
   } else {
     home(0);
   }
