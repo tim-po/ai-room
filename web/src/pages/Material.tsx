@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {useLoaderData, useLocation, type LoaderFunctionArgs} from 'react-router';
 import {ApiError, bootstrap, getJson, postJson} from '../api';
 import {PromptPanel, Resources, RichBody, Video} from '../components/Media';
+import {humanDate} from '../format';
 import {AppLink} from '../Shell';
 import type {MaterialData} from '../types';
 import {useTitle} from '../useTitle';
@@ -44,7 +45,7 @@ export default function Material() {
         <span className="chip">{item.format_label} · {item.access === 'free' ? 'Бесплатно' : 'Материал клуба'}</span>
         <h1>{item.title}</h1>
         <p className="lead">{item.description}</p>
-        <p className="metadata">{item.level} · {item.minutes} мин · {item.author} · Обновлено {item.updated_at} UTC</p>
+        <p className="metadata">{item.level} · {item.minutes} мин · {item.author} · обновлено {humanDate(item.updated_at)}</p>
         <section className="panel warm">
           <h2>Что получится</h2>
           <p>{item.outcome}</p>

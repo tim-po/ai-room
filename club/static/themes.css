@@ -208,7 +208,7 @@ a.outline-lesson:hover{background:var(--hover)}a.outline-lesson[aria-current="pa
 .learner-surface .completion.is-secondary h2{font-size:18px;margin:0 0 4px}
 .learner-surface .completion.is-secondary .button{background:transparent;color:var(--text);border:1px solid var(--line-strong)}
 .learner-surface .completion.is-secondary .button:hover{background:var(--hover)}
-.lesson-figure img{aspect-ratio:16/10;object-fit:contain;background:var(--surface)}
+.lesson-figure img{aspect-ratio:auto 16/9;object-fit:contain;background:var(--surface)}
 /* Course page */
 .course-meta{color:var(--muted)}.course-intro .actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px}.course-map-link{font-weight:600}
 /* Library: coming courses */

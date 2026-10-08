@@ -148,6 +148,7 @@
 .assistant-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .assistant-actions .button{min-height:var(--control-sm,36px);padding:0 14px;font-size:14px}
 .assistant-actions .link-button{min-height:var(--control-sm,36px);font-size:14px}
+.assistant-actions>*{max-width:100%;white-space:normal;text-align:left}
 .assistant-preview{margin:12px 0 0;max-height:260px;overflow:auto;padding:12px 14px;border-radius:10px;background:var(--well,transparent);border:1px solid var(--glass-border,var(--line));
   font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
 .assistant-handoff [role=status]:empty{display:none}

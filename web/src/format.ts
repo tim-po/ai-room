@@ -21,3 +21,9 @@ export function humanTime(value: string): string {
   const date = moment.toLocaleDateString('ru-RU', {day: 'numeric', month: 'short', year: sameYear ? undefined : 'numeric'});
   return `${date.replace('.', '')} в ${time}`;
 }
+
+/** A day without the time ("сегодня", "вчера", "7 окт"), for dates such as "обновлено". */
+export function humanDate(value: string): string {
+  const full = humanTime(value.length === 10 ? `${value} 12:00:00` : value);
+  return full === value ? value : full.replace(/ в \d\d:\d\d$/, '');
+}

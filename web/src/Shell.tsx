@@ -82,7 +82,7 @@ function Header() {
         <NavLink to="/discover" active={/^\/(discover|catalogue|courses\/|lessons\/|materials\/)/.test(pathname)}>Обзор</NavLink>
         <NavLink to="/map" active={pathname === '/map'}>Карта навыков</NavLink>
         {/* the profile took over the club page: membership lives there now */}
-        <NavLink to="/profile" active={/^\/(profile|preferences|membership)$/.test(pathname)}>Профиль</NavLink>
+        <NavLink to="/profile" active={/^\/(profile|preferences)$/.test(pathname) || (!!user && pathname === '/membership')}>Профиль</NavLink>
         {user && user.role !== 'learner' && <NavLink to="/admin" active={pathname.startsWith('/admin')}>Админка</NavLink>}
       </nav>
       <div className="header-account">

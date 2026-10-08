@@ -96,7 +96,7 @@ a.tree-lesson:hover,a.tree-lesson:focus-visible{background:var(--hover)}a.tree-l
 .tree-canvas[data-detail="mid"] .tree-lesson.is-current .tree-dot{box-shadow:0 0 0 4px var(--cta-ring)}
 
 /* ---- far: topic and course names large; modules become dot pills ---- */
-.tree-canvas[data-lod="far"] .tree-root strong{font-size:56px}.tree-canvas[data-lod="far"] .tree-root span{font-size:24px}
+.tree-canvas[data-lod="far"] .tree-root strong{font-size:56px}.tree-canvas[data-lod="far"] .tree-root span{max-height:0;margin:0;opacity:0}
 .tree-canvas[data-lod="far"] .tree-topic strong{font-size:64px;line-height:1.02}.tree-canvas[data-lod="far"] .tree-topic span{max-height:0;margin:0;opacity:0}
 .tree-canvas[data-lod="far"] .tree-topic em{font-size:19px;top:-17px;padding:4px 14px}
 .tree-canvas[data-lod="far"] .tree-course strong{font-size:46px;line-height:1.06;margin:0 0 12px}

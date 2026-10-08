@@ -116,7 +116,6 @@ function PracticePanel({data, onSaved}: {data: LessonData; onSaved: () => void})
               <h3>{saved?.status === 'draft' ? 'Черновик сохранён' : 'Работа сохранена'}</h3>
               <p>Она хранится в «Моих работах» — можно вернуться, доработать и сохранить заново.</p>
               <AppLink to="/profile#practice">Открыть мои работы →</AppLink>
-              {data.following && !data.following.locked && <p><AppLink to={`/lessons/${data.following.id}`}>Дальше: {data.following.title} →</AppLink></p>}
             </section>
           )}
         </>

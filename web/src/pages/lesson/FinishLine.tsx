@@ -248,8 +248,9 @@ export function FinishPanel({data, points, practiceSaved}: {data: LessonData; po
       </section>
     );
   }
-  const allRead = points.total > 0 && points.furthest >= points.total;
   const following = data.following;
+  // One primary action at a time: saving the practice first, then finishing.
+  const waiting = !!data.lesson.task && !practiceSaved;
   return (
     <section className={'panel finish' + (completed ? ' is-done' : '')} id="finish" aria-labelledby="finish-heading">
       {completed ? (
@@ -267,12 +268,9 @@ export function FinishPanel({data, points, practiceSaved}: {data: LessonData; po
       ) : (
         <>
           <p className="eyebrow">Финиш урока</p>
-          <h2 id="finish-heading">{allRead && (practiceSaved || !data.lesson.task) ? 'Всё готово — завершите урок' : 'Готовы завершить?'}</h2>
-          <ul className="finish-checks">
-            {points.total > 0 && <li className={allRead ? 'is-done' : undefined}>Разделы урока: {Math.min(points.furthest, points.total)} из {points.total}</li>}
-            {data.lesson.task && <li className={practiceSaved ? 'is-done' : undefined}>{practiceSaved ? 'Практика сохранена' : 'Практика ещё не сохранена — можно вернуться к ней позже'}</li>}
-          </ul>
-          <button type="button" className="button" onClick={() => mark(true)} disabled={busy}>Завершить урок</button>
+          <h2 id="finish-heading">{waiting ? 'Готовы завершить?' : 'Всё готово — завершите урок'}</h2>
+          {data.lesson.task && <p className="small">{practiceSaved ? 'Практика сохранена.' : 'Практику можно сохранить сейчас или вернуться к ней позже.'}</p>}
+          <button type="button" className={waiting ? 'button secondary' : 'button'} onClick={() => mark(true)} disabled={busy}>Завершить урок</button>
         </>
       )}
       {error && <p className="small" role="alert">{error}</p>}

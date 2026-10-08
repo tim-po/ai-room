@@ -94,7 +94,7 @@ export default function AssistantHandoff({data, section, draft}: {data: LessonDa
             {practice ? ' и сможет сохранить вашу работу сюда, в «Мои работы»' : ''}.
           </p>
           <div className="assistant-actions">
-            <button type="button" className="button" onClick={createLink} disabled={busy}>{busy ? 'Создаём ссылку…' : link ? 'Новая ссылка' : 'Скопировать ссылку для ассистента'}</button>
+            <button type="button" className="button secondary" onClick={createLink} disabled={busy}>{busy ? 'Создаём ссылку…' : link ? 'Новая ссылка' : 'Скопировать ссылку для ассистента'}</button>
             <button type="button" className="link-button" aria-expanded={showPrompt} onClick={() => setShowPrompt(v => !v)}>Нет доступа к ссылкам? Запрос текстом</button>
           </div>
           {link && (

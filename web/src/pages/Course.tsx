@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {useLoaderData, type LoaderFunctionArgs} from 'react-router';
 import {ApiError, bootstrap, getJson, postJson} from '../api';
 import Outline from '../components/Outline';
-import {plural} from '../format';
+import {humanDate, plural} from '../format';
 import {AppLink} from '../Shell';
 import type {CourseData, CourseLesson} from '../types';
 import {useTitle} from '../useTitle';
@@ -92,12 +92,13 @@ export default function Course() {
             {bootstrap.user && <Favourite courseId={course.id} initial={data.favourite} />}
             {outline && <AppLink className="course-map-link" to={`/map#course-${course.id}`}>Показать на карте →</AppLink>}
           </div>
+          {data.first && <p className="small course-first">{data.started || data.done ? 'Следующий урок' : 'Первый открытый урок'}: {data.first.title}</p>}
         </div>
         <aside className="panel warm">
           <h2>Перед началом</h2>
           <p><strong>Что уже нужно знать</strong><br />{course.prerequisites || 'Ничего — начнём с нуля'}</p>
           {course.tools && <p><strong>Инструменты и расходы</strong><br />{course.tools}</p>}
-          <p className="small">{course.author} · обновлено {course.updated_at}</p>
+          <p className="small">{course.author} · обновлено {humanDate(course.updated_at)}</p>
         </aside>
       </section>
       <h2>Программа курса</h2>
