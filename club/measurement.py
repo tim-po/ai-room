@@ -17,18 +17,18 @@ def register_measurement(app, db, query, event):
 
     def activity(lesson_id, meaningful=True):
         """Called inside the same transaction as the learning action. Editors and admins are
-        excluded so preview/maintenance cannot inflate learner rates. Opening a lesson
-        (meaningful=False) records presence and course starts only: learning days and returns
+        excluded so preview/maintenance cannot inflate learner rates.         Opening a lesson
+        (meaningful=False) records presence only: course starts, learning days and returns
         come from learning actions (a new section reached, practice saved, completion)."""
         if g.user['role'] != 'learner':
+            return
+        db().execute("INSERT OR IGNORE INTO visit_days(user_id,day) VALUES(?,date('now'))", (g.user['id'],))
+        if not meaningful:
             return
         course_id = query('SELECT m.course_id FROM lessons l JOIN modules m ON m.id=l.module_id WHERE l.id=?', (lesson_id,), True)['course_id']
         inserted = db().execute('INSERT OR IGNORE INTO course_starts(user_id,course_id) VALUES(?,?)', (g.user['id'], course_id)).rowcount
         if inserted:
             event('course_started', lesson_id)
-        db().execute("INSERT OR IGNORE INTO visit_days(user_id,day) VALUES(?,date('now'))", (g.user['id'],))
-        if not meaningful:
-            return
         prior = query('SELECT 1 FROM learning_days WHERE user_id=? AND day<date(\'now\') LIMIT 1', (g.user['id'],), True)
         new_day = db().execute('INSERT OR IGNORE INTO learning_days(user_id,day) VALUES(?,date(\'now\'))', (g.user['id'],)).rowcount
         if new_day and prior:
