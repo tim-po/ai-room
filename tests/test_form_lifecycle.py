@@ -120,7 +120,7 @@ def test_editor_inventory_filters_replacements_and_protects_metadata(skills):
     assert learner.get('/api/skills/forms').status_code == 403
     assert learner.get('/admin/assessments').status_code == 403
     admin = skills.test_client(); token = login(admin, 'admin')
-    assert admin.get('/admin/assessments').status_code == 200
+    assert admin.get('/admin/assessments').location == '/admin/works'   # retired with the old skills engine
     inventory = admin.get('/api/skills/forms').json
     original = next(f for f in inventory['forms'] if f['id']=='test-form-v1')
     assert original['eligible_replacements'] == ['replacement']

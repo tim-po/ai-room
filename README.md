@@ -23,6 +23,195 @@ Course and standalone material discovery with combined search/goal/level/tool/fo
 
 Protected course/module/lesson authoring, draft preview, publish/unpublish/archive, ordering, local media selection and additional protected TXT/link resources are now implemented. Standalone guides, use cases and workshops have protected authoring/publication, resources, favourites and video resume. Accounts are operator-provisioned; self-service registration/recovery is not implemented. Ordered shared-lesson routes and protected route authoring are implemented. Content is explicitly synthetic. Independent release acceptance is recorded above; staging operations are documented below.
 
+## Learner frontend (React)
+
+Every learner page (the map at `/`, Обзор, course, lesson, material, Профиль, settings, membership,
+help, login, onboarding and error pages) is a React + TypeScript app in `web/` (Vite, React Router), so
+moving between them never reloads the page. Flask still owns these URLs: it handles sessions,
+onboarding redirects and status codes (403 for a locked lesson, 404 for a missing one), then serves
+`templates/spa.html`, which loads the bundle. Page data comes from `/api/app/*` (and `/api/onboarding`);
+forms post JSON to the same endpoints that still accept plain form posts. Messages flashed by a server
+redirect and the error of an error response reach the app through the bootstrap JSON in `spa.html`.
+Editor, authoring, route and assessment pages remain server-rendered Jinja (`templates/base.html`).
+
+```sh
+cd web && npm ci && npm run build   # writes club/static/app/ (not committed)
+cd web && npm run dev               # rebuilds on every change; reload the page
+```
+
+Node 20+ is needed only to build. The built files are plain static assets served by Flask, so the
+server itself does not need Node. Deployments must run the build before restarting the app: without it,
+learner pages show a "frontend not built" notice. Styles are the shared stylesheets in `club/static`
+(included through `templates/_styles.html`), so React and server pages look the same.
+
+**Speed on slow links.** A page load is one round trip: `spa.html` embeds the first page's data (what
+its loader would fetch, `club/spa.py` `page_data_url`, mirrored in `web/src/prefetch.ts`). Hovering,
+touching or focusing a link fetches that page's data ahead, so the click usually needs no request.
+Hashed bundle files and versioned static URLs (`url_for` adds `?v=<content hash>`) are cached for a
+year, `immutable`, so Cloudflare serves them from its edge; fonts and sky art referenced from CSS are
+cached for a day. Fonts are subset WOFF2 (`club/static/fonts/README.md`), and the reading font is
+preloaded.
+
+## Обзор and search
+
+Обзор (`/discover`) is the main page: signed-in people opening `/` land there, and it comes first in the
+header. The skill map lives at `/map` (old `/?view=map` links redirect). Search opens with ⌘K / Ctrl K
+or «/» and from Обзор's own field; the header has no search button. Shelves keep their cards inside
+their own scroller (`.shelf-track` is positioned, so hidden labels can't widen the page), and covers
+are a calm topic tint rather than full posters.
+
+`/discover` (`club/discover.py`, `web/src/pages/Discover.tsx`) is a store front over one index of
+lessons, courses, materials (guides, use cases, workshops) and what is coming from the old platform's
+outline: a hero, Продолжить, Начните бесплатно, Топ in each topic, Курсы, one shelf per material
+class, quick lessons, club lessons for free learners, Скоро and Мой список. `/catalogue` shows the same
+page. Search (`/api/app/search`) matches word stems in titles first, then course and topic, then
+descriptions, and filters by class, topic, level and free access. It runs as you type in the header
+dialog (button, `/`, ⌘K or Ctrl+K) and inline on Обзор, with recent searches kept on the device.
+Everything exposes metadata only. Профиль took over the club page: membership status, what the club
+adds and the demo switch live there; `/membership` remains for paywall links.
+
+## Админка (/admin)
+
+One React app for editors and admins (`web/src/admin`, API in `club/admin.py`). Editors get Обзор
+(with their own AI assistant), Курсы и уроки, Библиотека, Вопросы and Работы; admins also get Ученики
+(plan and role per person) and Аналитика. Old server pages (`/admin/content/…`, `/admin/materials…`,
+`/admin/measurement`, `/admin/workshop`, `/admin/assistant`, `/admin/tree|assessments|practice`,
+`/admin/routes…`) redirect editors and admins to their place in the app; nothing in the app links to
+them any more.
+
+- An editor page is a path, the item's name as the page title (edited in place: there is no second
+  «Название» box), the content, and settings on the side ending with quiet facts (who started it,
+  where it comes from). Every action lives in one bar at the bottom: the save state on the left, the
+  main button on the right, and «⋯» for the rarer ones (open as learner, show on the map, undo
+  unsaved edits, take down, restore the file version, archive).
+- A draft needs only a title. Publishing checks what learners will see (description, «что
+  получится», lesson text) and the save bar names anything missing. Status is an action:
+  «Опубликовать», «Снять с публикации», «В архив», «Вернуть в черновики».
+- Rare fields fold under «Подробнее»; prompt, practice, video and files appear when added.
+  Duration is estimated from the text (~180 words a minute, +5 for practice) unless set. New lessons
+  and materials use the Markdown subset of the imported content; «Как увидит ученик» renders the text
+  (unsaved edits included) exactly as the learner page does (`POST /api/admin/preview`).
+- Saves carry a revision: a change made meanwhile elsewhere is refused, never overwritten.
+- Imported content (courses, lessons and guides from `club/content/`) is editable like anything
+  else. Saving it records the item in `content_edits`; `install-legacy-lessons` then leaves that
+  item (and, for course structure edits, its module titles and lesson order) as edited here, while
+  untouched content keeps updating from the files. «Вернуть версию из файлов» removes the record
+  and reinstalls the file version. Courses and materials made in the admin are never archived by
+  `--retire-synthetic`.
+- The skill map follows the admin (`club/tree.py`): «Раздел карты навыков» puts a course under a topic
+  or hides it and «Место в разделе» orders it among the topic's courses (`course_placements.position`,
+  a sort key between its neighbours). The rank's name is no longer typed: catalogue courses keep theirs,
+  others are «Мастер курса «…»».
+  Courses made in the admin appear under the topic of their goal by default. In catalogue courses,
+  renamed modules, lesson order and lessons added in the admin show on the map; the catalogue's
+  «скоро» placeholders keep their slots.
+- Работы (`club/works.py`): learners' submitted practice results next to the lesson's task and
+  criteria; one note of feedback per work, shown to the learner on the lesson and in «Мои работы».
+  A work changed after its feedback is waiting again.
+
+### The admin's own assistant (`club/assist.py`)
+
+A helper for the whole admin, working as the person who invited it, and it never holds a key. The card
+at the top of Обзор copies a short message with a one-time link (open within 15 minutes) and the advice
+to open it with a client that keeps cookies (`curl -c airoom-cookies.txt -b airoom-cookies.txt '<link>'`).
+Opening it answers with a briefing (what it can do, how, the rules, the Markdown subset) and sets the
+cookie `airoom_helper`: HttpOnly, SameSite=Strict, path `/api/admin/` only. Every request moves the
+helper's end ten minutes on (`connected_sessions.idle_minutes`, refreshed with the cookie); ten quiet
+minutes and it is over, and the person copies a new link. The helper's secret works only as that cookie,
+never as an `Authorization` header. A person signed in here who opens the link by mistake doesn't use it
+up, and their own browser session always wins over a helper cookie in the same browser.
+
+The helper calls `GET /api/admin/tools` (the tools, their parameters, the rules) and
+`POST /api/admin/tools/<name>` with a JSON object, and can use the rest of the admin JSON API with the
+same cookie (no CSRF token: the cookie is never sent cross-site). Tools: overview, search (any course,
+module, lesson or material, any status, by words from its title or text), get/create/update course,
+add/rename module, move, get/create/update lesson, list/get/create/update material,
+add_file/archive_file (links and text files), restore_from_files, list_questions, answer_question,
+list_works, review_work; an admin's helper also gets list_learners, get_learner (no e-mail addresses)
+and analytics. Accounts (plans, roles) and links stay with the person in the browser: learners' own
+words reach the helper through questions and works, and it is told they are data, not instructions.
+Everything goes through the admin's own operations, so validation, revisions and `content_edits` are
+the same as in the web editor; new things are drafts until someone publishes them. The owner's role
+is re-read on every request, and the card lists active helpers with «Отключить». The same tools stay
+available to OAuth clients at `/mcp/admin` (club/oauth.py), which the admin no longer advertises.
+Learners' «Подключения» shows only their learning connections.
+
+`scripts/check_admin_browser.py` runs every admin screen against an isolated seeded app in both
+themes at 1440 and 390 px (script errors, horizontal overflow, unnamed controls, a field census and
+screenshots) plus the flows: create and publish a course and lesson, answer a question, review a work,
+an assistant link from the overview followed with real `curl` and a cookie file, the preview tab and
+the «⋯» menu, old addresses redirecting, grant
+membership, edit and restore imported content, and the editor's narrower navigation. It supersedes the
+admin parts of the older `check_authoring_browser.py`, `check_materials_browser.py`,
+`check_editor_layout_browser.py` and `check_measurement_browser.py`, which drive the retired pages.
+
+## Learning loop
+
+Around each lesson (`club/learning_loop.py`, `web/src/pages/lesson/FinishLine.tsx`):
+- **Progress through the lesson.** Sections reached are saved per learner, and continue links open the section where the learner stopped.
+- **A finish moment.** It leads into the next lesson.
+- **A plan.** The learner chooses days and a time, which also sets the weekly goal. They can download it as an `.ics` file or add it to Google Calendar; each event links to `/continue`, which opens their next step.
+- **A return briefing.** It appears on the map and in Профиль after 3 or more days away.
+
+The two tables (`lesson_steps`, `learning_plans`) are additive and created on first use, so no migration is needed.
+
+## Skill map: the round tree and the trail
+
+On wide screens the map is a round tree (`web/src/tree/engine.js`): AI Room in the centre, the four
+directions around it, and every course growing outward as an arm of modules and milestones. All arms
+curl the same way, so they never cross however long a course gets. It opens on the heart of the map
+(the centre, directions, course cards and the start of each arm); «Показать всё» frames everything,
+clicking a direction frames its arms, and a label in the corner names the course you are looking at.
+Arms are laid out for each level of detail and stretch between them as you zoom, keeping the point
+under the cursor in place.
+
+On phones (≤700px) the map is a trail instead (`web/src/tree/TrailMap.tsx`): one direction at a time
+(chips at the top), each course a winding path you scroll down — lesson stones, module signposts and
+milestone medallions, walked stretches drawn solid, lessons not yet published gathered into one
+«Скоро» stop. The map opens at the lesson you are on.
+
+## Skill map: milestones and ranks
+
+Each course row on the map carries 2–3 milestones (`club/ranks.py`): goals on the way, drawn as their
+own nodes on the path between modules — not on lessons — and spread by lesson count, the last one at
+the end of the course (three on courses with 9+ lessons in 3+ modules, otherwise two; a one-module
+course has only the final one). A milestone is reached when every lesson before it is completed;
+lessons not yet on the platform keep it out of reach («Откроется с новыми уроками»). The next one to
+reach glows and shows how many lessons are left.
+
+Every milestone awards a rank: Практик → Профи → Мастер (two milestones: Практик → Мастер), and the
+first completed lesson makes the learner «Новичок». Titles use the course's rank word («Мастер
+Claude»), which the admin can set per course. Ranks are stored and never taken back, so a reached
+milestone stays reached; each new one is celebrated once — as the rank, with «Веха N из M» — on the
+map or in the lesson's finish dialog, and Профиль lists them with the way to the next.
+
+## Theme switch
+
+Two palettes share the day/night switch, the sky and the glass: «Закат» (the default, warm) and «AI Room»,
+the club's official colours (`club/static/theme-club.css`: lime #DFFF4F on near-black #1A1A18, light grey
+#F4F6F6 and white by day, the black #000/#0A0A0A digest style by night with white→lime headings, money green
+#31B545 for ranks and paid lessons). It is `data-palette="club"` next to `data-theme` dusk/dawn, so the sunrise
+plays in it too: a black night with a neon-lime line on the horizon, an airy grey morning with a lime sun.
+Настройки → Оформление picks the palette and «Как в системе / День / Ночь» (`theme.js`, stored per device);
+the header button still flips day and night.
+
+Where the browser has view transitions, switching Сумерки/Рассвет cross-fades the interface from a
+snapshot (a GPU blend) while only the sky animates its tokens — the same sunrise or sunset at a
+fraction of the cost. Elsewhere every token animates as before (`scripts/make_theme_motion.py`).
+
+## Attached assistants
+
+A learner can give their own AI assistant a one-time link from a lesson ("Скопировать ссылку для ассистента", `club/attach.py`; design in `docs/design/attached-sessions.md`).
+- **The link.** The assistant's first visit to `/attach/<code>` returns the lesson, the task, the criteria, the draft and a 7-day key. It works once and expires after 15 minutes; HEAD requests and link-preview bots don't use it up.
+- **Browsers.** Assistants that open links in a real browser (the Claude app, browser agents) get an HTML page with a "Сохранить в AI Room" form, since they can't send headers. Other clients get Markdown.
+- **The key.** It authenticates `GET/POST /api/agent/*` and the MCP endpoint `POST /mcp`. Through them the assistant can read the learner's lessons (with live entitlements), save practice and mark sections reached. Lesson completion stays with the learner.
+- **Revoking.** Learners see and switch off connections in Профиль → Подключения.
+- **Storage.** Codes and keys are stored as hashes only.
+
+- **Connectors.** claude.ai and ChatGPT add AI Room as a custom MCP connector at `<public url>/mcp` and sign in with OAuth (`club/oauth.py`): dynamic client registration, PKCE, a consent page in AI Room, and rotating refresh tokens. These connections appear in the same Подключения list.
+
+Set `CLUB_PUBLIC_URL=https://…` on staging so links and calendar events carry the public address. claude.ai and ChatGPT fetch links from their own servers, so they can't reach a local `127.0.0.1` link; a local Claude Code can.
+
 ## Setup
 
 Python 3.12+; `uv` or a working Python venv/pip installation.
@@ -171,6 +360,10 @@ controlled by `CLUB_EVIDENCE_DIR`. Final-build acceptance is recorded at the top
 
 
 ## Standalone materials (schema v6)
+
+Free guides and use cases from the original platform live in `club/content/legacy/materials/` and are
+installed as materials by `flask install-legacy-lessons` (rich bodies like lessons, a topic in
+`material_profiles`). Only free items are imported; the old club's promotion is left out.
 
 `/catalogue` combines courses, guides, use cases and workshop recordings. Search,
 goal, level, format and tool filters combine in query parameters, retaining state

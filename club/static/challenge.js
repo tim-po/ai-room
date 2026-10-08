@@ -85,7 +85,7 @@
     try{
       if(node){try{detail=await api('/api/skills/nodes/'+encodeURIComponent(node));document.querySelector('#challenge-title').textContent=detail.node.title;}catch(e){if(!params.get('attempt'))throw e;}}
       if(params.get('attempt')){showAttempt(await api('/api/skills/challenges/'+encodeURIComponent(params.get('attempt'))));return;}
-      if(!node||!assessment){status.textContent='Проверка пока не выбрана или недоступна. Это не результат проверки знаний.';body.replaceChildren();for(const [label,url] of [['Выбрать доступный урок →','/catalogue'],['Вернуться к навыку →',node?'/?'+new URLSearchParams({node}):'/?view=map']]){const a=el('a',label,'resource-link');a.href=url;body.append(a);}return;}
+      if(!node||!assessment){status.textContent='Проверка пока не выбрана или недоступна. Это не результат проверки знаний.';body.replaceChildren();for(const [label,url] of [['Выбрать доступный урок →','/catalogue'],['Вернуться к навыку →',node?'/?'+new URLSearchParams({node}):'/map']]){const a=el('a',label,'resource-link');a.href=url;body.append(a);}return;}
       if(!detail)throw new Error('Не удалось загрузить навык.');
       const form=detail.assessments.find(a=>a.id===assessment);if(!form)throw new Error('Проверка обновилась. Вернитесь к навыку и откройте актуальную версию.');
       if(form.pending_attempt){showAttempt(await api(form.pending_attempt.resume_url));return;}
@@ -97,7 +97,7 @@
       if(!form.can_start){const signIn=form.start_blocker==='sign_in';body.append(el('p',signIn?'Войдите, чтобы начать проверку и сохранить результат.':'Для этой проверки нужен действующий доступ участника.'));const recover=el('a',signIn?'Войти →':'Проверить доступ →','resource-link');recover.href=signIn?'/login':'/profile';body.append(recover);return;}
       if(detail.content.length){body.append(el('p','Задания ссылаются на учебный случай. Его можно открыть перед проверкой:'));for(const lesson of detail.content){const link=el('a',lesson.title);link.href='/lessons/'+encodeURIComponent(lesson.id);link.target='_blank';link.rel='noopener';link.append(el('span',' ↗ (новая вкладка)'));body.append(link);}}
       const actions=el('div',null,'development-actions challenge-start');const button=el('button',practice?'Начать тренировку':'Начать проверку');button.onclick=()=>start(button);actions.append(button);body.append(actions);
-    }catch(e){status.textContent=e.message;body.replaceChildren();const retry=el('button','Повторить загрузку');retry.onclick=load;body.append(retry);const learn=el('a','Выбрать доступный урок →','resource-link');learn.href='/catalogue';const map=el('a','Вернуться к навыку →','resource-link');map.href=node?'/?'+new URLSearchParams({node}):'/?view=map';body.append(learn,map);}
+    }catch(e){status.textContent=e.message;body.replaceChildren();const retry=el('button','Повторить загрузку');retry.onclick=load;body.append(retry);const learn=el('a','Выбрать доступный урок →','resource-link');learn.href='/catalogue';const map=el('a','Вернуться к навыку →','resource-link');map.href=node?'/?'+new URLSearchParams({node}):'/map';body.append(learn,map);}
   }
   load();
 })();

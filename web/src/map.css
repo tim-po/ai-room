@@ -1,0 +1,189 @@
+/* Skill map additions: ranks on course cards, milestones on each course row, labels that keep a row's
+   course in view, and the medals that celebrate a new rank (components/Ranks.tsx). */
+
+/* Rank levels: Новичок copper, Практик silver, Профи gold, Мастер amber with a glow */
+.is-level-1{--medal:#d2925f;--medal-ink:#2b1608}
+.is-level-2{--medal:#cdd3dc;--medal-ink:#1d2229}
+.is-level-3{--medal:#ffc94d;--medal-ink:#2e2000}
+.is-level-4{--medal:#ff9f34;--medal-ink:#2a1503}
+
+.tree-course .tree-rank{position:absolute;top:-11px;right:14px;padding:3px 10px;border-radius:99px;font-style:normal;font-size:12px;font-weight:800;
+  letter-spacing:.02em;white-space:nowrap;background:var(--medal);color:var(--medal-ink);box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.tree-course .tree-rank.is-level-4{box-shadow:0 0 0 3px color-mix(in srgb,var(--medal) 30%,transparent),0 4px 18px color-mix(in srgb,var(--medal) 55%,transparent)}
+.tree-canvas[data-lod="far"] .tree-course .tree-rank{font-size:24px;top:-22px;right:10px;padding:5px 16px}
+
+/* Milestones: 2–3 goals on each course row, between modules (club/ranks.py). Each one is a rank;
+   the next one glows and shows how far there is still to go. */
+.tree-milestone{box-sizing:border-box;display:grid;justify-items:center;align-content:center;gap:2px;padding:16px 10px 14px;text-align:center;
+  border-radius:24px;border:1px solid var(--glass-border,var(--line));background:var(--node-fill,var(--panel));
+  box-shadow:0 1px 0 var(--glass-highlight,transparent) inset,0 10px 30px var(--shadow,rgba(0,0,0,.2));color:var(--text)}
+.tree-milestone-badge{display:grid;place-items:center;width:52px;height:52px;margin:0 0 8px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--line-strong);color:var(--muted);transition:background .3s,border-color .3s}
+.tree-milestone-badge svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tree-milestone-kicker{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.tree-milestone strong{font-size:19px;line-height:1.15;font-weight:800;letter-spacing:-.3px}
+.tree-milestone-course{font-size:12.5px;line-height:1.3;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tree-milestone-note{margin-top:6px;font-size:12px;font-weight:700;color:var(--muted)}
+.tree-milestone-meter{display:block;width:80%;height:4px;margin-top:6px;border-radius:99px;background:var(--track,var(--line));overflow:hidden}
+.tree-milestone-meter span{display:block;height:100%;border-radius:inherit;background:var(--accent)}
+/* reached: the medal of its rank */
+.tree-milestone.is-reached{border-color:color-mix(in srgb,var(--medal) 60%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--medal) 22%,transparent),0 10px 30px var(--shadow,rgba(0,0,0,.2))}
+.tree-milestone.is-reached .tree-milestone-badge{background:var(--medal);border-color:color-mix(in srgb,var(--medal) 60%,#fff);color:var(--medal-ink)}
+.tree-milestone.is-reached .tree-milestone-note{color:var(--accent-ink,var(--accent))}
+/* next: the one to strive towards */
+.tree-milestone.is-next{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft),0 12px 34px var(--shadow,rgba(0,0,0,.2))}
+.tree-milestone.is-next .tree-milestone-badge{border-color:var(--accent);color:var(--accent-ink,var(--accent));animation:milestone-call 2.6s ease-in-out infinite}
+.tree-milestone.is-next .tree-milestone-note{color:var(--text)}
+@keyframes milestone-call{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent)}50%{box-shadow:0 0 0 10px color-mix(in srgb,var(--accent) 0%,transparent)}}
+/* ahead and coming: quieter */
+.tree-milestone.is-ahead{opacity:.85}
+.tree-milestone.is-coming{border-style:dashed;background:var(--node-coming,var(--panel));opacity:.75}
+.tree-edges .path.is-to-milestone{stroke-width:2.25}
+/* far away the milestone is its badge and rank; closer, the whole card */
+.tree-canvas[data-detail="far"] :is(.tree-milestone-kicker,.tree-milestone-course,.tree-milestone-meter){display:none}
+.tree-canvas[data-detail="far"] .tree-milestone{border-width:2px;border-radius:36px}
+.tree-canvas[data-detail="far"] .tree-milestone-badge{width:100px;height:100px;border-width:3px}
+.tree-canvas[data-detail="far"] .tree-milestone-badge svg{width:48px;height:48px}
+.tree-canvas[data-detail="far"] .tree-milestone strong{font-size:34px}
+.tree-canvas[data-detail="far"] .tree-milestone-note{font-size:20px}
+.tree-canvas[data-detail="mid"] .tree-milestone strong{font-size:23px}
+.tree-canvas[data-detail="mid"] .tree-milestone-note{font-size:14px}
+.tree-canvas.lod-fade .tree-milestone>*{opacity:0;transition:opacity .1s}
+.tree-milestone>*{transition:opacity .2s ease}
+.tree-canvas:not([data-lod="near"]) .tree-milestone{cursor:zoom-in}
+@media (prefers-reduced-motion:reduce){.tree-milestone.is-next .tree-milestone-badge{animation:none}}
+
+/* Where am I: the course nearest the middle of the frame, named in the frame's corner */
+.tree-here-label{position:absolute;left:14px;top:14px;z-index:2;display:grid;gap:1px;width:max-content;max-width:280px;padding:8px 14px 9px;border-radius:14px;
+  text-align:left;cursor:pointer;font:inherit;color:var(--text);white-space:nowrap;border:1px solid var(--glass-border,var(--line));
+  background:var(--glass-strong,var(--panel));box-shadow:0 1px 0 var(--glass-highlight,transparent) inset,0 8px 22px var(--shadow,rgba(0,0,0,.25));
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .18s,transform .18s}
+.tree-here-label.is-shown{opacity:1;transform:none;pointer-events:auto}
+.tree-here-label:hover{border-color:var(--accent)}
+.tree-here-label:before{content:'';position:absolute;left:-1px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.tree-here-topic{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tree-here-label strong{font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis}
+.tree-here-label .tree-rank{justify-self:start;margin-top:3px;padding:1px 8px;border-radius:99px;font-style:normal;font-size:11px;font-weight:800;background:var(--medal);color:var(--medal-ink)}
+
+/* The round tree: a round centre; zoomed out, a module's lessons sit in the middle of its card */
+.tree-root.is-hub-node{display:grid;place-content:center;aspect-ratio:1;border-radius:50%;text-align:center;padding:28px}
+.tree-topic.is-topic-node{text-align:center;border-radius:999px;padding:22px 28px}
+.tree-canvas[data-detail="far"] .tree-module{display:flex;flex-direction:column;justify-content:center}
+.tree-canvas[data-detail="far"] .tree-module ul{justify-content:center}
+.tree-milestone.is-milestone-node{border-radius:999px 999px 28px 28px}
+@media (prefers-reduced-motion:reduce){.tree-here-label,.tree-milestone-badge{transition:none}}
+
+/* Legend: a milestone */
+.tree-legend .legend-milestone{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--accent);background:var(--surface)}
+.tree-legend .legend-milestone svg{width:11px;height:11px;fill:none;stroke:var(--accent-ink,var(--accent));stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* Medal (Ranks.tsx) */
+.medal{display:block;width:64px;height:64px;flex:0 0 auto}
+.medal .ring{fill:var(--medal);stroke:color-mix(in srgb,var(--medal) 60%,#fff);stroke-width:2}
+.medal .face{fill:color-mix(in srgb,var(--medal) 78%,#000)}
+.medal .star{fill:var(--medal)}
+.medal .ribbon{fill:color-mix(in srgb,var(--medal) 70%,#000)}
+
+/* A new rank (a milestone reached): on the map and in the finish dialog */
+.achievement{display:flex;align-items:center;gap:16px}
+.achievement p{margin:0}
+.achievement-kicker{font-size:11.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--accent-ink)}
+.achievement-title{font-size:21px;line-height:1.2;font-weight:800;letter-spacing:-.3px;color:var(--text)}
+.achievement-next{font-size:14px;color:var(--muted);margin-top:4px!important}
+.map-celebrate{position:absolute;z-index:4;left:50%;top:50%;width:min(440px,calc(100% - 32px));transform:translate(-50%,-50%);padding:24px 24px 20px;box-sizing:border-box;
+  border-radius:22px;border:1px solid var(--glass-border,var(--line));background:var(--glass-strong,var(--panel));
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 30px 80px var(--shadow,rgba(0,0,0,.35));animation:celebrate-in .5s cubic-bezier(.2,.9,.2,1.2)}
+.map-celebrate .achievement + .achievement{margin-top:14px;padding-top:14px;border-top:1px solid var(--line-soft,var(--line))}
+.map-celebrate-actions{display:flex;gap:10px;margin-top:18px}
+.map-celebrate .medal{animation:medal-in .7s cubic-bezier(.2,.9,.2,1.3) .15s both}
+@keyframes celebrate-in{from{opacity:0;transform:translate(-50%,-46%) scale(.96)}}
+@keyframes medal-in{from{opacity:0;transform:scale(.4) rotate(-25deg)}}
+.finish-earned{margin:18px 0 6px;padding:16px;border-radius:16px;background:color-mix(in srgb,#ffc94d 12%,transparent);border:1px solid color-mix(in srgb,#ffc94d 45%,transparent)}
+.finish-earned .achievement + .achievement{margin-top:12px}
+.finish-earned .medal{animation:medal-in .7s cubic-bezier(.2,.9,.2,1.3) .3s both}
+@media (prefers-reduced-motion:reduce){.map-celebrate,.map-celebrate .medal,.finish-earned .medal{animation:none}}
+
+/* Профиль: Звания */
+.rank-list{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.rank-list li{display:flex;align-items:center;gap:12px}
+.rank-list .medal{width:40px;height:40px}
+.rank-list .medal.is-level-0 .ring{fill:var(--surface);stroke:var(--line-strong)}
+.rank-list .medal.is-level-0 .face,.rank-list .medal.is-level-0 .star,.rank-list .medal.is-level-0 .ribbon{fill:var(--line)}
+.rank-list strong{display:block;font-size:15px;line-height:1.3}
+.rank-list span{display:block;font-size:13px;line-height:1.35;color:var(--muted)}
+.rank-meter{display:block;height:4px;margin-top:6px;border-radius:99px;background:var(--track);overflow:hidden}
+.rank-meter span{height:100%;background:#ffc94d;border-radius:99px}
+
+/* Phones: the trail (tree/TrailMap.tsx). One direction at a time; each course a winding path. */
+.trail{display:grid;gap:22px}
+.trail-tabs{display:flex;gap:6px;overflow-x:auto;margin:0 calc(var(--sheet-pad,20px) * -1);padding:2px var(--sheet-pad,20px) 6px;scrollbar-width:none}
+.trail-tabs::-webkit-scrollbar{display:none}
+.learner-surface .trail-tabs button{flex:none;display:inline-flex;align-items:baseline;gap:6px;min-height:38px;padding:0 15px;border-radius:999px;cursor:pointer;
+  font:inherit;font-size:14.5px;font-weight:700;color:var(--text);background:var(--soft-fill);border:1px solid var(--glass-border,var(--line));box-shadow:none}
+.learner-surface .trail-tabs button small{font-size:12px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.learner-surface .trail-tabs button.is-on{background:var(--accent);border-color:transparent;color:var(--on-accent)}
+.learner-surface .trail-tabs button.is-on small{color:var(--on-accent-muted,var(--on-accent))}
+.trail-course{padding:18px 0 4px;border-radius:24px;background:var(--node-fill,var(--panel));border:1px solid var(--glass-border,var(--line));
+  box-shadow:0 1px 0 var(--glass-highlight,transparent) inset,0 10px 30px var(--shadow,rgba(0,0,0,.15));overflow:hidden}
+.trail-course.is-current{border-color:var(--accent)}
+.trail-course header{display:grid;gap:4px;padding:0 18px 8px}
+.trail-course-level{font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.learner-surface .trail-course header a{color:inherit;text-decoration:none}
+:root[data-glass] .learner-surface main .trail-course h2{margin:0;font-size:22px;line-height:1.2;letter-spacing:-.3px}
+.trail-course-meta{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted)}
+.trail-course-meta .tree-rank{padding:2px 9px;border-radius:99px;font-style:normal;font-size:11.5px;font-weight:800;background:var(--medal);color:var(--medal-ink)}
+.learner-surface .trail-course p.trail-course-next{margin:2px 0 0;font-size:13px;line-height:1.4;color:var(--text)}
+
+.trail-path{position:relative;list-style:none;margin:0;padding:0}
+.trail-line{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
+.trail-line path{fill:none;stroke:var(--edge,var(--line-strong));stroke-width:5;stroke-linecap:round;stroke-dasharray:1 11}
+.trail-line path.is-walked{stroke:var(--accent);stroke-dasharray:none;stroke-width:5}
+.trail-stop{position:absolute;height:92px;display:flex;align-items:center;transform:translateX(-50%)}
+.trail-stop>a,.trail-stop>span:not(.trail-stone):not(.trail-label){display:flex;align-items:center;gap:12px;color:inherit;text-decoration:none}
+.trail-stone{position:relative;flex:none;display:grid;place-items:center;width:58px;height:58px;border-radius:50%;
+  background:var(--surface);border:3px solid var(--line-strong);color:var(--muted);box-shadow:0 6px 0 color-mix(in srgb,var(--line-strong) 70%,transparent)}
+.trail-stone svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.trail-label{position:absolute;top:50%;display:grid;gap:1px;width:max-content;max-width:min(170px,38vw);transform:translateY(-50%);text-align:left}
+.trail-stop.is-right .trail-label{left:calc(100% + 12px)}
+.trail-stop.is-left .trail-label{right:calc(100% + 12px);text-align:right}
+.trail-lesson .trail-label{left:auto;right:auto}
+.trail-lesson.is-right .trail-label{left:70px}
+.trail-lesson.is-left .trail-label{right:70px}
+.trail-label strong{font-size:14px;line-height:1.25;font-weight:700;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.trail-label small{font-size:12px;color:var(--muted)}
+.trail-label em{justify-self:start;font-style:normal;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--accent-ink,var(--accent))}
+.trail-stop.is-left .trail-label em{justify-self:end}
+/* lesson stones by state */
+.trail-lesson.is-done .trail-stone{background:var(--accent);border-color:var(--accent);color:var(--on-accent);box-shadow:0 6px 0 var(--accent-shadow,color-mix(in srgb,var(--accent) 60%,#000))}
+.trail-lesson.is-progress .trail-stone,.trail-lesson.is-open .trail-stone{border-color:var(--accent);color:var(--accent-ink,var(--accent))}
+.trail-lesson.is-locked .trail-stone{border-style:dashed;color:var(--muted)}
+.trail-lesson.is-current .trail-stone{width:66px;height:66px;box-shadow:0 0 0 7px var(--accent-soft),0 6px 0 color-mix(in srgb,var(--accent) 50%,transparent)}
+/* coming lessons: one quiet stop */
+.trail-coming .trail-stone{width:44px;height:44px;gap:3px;grid-auto-flow:column;border-style:dashed;box-shadow:none;opacity:.8}
+.trail-coming .trail-stone i{width:5px;height:5px;border-radius:50%;background:var(--muted)}
+.trail-coming .trail-label{left:auto;right:auto}
+.trail-coming.is-right .trail-label{left:56px}
+.trail-coming.is-left .trail-label{right:56px}
+/* module signposts */
+.trail-module{justify-content:center}
+.trail-module span{display:block;max-width:220px;padding:6px 14px;border-radius:999px;font-size:12.5px;font-weight:700;line-height:1.3;text-align:center;
+  color:var(--muted);background:var(--glass-strong,var(--panel));border:1px solid var(--glass-border,var(--line))}
+.trail-module.is-done span{color:var(--accent-ink,var(--accent));border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+/* milestones: the medallion of their rank */
+.trail-milestone .trail-stone{width:72px;height:72px;border-width:4px;background:var(--surface)}
+.trail-milestone .trail-stone svg{width:30px;height:30px}
+.trail-milestone.is-reached .trail-stone{background:var(--medal);border-color:color-mix(in srgb,var(--medal) 60%,#fff);color:var(--medal-ink);box-shadow:0 6px 0 color-mix(in srgb,var(--medal) 55%,#000)}
+.trail-milestone.is-next .trail-stone{border-color:var(--accent);color:var(--accent-ink,var(--accent));animation:milestone-call 2.6s ease-in-out infinite}
+.trail-milestone.is-coming .trail-stone{border-style:dashed;opacity:.75}
+.trail-milestone .trail-label{left:auto;right:auto}
+.trail-milestone.is-right .trail-label{left:84px}
+.trail-milestone.is-left .trail-label{right:84px}
+.trail-milestone .trail-label strong{font-size:16px}
+.trail-milestone .trail-label small:first-child{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+@media (prefers-reduced-motion:reduce){.trail-milestone.is-next .trail-stone{animation:none}}
+/* overlays on a page that scrolls: the celebration sits at the top */
+.tree.is-trail{position:relative}
+.tree.is-trail .map-celebrate{top:64px;transform:translateX(-50%)}
+
+/* Room between the title row (title, zoom, «Показать всё») and the map card. */
+:root[data-glass] .tree>.tree-viewport{margin-top:18px}

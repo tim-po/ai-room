@@ -1,6 +1,5 @@
 """Cross-branch resume uses retained state and current authorization."""
 import sqlite3
-from flask import template_rendered
 from club import create_app
 from test_learning import app, login, post, FREE
 
@@ -8,12 +7,13 @@ AGENT = 'agent-api-basics'
 
 
 def context(app, client, path='/'):
-    captured = []
-    def receive(sender, template, context, **extra):
-        captured.append(context)
-    with template_rendered.connected_to(receive, app):
-        assert client.get(path).status_code == 200
-    return captured[-1]
+    """What the map ('/') or Моё обучение ('/profile') shows, read from the app API."""
+    response = client.get({'/': '/api/app/home', '/profile': '/api/app/profile'}[path])
+    assert response.status_code == 200
+    data = response.json
+    if path == '/':
+        return dict(continuation=data['continuation'], next_lesson=data['next'], started=bool(data['continuation']['unfinished']))
+    return data
 
 
 def test_cross_branch_draft_survives_preferences_login_and_restart(app):
@@ -71,8 +71,11 @@ def test_latest_timestamps_ties_and_completed_lesson_draft(app):
     with sqlite3.connect(app.config['DATABASE']) as db:
         db.execute("UPDATE progress SET updated_at='2026-10-01 12:00:00'")
     assert context(app, client)['continuation']['unfinished']['lesson_id'] == AGENT
+    # A newer progress write elsewhere does not outrank the lesson opened last.
     with sqlite3.connect(app.config['DATABASE']) as db:
         db.execute("UPDATE progress SET updated_at='2026-10-02 12:00:00' WHERE lesson_id=?", (FREE,))
+    assert context(app, client)['continuation']['unfinished']['lesson_id'] == AGENT
+    client.get('/lessons/'+FREE)
     assert context(app, client)['continuation']['unfinished']['lesson_id'] == FREE
     post(client, '/api/lessons/'+AGENT+'/completion', {'completed': True}, csrf)
     post(client, '/api/lessons/'+AGENT+'/practice', {'body': 'revised draft', 'status': 'draft'}, csrf)

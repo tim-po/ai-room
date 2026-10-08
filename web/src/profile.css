@@ -1,0 +1,70 @@
+/* Профиль: who you are, what you've done, and the club (which used to be its own page). */
+.me-hero{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:20px 24px;margin:0 0 24px}
+.me-avatar{display:grid;place-items:center;width:76px;height:76px;border-radius:50%;font-size:32px;font-weight:800;color:#2a1503;
+  background:radial-gradient(circle at 30% 25%,#ffd59c,#ff9f34 60%,#e9801a);box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 10px 26px color-mix(in srgb,var(--accent) 30%,transparent)}
+.me-id{min-width:0}
+.learner-surface .me-id .eyebrow{margin:0 0 4px}
+:root[data-glass] .learner-surface main .me-id h1{margin:0;font-size:36px;line-height:1.1;max-width:none}
+.me-id-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:8px 0 0;font-size:14px;color:var(--muted)}
+:root[data-glass] .learner-surface a.me-status{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:999px;font-size:12.5px;font-weight:700;text-decoration:none;
+  background:var(--soft-fill);border:1px solid var(--glass-border);color:var(--text)}
+:root[data-glass] .learner-surface a.me-status.is-member{background:var(--accent);border-color:transparent;color:var(--on-accent)}
+:root[data-glass] .learner-surface a.me-status.is-revoked,:root[data-glass] .learner-surface a.me-status.is-expired{color:var(--gold-ink)}
+.me-hero-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+:root[data-glass] .learner-surface .me-hero-actions .button{min-height:var(--control-sm,36px);padding:0 16px;font-size:14px}
+
+.me-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;list-style:none;margin:0 0 36px;padding:0}
+.me-stats li{display:grid;gap:2px;padding:16px 18px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)}
+.me-stats strong{font-size:28px;line-height:1.1;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.me-stats span{font-size:13.5px;color:var(--muted)}
+
+.me-club.is-member{border-color:var(--accent-line,var(--glass-border))}
+.me-club-status{margin:0 0 4px;font-size:19px;font-weight:750;color:var(--text)}
+.me-club-list{display:grid;gap:8px;margin:12px 0 16px;padding:0;list-style:none;font-size:14px;line-height:1.4}
+.me-club-list li{position:relative;padding-left:20px;color:var(--muted)}
+.me-club-list li:before{content:'';position:absolute;left:2px;top:.42em;width:9px;height:5px;border:solid var(--accent-ink);border-width:0 0 2px 2px;transform:rotate(-45deg)}
+.me-club-list strong{color:var(--text)}
+.me-club .small{margin:12px 0 0}
+.me-logout{margin:10px 0 0}
+.me-logout .link-button{padding:0;font-size:15px;color:var(--muted)}
+
+@media(max-width:900px){
+  .me-hero{grid-template-columns:auto minmax(0,1fr)}
+  .me-hero-actions{grid-column:1/-1;justify-content:flex-start}
+  .me-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:520px){
+  .me-avatar{width:60px;height:60px;font-size:26px}
+  :root[data-glass] .learner-surface main .me-id h1{font-size:28px}
+  .me-stats{gap:8px;margin-bottom:28px}
+  .me-stats li{padding:12px 14px}
+  .me-stats strong{font-size:24px}
+}
+/* Side panels: compact text, so a narrow column doesn't read as a wall */
+:root[data-glass] .learner-surface .me-side .me-panel p{font-size:14.5px;line-height:1.5}
+:root[data-glass] .learner-surface .me-side .me-panel h2{font-size:12.5px;font-weight:700;letter-spacing:.09em;margin:0 0 10px}
+:root[data-glass] .learner-surface .me-side .me-panel p.me-club-status{font-size:19px;line-height:1.25;font-weight:750;margin:0 0 4px}
+:root[data-glass] .learner-surface .me-logout .link-button{padding:0;min-height:0;font-size:14.5px}
+
+/* The team's feedback on a practice result (club/works.py), on the lesson and in «Мои работы». */
+.practice-review{margin:12px 0 0;padding:12px 16px;border-radius:14px;border-left:3px solid var(--accent);background:var(--accent-soft)}
+.learner-surface .practice-review p{margin:0;font-size:15px;line-height:1.55;color:var(--text)}
+.learner-surface .practice-review p.practice-review-head{margin:0 0 4px;font-size:12.5px;font-weight:700;color:var(--muted)}
+:root[data-glass] .learner-surface .me-chip.is-review{background:var(--accent-soft);color:var(--accent-ink,var(--accent))}
+
+/* Настройки → Оформление (components/Appearance.tsx) */
+.appearance h2{margin:0}
+.appearance-palettes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.learner-surface .appearance-palette{display:grid;gap:6px;justify-items:start;text-align:left;padding:16px;border-radius:18px;border:1.5px solid var(--glass-border,var(--line));
+  background:var(--soft-fill,var(--surface));color:var(--text);font:inherit;cursor:pointer;box-shadow:none;min-height:0}
+.learner-surface .appearance-palette:hover{border-color:var(--line-strong)}
+.learner-surface .appearance-palette.is-on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.appearance-palette strong{font-size:17px}
+.appearance-palette small{font-size:13px;color:var(--muted);line-height:1.4}
+.appearance-swatches{display:flex;margin-bottom:4px}
+.appearance-swatches i{width:28px;height:28px;border-radius:50%;border:2px solid var(--panel,#fff);margin-right:-8px;box-shadow:0 1px 3px var(--shadow)}
+.appearance-modes{display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--well,var(--surface));border:1px solid var(--glass-border,var(--line));width:max-content;max-width:100%}
+.learner-surface .appearance-modes button{min-height:34px;padding:0 16px;border:0;border-radius:10px;background:none;box-shadow:none;font:inherit;font-size:14px;font-weight:650;color:var(--muted);cursor:pointer}
+.learner-surface .appearance-modes button.is-on{background:var(--glass-strong,var(--panel));color:var(--text);box-shadow:0 1px 4px var(--shadow)}
+.appearance .small{margin:0}
+@media(max-width:560px){.appearance-palettes{grid-template-columns:minmax(0,1fr)}}

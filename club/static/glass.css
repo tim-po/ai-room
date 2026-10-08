@@ -1,0 +1,107 @@
+/* Frosted-glass layer for the Сумерки (dusk) and Рассвет (dawn) themes; theme.js sets data-glass.
+   Every colour comes from the theme tokens in themes.css, so one set of rules serves both.
+   Live backdrop blur is reserved for the header, the content sheet and the phone nav; everything
+   inside the sheet is a translucent fill on top of it, which keeps scrolling and the map smooth. */
+:root[data-glass]{
+  --glass-shadow:0 1px 0 var(--glass-highlight) inset,0 12px 40px var(--shadow);
+  --pill:999px;
+}
+:root[data-glass] body.learner-surface{background:var(--bg)}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root[data-glass] .club-header,:root[data-glass] .learner-surface .shell main{
+    -webkit-backdrop-filter:blur(var(--blur)) saturate(150%);backdrop-filter:blur(var(--blur)) saturate(150%);
+  }
+}
+/* Header: a frosted bar that stays on top while scrolling */
+:root[data-glass] .learner-surface .club-header{position:sticky;top:0;z-index:20;background:var(--header-bg);border-bottom:1px solid var(--glass-border)}
+:root[data-glass] .learner-surface .brand{color:var(--text)}
+@media(max-width:800px){
+  :root[data-glass] .learner-surface .club-header nav{background:var(--nav-bg);border-top:1px solid var(--glass-border);-webkit-backdrop-filter:blur(var(--blur)) saturate(150%);backdrop-filter:blur(var(--blur)) saturate(150%)}
+  /* backdrop-filter on the header would become the containing block of the fixed bottom nav
+     (pulling it up into the header), so on phones the header is solid and only the nav blurs. */
+  :root[data-glass] body.learner-surface .club-header{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--header-solid)}
+}
+
+/* Content sheet: every page's text sits on one frosted layer above the sky. */
+:root[data-glass] .learner-surface .shell main{
+  max-width:min(1240px,calc(100vw - 160px));margin:36px auto 56px;background:var(--sheet);border:1px solid var(--glass-border);border-radius:32px;
+  box-shadow:0 1px 0 var(--glass-highlight) inset,0 30px 80px var(--shadow);
+}
+:root[data-glass] .learner-surface .shell main:has(> .tree, > .page > .tree){padding-top:24px}
+@media(max-width:800px){:root[data-glass] .learner-surface .shell main{max-width:none;margin:10px 8px 90px;border-radius:24px}}
+
+/* Surfaces inside the sheet */
+:root[data-glass] :is(.learner-surface .panel,.learner-surface .card,.me-work,.me-panel,.settings-form,.outline-module,.lesson-toc-mobile,.welcome-topic,.welcome-lesson,.onb-pick,.paywall-outline,.learner-surface .resource){
+  background:var(--glass);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);
+}
+:root[data-glass] .learner-surface :is(.card,.library) .cover{background:var(--soft-fill);border-color:var(--glass-border)}
+:root[data-glass] .learner-surface .coming-card{background:transparent;border:1px dashed var(--line-strong)}
+:root[data-glass] :is(.learner-surface .coming-card,.welcome-topic,.welcome-lesson):hover{border-color:var(--accent);box-shadow:var(--glass-shadow),0 0 0 4px var(--accent-soft)}
+/* Highlight panels (continue, paywall): glass with a warm edge rather than a solid slab */
+:root[data-glass] :is(.me-continue,.learner-surface .resume-strip,.learner-surface .paywall-offer){
+  background:linear-gradient(135deg,var(--highlight-tint),transparent 60%),var(--glass-strong);
+  border:1px solid var(--highlight-edge);box-shadow:var(--glass-shadow);color:var(--text)!important;
+}
+:root[data-glass] :is(.me-continue strong,.learner-surface .resume-strip h2,.learner-surface .paywall-offer h2){color:var(--text)}
+:root[data-glass] :is(.me-continue-label,.learner-surface .resume-strip p,.learner-surface .paywall-offer p,.learner-surface .paywall-offer .small){color:var(--muted)}
+:root[data-glass] :is(.me-continue-action,.learner-surface .resume-strip .button,.learner-surface .paywall-offer .button:not(.secondary)){background:var(--accent);color:var(--on-accent);border-color:transparent}
+:root[data-glass] .learner-surface .paywall-offer .button.secondary{color:var(--text);border-color:var(--glass-border)}
+:root[data-glass] .learner-surface .paywall-offer p.paywall-free{border-color:var(--glass-border)}
+
+/* Buttons: pills. Primary = solid orange with a soft inner highlight; secondary = glass. */
+:root[data-glass] .learner-surface :is(.button,.development button){border-radius:var(--pill);background:var(--accent);color:var(--on-accent);border:1px solid transparent;box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 6px 20px color-mix(in srgb,var(--accent) 28%,transparent);font-weight:700}
+:root[data-glass] .learner-surface :is(.button,.development button):hover{background:var(--accent-hover)}
+:root[data-glass] .learner-surface :is(.button.secondary,.secondary){background:var(--soft-fill);color:var(--text);border:1px solid var(--glass-border);box-shadow:0 1px 0 var(--glass-highlight) inset}
+:root[data-glass] .learner-surface :is(.button.secondary,.secondary):hover{background:var(--soft-fill-hover)}
+:root[data-glass] .learner-surface .completion.is-secondary{background:transparent;border:1px dashed var(--line-strong)}
+:root[data-glass] .learner-surface .completion.is-secondary .button{background:var(--soft-fill);color:var(--text);border:1px solid var(--glass-border);box-shadow:none}
+/* Inputs: wells */
+:root[data-glass] .learner-surface :is(input,select,textarea){background:var(--well);border:1px solid var(--glass-border);color:var(--text);border-radius:14px}
+:root[data-glass] .learner-surface :is(input,select,textarea):focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 4px var(--accent-soft)}
+:root[data-glass] .learner-surface :focus-visible{outline-color:var(--accent)!important}
+:root[data-glass] .learner-surface :is(input[type=checkbox],input[type=radio]){accent-color:var(--accent)}
+/* Chips and labels */
+:root[data-glass] .learner-surface .chip{background:var(--soft-fill);border:1px solid var(--glass-border);color:var(--text)}
+:root[data-glass] .me-chip.is-draft{background:var(--accent-soft);color:var(--accent-ink)}
+:root[data-glass] .me-chip.is-saved{background:color-mix(in srgb,#3fb877 16%,transparent);color:color-mix(in srgb,#3fb877 70%,var(--text))}
+/* Lesson reading */
+:root[data-glass] .lesson-example{background:var(--glass);border:1px solid var(--glass-border);border-left:3px solid var(--accent);border-radius:0 18px 18px 0}
+:root[data-glass] :is(.lesson-note,.lesson-prompt){background:var(--glass);border:1px solid var(--glass-border);border-radius:18px}
+:root[data-glass] .lesson-prompt pre{color:var(--text);border-color:var(--glass-border)}
+:root[data-glass] .lesson-figure img{border-radius:18px;background:var(--soft-fill)}
+:root[data-glass] .lesson-embed{border-radius:18px}
+:root[data-glass] .learner-surface .welcome-hero em{color:var(--accent-ink)}
+/* Onboarding */
+:root[data-glass] .onboarding-choice{background:var(--glass);border:1px solid var(--glass-border);border-radius:16px}
+:root[data-glass] .onboarding-choice:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+:root[data-glass] .onb-pick span{color:var(--accent-ink)}
+/* Map: the frame is glass; nodes move with the canvas, so they use near-opaque fills (no live blur). */
+:root[data-glass] .tree-viewport{background:var(--viewport-bg) radial-gradient(circle,var(--grid) 1px,transparent 1.2px) 0 0/24px 24px;border:1px solid var(--glass-border);border-radius:26px;box-shadow:var(--glass-shadow)}
+:root[data-glass] :is(.tree-course,.tree-module,.tree-topic){background:var(--node-fill);border:1px solid var(--glass-border);box-shadow:0 1px 0 var(--glass-highlight) inset,0 10px 30px var(--shadow)}
+:root[data-glass] .tree-topic{border-color:var(--highlight-edge)}
+:root[data-glass] .tree-module.is-coming{background:var(--node-coming);border:1px dashed var(--line-strong)}
+:root[data-glass] .tree-root{background:linear-gradient(160deg,#ffbd70,#ff9f34 55%,#ec861c);color:#2a1503;box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 12px 40px color-mix(in srgb,var(--accent) 32%,transparent)}
+:root[data-glass] .tree-root span{color:#55300a}
+:root[data-glass] .tree-course.is-current{border:1.5px solid var(--accent);box-shadow:0 0 0 4px var(--accent-soft),0 10px 30px var(--shadow)}
+:root[data-glass] .tree-edges .path.is-done{stroke:var(--accent)}
+:root[data-glass] .tree-tools :is(button,[data-zoom-level]){background:var(--soft-fill);border-color:var(--glass-border);color:var(--text)}
+:root[data-glass] .tree-tools input{background:var(--well);border-color:var(--glass-border);color:var(--text)}
+
+/* Links: text colour with a warm underline; accent on hover */
+:root[data-glass] .learner-surface a:not(.button){color:var(--text);text-decoration-color:var(--link-underline);text-underline-offset:3px}
+:root[data-glass] .learner-surface a:not(.button):hover{color:var(--accent-ink);text-decoration-color:var(--accent)}
+:root[data-glass] .learner-surface .club-header nav a{text-decoration:none}
+:root[data-glass] .learner-surface .club-header nav a[aria-current="page"]{color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:8px}
+:root[data-glass] .learner-surface .lesson-toc a{color:var(--muted);text-decoration:none}
+:root[data-glass] .learner-surface .lesson-toc a[aria-current]{color:var(--text)}
+:root[data-glass] .learner-surface :is(a.outline-lesson,a.tree-lesson,a.tree-course,a.welcome-topic,a.welcome-lesson,a.coming-card,a.me-continue){text-decoration:none}
+:root[data-glass] .learner-surface a.outline-lesson[aria-current="page"]{color:var(--accent-ink)}
+:root[data-glass] .learner-surface :is(.coming-link,.welcome-topic em,.course-map-link){color:var(--accent-ink)}
+:root[data-glass] .learner-surface footer{border-color:var(--glass-border)}
+
+/* Theme switch (sun / moon) */
+.theme-toggle{display:none}
+:root[data-glass] .theme-toggle{display:inline-grid;place-items:center;width:40px;height:40px;padding:0;border-radius:50%;border:1px solid var(--glass-border);background:var(--soft-fill);color:var(--text);cursor:pointer;box-shadow:0 1px 0 var(--glass-highlight) inset}
+:root[data-glass] .theme-toggle:hover{background:var(--soft-fill-hover);color:var(--accent-ink)}
+.theme-toggle svg{width:20px;height:20px}
+:root[data-theme="dusk"] .theme-toggle .icon-moon,:root[data-theme="dawn"] .theme-toggle .icon-sun{display:none}

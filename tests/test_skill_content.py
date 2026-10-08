@@ -1,7 +1,6 @@
 """Local test-only review, not independent learning acceptance."""
 import json
 import sqlite3
-from html import unescape
 
 from club.skill_content import CASES, RELEASE, candidate_form, lesson_id
 from test_learning import app, login, post
@@ -28,10 +27,10 @@ def test_content_is_mapped_readable_and_idempotent_without_automatic_review(skil
         assert node['content'][0]['id'] == lesson_id(case)
         assert node['content'][0]['source']['paragraph'] == 1
         assert 'text' not in node['content'][0]['source']
-        lesson = c.get('/lessons/' + lesson_id(case))
-        assert lesson.status_code == 200
-        assert case['paragraphs'][0] in unescape(lesson.get_data(as_text=True))
-        assert 'Все организации, числа и ситуации вымышлены' in lesson.get_data(as_text=True)
+        assert c.get('/lessons/' + lesson_id(case)).status_code == 200
+        text = '\n\n'.join(c.get('/api/app/lessons/' + lesson_id(case)).json['lesson']['paragraphs'])
+        assert case['paragraphs'][0] in text
+        assert 'Все организации, числа и ситуации вымышлены' in text
     install(skills)
     with sqlite3.connect(skills.config['DATABASE']) as db:
         assert db.execute("SELECT COUNT(*) FROM lessons WHERE id LIKE 'skill-example-%'").fetchone()[0] == 7

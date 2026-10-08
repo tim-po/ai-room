@@ -39,7 +39,7 @@ def test_complete_restart_replay_conflict_isolation(onboard):
     state = put(c, csrf, state, 'next', draft={'available_minutes':10}).json
     state = put(c, csrf, state, 'complete').json
     assert state['status'] == 'completed'
-    assert c.get('/').status_code == 200
+    assert c.get('/').location == '/discover' and c.get('/discover').status_code == 200
     assert c.get('/api/skills/me').json['interests'] == ['coding','content']
     other = onboard.test_client(); login(other,'member')
     assert other.get('/api/onboarding').json['draft']['interests'] == []
@@ -61,7 +61,7 @@ def test_edit_cancel_skip_preserve_committed(onboard):
     s = put(c, csrf, s, 'save', draft={'interests':['content']}).json
     s = put(c, csrf, s, 'cancel').json
     assert s['draft']['interests'] == [] and s['status'] == 'skipped'
-    assert c.get('/').status_code == 200
+    assert c.get('/').location == '/discover' and c.get('/discover').status_code == 200
 
 
 def test_safe_deeplink_rechecks_revocation_even_on_replay(onboard):
@@ -88,7 +88,7 @@ def test_roles_csrf_validation_and_unchanged_save_telemetry(onboard):
     c = onboard.test_client()
     assert c.get('/api/onboarding').status_code == 401
     login(c,'admin')
-    assert c.get('/api/onboarding').status_code == 403
+    assert c.get('/api/onboarding').status_code == 200   # staff can walk through it; only learners are sent there
     csrf = login(c)
     assert c.put('/api/onboarding',json={}).status_code == 400
     s = c.get('/api/onboarding').json
@@ -101,6 +101,10 @@ def test_roles_csrf_validation_and_unchanged_save_telemetry(onboard):
         assert db.execute('SELECT COUNT(*) FROM onboarding_events_v1').fetchone()[0] == 0
     assert c.get('/lessons/'+FREE).location == '/onboarding'
     assert c.get('/api/lessons/'+FREE).status_code == 200
+    # The app's page data waits for onboarding too; the app follows the redirect.
+    for path in ['/api/app/home', '/api/app/catalogue', '/api/app/discover', '/api/app/search?q=x', '/api/app/lessons/'+FREE, '/api/app/profile']:
+        response = c.get(path)
+        assert response.status_code == 409 and response.json['redirect'] == '/onboarding', path
 
 
 def test_paired_backup_backfill_and_idempotent_migration(skills, tmp_path):
@@ -131,7 +135,7 @@ def test_paired_backup_backfill_and_idempotent_migration(skills, tmp_path):
     assert (backups[0]/'media/fixture.webm').read_bytes() == b'labelled test fixture'
     assert (backups[0]/'teaching-uploads/fixture.txt').read_text() == 'labelled material'
     assert c.get('/api/onboarding').json['status'] == 'completed'
-    assert c.get('/').status_code == 200
+    assert c.get('/').location == '/discover' and c.get('/discover').status_code == 200
     assert c.get('/api/onboarding').json['diagnostic']['available']
 
 
@@ -141,7 +145,7 @@ def test_legacy_preferences_skip_remains_compatible(onboard):
     assert s['status'] == 'in_progress'
     assert c.post('/preferences/skip', data={'csrf':csrf}).status_code == 302
     assert c.get('/api/onboarding').json['status'] == 'completed'
-    assert c.get('/').status_code == 200
+    assert c.get('/').location == '/discover' and c.get('/discover').status_code == 200
 
 
 def test_no_diagnostic_when_all_forms_withdrawn(onboard):

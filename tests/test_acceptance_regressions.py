@@ -1,5 +1,4 @@
 """Independent tester regressions plus persistence and background-write coverage."""
-import re
 import sqlite3
 from pathlib import Path
 import pytest
@@ -35,10 +34,7 @@ def test_home_resumes_most_recently_reopened_text_lesson(fresh):
         db.execute("UPDATE progress SET updated_at='2000-01-01 00:00:00' WHERE lesson_id=?",(first,))
         db.execute("UPDATE progress SET updated_at='2000-01-02 00:00:00' WHERE lesson_id=?",(second,))
     assert client.get('/lessons/'+first).status_code == 200
-    home = client.get('/').text
-    hero = re.search(r'<a class="atlas-continue"(.*?)</a>',home,re.S).group(1)
-    actual = re.search(r'href="(/lessons/[^"]+)"',hero).group(1)
-    assert actual == '/lessons/'+first
+    assert hero_target(client) == '/lessons/'+first
 
 def test_first_completed_preferences_after_skip_emits_completion_event(fresh):
     client, database, csrf = fresh
@@ -50,8 +46,8 @@ def test_first_completed_preferences_after_skip_emits_completion_event(fresh):
 
 
 def hero_target(client):
-    hero = re.search(r'<a class="atlas-continue"(.*?)</a>', client.get('/').text, re.S).group(1)
-    return re.search(r'href="(/lessons/[^"]+)"', hero).group(1)
+    """Where the map's "Продолжить" strip leads."""
+    return client.get('/api/app/home').json['continuation']['unfinished']['url']
 
 
 def test_navigation_survives_background_writes_and_second_device(fresh):
@@ -111,4 +107,4 @@ def test_v3_upgrade_preserves_work_without_inventing_visits(fresh):
         assert db.execute('SELECT completed FROM progress WHERE lesson_id=?', (lesson,)).fetchone()[0] == 1
         assert db.execute('SELECT COUNT(*) FROM lesson_visits').fetchone()[0] == 0
         assert db.execute("SELECT COUNT(*) FROM events WHERE name='onboarding_completed'").fetchone()[0] == 1
-    assert client.get('/').status_code == 200
+    assert client.get('/').location == '/discover' and client.get('/discover').status_code == 200

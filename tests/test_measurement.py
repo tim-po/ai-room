@@ -16,11 +16,16 @@ def test_activity_deduplication_privacy_and_role_boundaries(app):
     assert counts == {'course_started':1,'lesson_started':1,'practice_submitted':1,'lesson_completed':1}
     assert db.execute('SELECT COUNT(*) FROM learning_days').fetchone()[0] == 1
     assert 'PRIVATE DRAFT' not in str(db.execute('SELECT * FROM events').fetchall())
-    # A prior learning day makes the next first daily activity a return, once only.
+    # Opening a lesson is presence, not learning: it never makes a return on its own.
     db.execute("UPDATE learning_days SET day=date('now','-1 day')")
     db.commit()
     for _ in range(3):
         client.get('/lessons/' + FREE)
+    assert db.execute("SELECT COUNT(*) FROM events WHERE name='meaningful_return'").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM visit_days WHERE user_id='user-learner'").fetchone()[0] == 1
+    # A prior learning day makes the next first daily learning action a return, once only.
+    for _ in range(3):
+        assert post(client, '/api/lessons/'+FREE+'/practice', {'body':'PRIVATE DRAFT v2','status':'draft'}, csrf).status_code == 200
     assert db.execute("SELECT COUNT(*) FROM events WHERE name='meaningful_return'").fetchone()[0] == 1
     assert db.execute('SELECT COUNT(*) FROM course_starts').fetchone()[0] == 1
     assert client.get('/lessons/' + PAID).status_code == 403
@@ -32,7 +37,8 @@ def test_activity_deduplication_privacy_and_role_boundaries(app):
     assert db.execute('SELECT COUNT(*) FROM learning_days').fetchone()[0] == 2
     assert db.execute("SELECT COUNT(*) FROM events WHERE user_id='user-editor'").fetchone()[0] == 0
     login(client, 'admin')
-    assert client.get('/admin/measurement').status_code == 200
+    assert client.get('/admin/measurement').location == '/admin/analytics'   # the report lives in the admin app
+    assert client.get('/api/admin/analytics').status_code == 200
     db.close()
 
 
@@ -52,12 +58,7 @@ def test_report_denominators_time_and_calendar_retention(app):
     db.commit()
     client = app.test_client()
     login(client, 'admin')
-    captured = []
-    def receive(sender, template, context, **extra):
-        captured.append(context)
-    with template_rendered.connected_to(receive, app):
-        assert client.get('/admin/measurement').status_code == 200
-    context = captured[0]
+    context = client.get('/api/admin/analytics').json
     assert (context['activated'],context['learners'],context['median'],context['result_count']) == (2,3,120,2)
     last = context['weeks'][-1]
     assert (last['numerator'],last['denominator']) == (1,2)

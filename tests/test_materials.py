@@ -1,14 +1,17 @@
 """Standalone authoring and access boundaries, persistence and combined discovery."""
-import re
 import sqlite3
 from pathlib import Path
 
 from club import create_app
 from test_learning import app, login, post
-from test_authoring import form
+from test_authoring import api, save
 
 GUIDE = 'guide-check-answer'
 WORKSHOP = 'workshop-prompt-lab'
+
+
+def ids(catalogue):
+    return {item['id'] for item in catalogue['courses'] + catalogue['materials']}
 
 
 def fields(**changes):
@@ -19,42 +22,42 @@ def fields(**changes):
 
 def test_material_lifecycle_access_resources_and_conflicts(app):
     editor=app.test_client();csrf=login(editor,'editor')
-    response=form(editor,'/admin/materials/new',csrf,**fields())
-    assert response.status_code==302
-    path=response.location;identity=path.rsplit('/',1)[1]
+    response=api(editor,'POST','/api/admin/library',csrf,fields())
+    assert response.status_code==201
+    identity=response.json['material']['id']
     public='/materials/'+identity
     anon=app.test_client();member=app.test_client();member_csrf=login(member,'member')
     for c in [anon,member]:
         for suffix in ['', '/media']:
             assert c.get(public+suffix).status_code==404
         assert c.get('/api/materials/'+identity).status_code==404
-    assert member.get(path+'/preview').status_code==403
-    preview=editor.get(path+'/preview')
-    assert preview.status_code==200 and '&lt;script&gt;' in preview.text and '<script>alert' not in preview.text
-    assert editor.post(path+'/resources',data={'csrf':csrf,'title':'Рабочий лист','kind':'text','content':'Секретный ресурс'}).status_code==302
+    assert member.get('/api/admin/library/'+identity).status_code==403
+    preview=api(editor,'POST','/api/admin/preview',csrf,{'body':fields()['body'],'body_format':response.json['material']['body_format']})
+    assert '&lt;script&gt;' in preview.json['html'] and '<script>alert' not in preview.json['html']
+    assert api(editor,'POST',f'/api/admin/library/{identity}/resources',csrf,{'title':'Рабочий лист','kind':'text','content':'Секретный ресурс'}).status_code==200
     db=sqlite3.connect(app.config['DATABASE'])
     resource=db.execute('SELECT id FROM material_resources WHERE material_id=?',(identity,)).fetchone()[0]
     resource_path='/material-resources/'+resource
     assert member.get(resource_path).status_code==404
     assert editor.get('/admin/materials/resources/'+resource+'/preview').text=='Секретный ресурс'
-    revision=re.search('name="revision" value="([^"]+)"',editor.get(path).text)[1]
-    assert form(editor,path,csrf,**fields(status='published')).status_code==302
-    assert editor.post(path,data={'csrf':csrf,'revision':revision,**fields()}).status_code==409
+    revision=editor.get('/api/admin/library/'+identity).json['revision']
+    assert save(editor,'library',identity,csrf,**fields(status='published')).status_code==200
+    assert api(editor,'PUT','/api/admin/library/'+identity,csrf,fields()|{'revision':revision}).status_code==409
     for endpoint in [public,resource_path,'/api/materials/'+identity,public+'/media']:
         assert anon.get(endpoint).status_code==403
     assert member.get(public).status_code==200
     assert member.get(resource_path).text=='Секретный ресурс'
     assert member.post(public+'/favourite',data={'csrf':member_csrf,'saved':'1'}).status_code==302
-    assert identity in member.get('/profile').text
-    assert identity not in anon.get('/catalogue?format=guide').text
+    assert identity in [m['id'] for m in member.get('/api/app/profile').json['material_favourites']]
+    assert identity not in ids(anon.get('/api/app/catalogue?format=guide').json)
     for status in ['draft','archived']:
-        assert form(editor,path,csrf,**fields(status=status)).status_code==302
+        assert save(editor,'library',identity,csrf,**fields(status=status)).status_code==200
         assert member.get(public).status_code==404
         assert member.get(resource_path).status_code==404
-        assert identity not in member.get('/profile').text
-        assert identity not in member.get('/catalogue').text
-    assert form(editor,path,csrf,**fields(status='published')).status_code==302
-    assert identity in member.get('/profile').text
+        assert identity not in [m['id'] for m in member.get('/api/app/profile').json['material_favourites']]
+        assert identity not in ids(member.get('/api/app/catalogue').json)
+    assert save(editor,'library',identity,csrf,**fields(status='published')).status_code==200
+    assert identity in [m['id'] for m in member.get('/api/app/profile').json['material_favourites']]
     assert db.execute('SELECT count(*) FROM material_favourites WHERE material_id=?',(identity,)).fetchone()[0]==1
     # Entitlements are loaded every request, so an existing session cannot retain revoked access.
     for entitlement in ['free','expired','revoked']:
@@ -62,30 +65,30 @@ def test_material_lifecycle_access_resources_and_conflicts(app):
         for endpoint in [public,resource_path,'/api/materials/'+identity,public+'/media']:
             assert member.get(endpoint).status_code==403
         assert member.get('/materials/'+GUIDE).status_code==200
-    assert editor.post('/admin/materials/resources/'+resource+'/archive',data={'csrf':csrf}).status_code==302
+    assert api(editor,'POST',f'/api/admin/library/resources/{resource}/archive',csrf).status_code==200
     assert editor.get(resource_path).status_code==404
     db.close()
 
 
 def test_material_filter_metadata_validation_and_roles(app):
     c=app.test_client()
-    page=c.get('/catalogue?format=workshop&goal=work&level=Начальный&tool=текстовый&q=мастерская')
-    assert page.status_code==200 and WORKSHOP in page.text and GUIDE not in page.text
-    assert 'Неизвестные данные оставьте пустыми' not in page.text
-    assert 'Ничего не найдено' in c.get('/catalogue?format=guide&goal=agents').text
-    assert GUIDE in c.get('/catalogue?format=guide&tool=AI').text
-    assert GUIDE not in c.get('/catalogue?format=course').text
-    assert c.get('/admin/materials').status_code==401
+    assert c.get('/catalogue?format=workshop&goal=work').status_code==200
+    found=ids(c.get('/api/app/catalogue?format=workshop&goal=work&level=Начальный&tool=текстовый&q=мастерская').json)
+    assert WORKSHOP in found and GUIDE not in found
+    assert ids(c.get('/api/app/catalogue?format=guide&goal=agents').json)==set()   # "Ничего не найдено"
+    assert GUIDE in ids(c.get('/api/app/catalogue?format=guide&tool=AI').json)
+    assert GUIDE not in ids(c.get('/api/app/catalogue?format=course').json)
+    assert c.get('/api/admin/library').status_code==401
     assert c.get('/admin/materials/resources/worksheet-'+GUIDE+'/preview').status_code==401
     csrf=login(c)
-    assert c.post('/admin/materials/new',data={'csrf':csrf,**fields()}).status_code==403
+    assert api(c,'POST','/api/admin/library',csrf,fields()).status_code==403
     csrf=login(c,'editor')
-    assert c.post('/admin/materials/new',data=fields()).status_code==400
-    for changes in [dict(format='bad'),dict(video='../session.key'),dict(minutes='0'),dict(body=''),dict(access='public')]:
-        assert form(c,'/admin/materials/new',csrf,**fields(**changes)).status_code==400
+    assert c.post('/api/admin/library',json=fields()).status_code==400   # no CSRF token
+    for changes in [dict(format='bad'),dict(video='../session.key'),dict(minutes='0'),dict(body='',status='published'),dict(access='public')]:
+        assert api(c,'POST','/api/admin/library',csrf,fields(**changes)).status_code==400
     for url in ['javascript:alert(1)','https://user:password@example.test','https://example.test/ bad','//example.test']:
-        assert c.post('/admin/materials/'+GUIDE+'/resources',data={'csrf':csrf,'title':'Источник','kind':'link','content':url}).status_code==400
-    assert c.post('/admin/materials/'+GUIDE+'/resources',data={'csrf':csrf,'title':'Источник','kind':'link','content':'https://example.test/guide'}).status_code==302
+        assert api(c,'POST',f'/api/admin/library/{GUIDE}/resources',csrf,{'title':'Источник','kind':'link','content':url}).status_code==400
+    assert api(c,'POST',f'/api/admin/library/{GUIDE}/resources',csrf,{'title':'Источник','kind':'link','content':'https://example.test/guide'}).status_code==200
     with sqlite3.connect(app.config['DATABASE']) as db:
         identity=db.execute("SELECT id FROM material_resources WHERE kind='link'").fetchone()[0]
     assert c.get('/material-resources/'+identity).location=='https://example.test/guide'
@@ -104,11 +107,11 @@ def test_material_media_resume_restart_isolation_and_seed(app,tmp_path):
     assert c.post(path+'/favourite',data={'csrf':csrf,'saved':'1'}).status_code==302
     restart=create_app({'TESTING':True,'DATABASE':app.config['DATABASE'],'SECRET_KEY':'restart'})
     second=restart.test_client();login(second,'member')
-    assert 'data-resume="3.5"' in second.get(path).text
-    assert 'Убрать из избранного' in second.get(path).text
+    data=second.get('/api/app/materials/'+WORKSHOP).json
+    assert data['seconds']==3.5 and data['favourite']
     other=app.test_client();login(other,'editor')
-    assert 'data-resume="0"' in other.get(path).text
-    assert 'Убрать из избранного' not in other.get(path).text
+    data=other.get('/api/app/materials/'+WORKSHOP).json
+    assert data['seconds']==0 and not data['favourite']
     (media/'fixture.webm').unlink()
     assert c.get(path).status_code==200 and c.get(path+'/media').status_code==404
     with sqlite3.connect(app.config['DATABASE']) as db:
