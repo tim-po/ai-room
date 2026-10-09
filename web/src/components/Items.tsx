@@ -168,48 +168,71 @@ function heroMeta(item: DiscoverItem): string[] {
   return [item.course?.title ?? '', item.minutes ? `${item.minutes} мин` : '', item.level ?? ''].filter(Boolean);
 }
 
-/** Featured items as big cards in a row out to the screen's edges, the next one peeking in. Swipe or the arrows slide on; nothing moves by itself. */
+/**
+ * Featured items as a stack of cards: one in front, the next ones peeking out behind it on the right.
+ * Swipe, the arrows, the dots, the keyboard or a tap on a peeking card moves through it; nothing moves
+ * by itself. (A scrolling row can't bring its last card to the start; a stack has no such end.)
+ */
 export function Hero({items}: {items: DiscoverItem[]}) {
-  const track = useRef<HTMLUListElement>(null);
   const [index, setIndex] = useState(0);
-  // Where the track scrolls to bring a slide to its start (the track is the slides' offset parent).
-  const stop = (el: HTMLElement, slide: Element) => (slide as HTMLElement).offsetLeft - parseFloat(getComputedStyle(el).scrollPaddingLeft || '0');
-  useEffect(() => {
-    const el = track.current;
-    if (!el) return;
-    const update = () => {
-      const distances = Array.from(el.children, slide => Math.abs(stop(el, slide) - el.scrollLeft));
-      setIndex(distances.indexOf(Math.min(...distances)));
-    };
-    el.addEventListener('scroll', update, {passive: true});
-    return () => el.removeEventListener('scroll', update);
-  }, []);
+  const [dx, setDx] = useState(0);
+  const drag = useRef<{id: number; x: number; y: number; moved: boolean} | null>(null);
+  const swallowClick = useRef(false);
   if (!items.length) return null;
-  const go = (i: number) => {
-    const el = track.current, slide = el?.children[i];
-    if (el && slide) el.scrollTo({left: stop(el, slide), behavior: 'smooth'});
-  };
+  const last = items.length - 1;
+  const go = (i: number) => setIndex(Math.max(0, Math.min(last, i)));
+  function down(event: React.PointerEvent) {
+    if (event.button !== 0) return;
+    drag.current = {id: event.pointerId, x: event.clientX, y: event.clientY, moved: false};
+  }
+  function move(event: React.PointerEvent) {
+    const d = drag.current;
+    if (!d || d.id !== event.pointerId) return;
+    const x = event.clientX - d.x, y = event.clientY - d.y;
+    if (!d.moved && Math.abs(x) > 8 && Math.abs(x) > Math.abs(y)) {
+      d.moved = true;
+      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    }
+    if (d.moved) setDx(x);
+  }
+  function up(event: React.PointerEvent) {
+    const d = drag.current;
+    drag.current = null;
+    if (!d || d.id !== event.pointerId || !d.moved) return;
+    swallowClick.current = true;
+    const x = event.clientX - d.x;
+    if (x < -60) go(index + 1); else if (x > 60) go(index - 1);
+    setDx(0);
+  }
   return (
-    <section className={'d-hero' + (items.length === 1 ? ' is-single' : '')} aria-label="Рекомендуем">
-      <ul className="d-hero-track shelf-bleed" ref={track}>
-        {items.map((item, i) => (
-          <li key={(item.id ?? item.title) + i} className="d-hero-slide" aria-label={`${i + 1} из ${items.length}`}>
-            <Cover item={item} />
-            <div className="d-hero-copy">
-              <span className="d-kicker">{item.resume ? RESUME[item.resume] : KIND_LABEL[item.kind]}{item.topic ? ` · ${item.topic}` : ''}</span>
-              <h2>{item.title}</h2>
-              {item.text && <p>{item.text}</p>}
-              <p className="d-hero-meta">
-                {heroMeta(item).join(' · ')}
-                {item.access === 'free' && <span className="is-free">Бесплатно</span>}
-              </p>
-              <div className="d-hero-actions">
-                <AppLink className="button" to={item.url + (item.resume === 'draft' ? '#practice' : '')}>{item.cta ?? 'Открыть'} →</AppLink>
-                {item.course && <AppLink className="button secondary" to={`/courses/${item.course.id}`}>О курсе</AppLink>}
+    <section className={'d-hero' + (items.length === 1 ? ' is-single' : '')} aria-roledescription="карусель" aria-label="Рекомендуем"
+      onKeyDown={event => { if (event.key === 'ArrowRight') go(index + 1); if (event.key === 'ArrowLeft') go(index - 1); }}>
+      <ul className={'d-stack' + (dx ? ' is-dragging' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+        onClickCapture={event => { if (swallowClick.current) { swallowClick.current = false; event.preventDefault(); event.stopPropagation(); } }}>
+        {items.map((item, i) => {
+          const at = i - index;
+          return (
+            <li key={(item.id ?? item.title) + i} className="d-hero-slide" data-at={Math.max(-1, Math.min(3, at))}
+              style={{'--at': at, '--dx': at === 0 ? `${dx}px` : '0px', zIndex: items.length - Math.abs(at)} as React.CSSProperties}
+              aria-roledescription="слайд" aria-label={`${i + 1} из ${items.length}`} aria-hidden={at !== 0} inert={at !== 0}
+              onClick={at > 0 ? () => go(i) : undefined}>
+              <Cover item={item} />
+              <div className="d-hero-copy">
+                <span className="d-kicker">{item.resume ? RESUME[item.resume] : KIND_LABEL[item.kind]}{item.topic ? ` · ${item.topic}` : ''}</span>
+                <h2>{item.title}</h2>
+                {item.text && <p>{item.text}</p>}
+                <p className="d-hero-meta">
+                  {heroMeta(item).join(' · ')}
+                  {item.access === 'free' && <span className="is-free">Бесплатно</span>}
+                </p>
+                <div className="d-hero-actions">
+                  <AppLink className="button" to={item.url + (item.resume === 'draft' ? '#practice' : '')}>{item.cta ?? 'Открыть'} →</AppLink>
+                  {item.course && <AppLink className="button secondary" to={`/courses/${item.course.id}`}>О курсе</AppLink>}
+                </div>
               </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
       {items.length > 1 && (
         <div className="d-hero-nav">
@@ -220,7 +243,7 @@ export function Hero({items}: {items: DiscoverItem[]}) {
           </span>
           <span className="shelf-arrows">
             <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Рекомендуем: назад">‹</button>
-            <button type="button" onClick={() => go(index + 1)} disabled={index === items.length - 1} aria-label="Рекомендуем: дальше">›</button>
+            <button type="button" onClick={() => go(index + 1)} disabled={index === last} aria-label="Рекомендуем: дальше">›</button>
           </span>
         </div>
       )}

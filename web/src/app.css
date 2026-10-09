@@ -64,3 +64,20 @@
 :root[data-glass] .learner-surface .club-header nav .my-courses-panel a.my-courses-all{display:block;font-weight:650;color:var(--accent-ink,var(--accent))}
 :root[data-glass] .learner-surface .club-header nav .my-courses-panel a.my-courses-continue{background:var(--accent-soft)}
 :root[data-glass] .learner-surface .club-header nav .my-courses-panel a:hover{background:var(--soft-fill-hover,var(--hover))}
+
+/* The welcome page (pages/Home.tsx): the club's own words from airoom.club */
+.welcome-block{margin:56px 0 0}
+.learner-surface .welcome-block h2,.learner-surface .welcome-final h2{margin:6px 0 10px;font-size:clamp(26px,3.2vw,36px);line-height:1.12;letter-spacing:-.6px;max-width:760px}
+.welcome-sub{margin:0 0 22px;max-width:680px;font-size:17px;line-height:1.55;color:var(--muted)}
+.welcome-pillars,.welcome-weeks{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.welcome-pillars{grid-template-columns:repeat(3,minmax(0,1fr))}
+.welcome-weeks{grid-template-columns:repeat(4,minmax(0,1fr))}
+.welcome-pillars li,.welcome-weeks li{display:grid;align-content:start;gap:8px;padding:20px;border-radius:var(--radius-card,20px);background:var(--glass,var(--panel));
+  border:1px solid var(--glass-border,var(--line));box-shadow:var(--glass-shadow,none)}
+.welcome-pillars span,.welcome-weeks span{font-size:12.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink,var(--accent))}
+.welcome-pillars strong,.welcome-weeks strong{font-size:18px;line-height:1.3}
+.welcome-pillars p,.welcome-weeks p{margin:0;font-size:14.5px;line-height:1.55;color:var(--muted)}
+.welcome-final{margin:56px 0 8px;padding:32px;border-radius:24px;background:var(--glass-strong,var(--panel));border:1px solid var(--glass-border,var(--line));text-align:center;display:grid;justify-items:center;gap:6px}
+.welcome-final p{margin:0 0 14px;max-width:560px;font-size:16px;line-height:1.55;color:var(--muted)}
+@media(max-width:900px){.welcome-pillars,.welcome-weeks{grid-template-columns:minmax(0,1fr)}.welcome-final{padding:24px 18px}}
+@media(min-width:901px) and (max-width:1180px){.welcome-weeks{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -1,7 +1,7 @@
 'use strict';
 // Day and night: Сумерки (dusk, dark) and Рассвет (dawn, light). The saved choice wins; otherwise
-// the system light/dark setting decides (and keeps deciding). On top of that, a palette: «Закат»
-// (the default) or «AI Room», the club's official colours (data-palette="club", theme-club.css),
+// the system light/dark setting decides (and keeps deciding). On top of that, a palette: «AI Room»,
+// the club's official colours (the default; data-palette="club", theme-club.css), or the warm «Закат»,
 // chosen in Настройки. ?theme=<name> previews any old palette without saving.
 (() => {
   const GLASS = ['dusk', 'dawn'];
@@ -13,7 +13,7 @@
   const param = new URLSearchParams(location.search).get('theme');
   let theme = PREVIEW.includes(param) ? param : read('airoom-theme');
   if (!GLASS.includes(theme) && !param) theme = system.matches ? 'dawn' : 'dusk';
-  let palette = PALETTES.includes(read('airoom-palette')) ? read('airoom-palette') : 'sunset';
+  let palette = PALETTES.includes(read('airoom-palette')) ? read('airoom-palette') : 'club';
   const root = document.documentElement;
   const SAFARI = /^((?!chrome|chromium|crios|fxios|edg|android).)*safari/i.test(navigator.userAgent);
   function apply(name) {
@@ -69,7 +69,7 @@
   // A new palette cross-fades (view transitions) or simply switches.
   function setPalette(next) {
     if (!PALETTES.includes(next) || next === palette) return;
-    write('airoom-palette', next === 'sunset' ? null : next);
+    write('airoom-palette', next === 'club' ? null : next);
     palette = next;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (document.startViewTransition && !SAFARI && !reduced) document.startViewTransition(() => apply(theme));

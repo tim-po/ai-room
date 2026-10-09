@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-// Настройки → Оформление: the palette («Закат» or the club's own «AI Room») and day or night.
+// Настройки → Оформление: the palette (the club's own «AI Room», the default, or «Закат») and day or night.
 // club/static/theme.js applies and remembers both on this device.
 
 type Palette = 'sunset' | 'club';
@@ -19,7 +19,7 @@ const MODES: [Mode, string][] = [['auto', 'Как в системе'], ['dawn', 
 
 export default function Appearance() {
   const theme = typeof window !== 'undefined' ? window.AIRoomTheme : undefined;
-  const [palette, setPalette] = useState<Palette>(theme?.palette() ?? 'sunset');
+  const [palette, setPalette] = useState<Palette>(theme?.palette() ?? 'club');
   const [mode, setMode] = useState<Mode>((theme?.mode() as Mode) ?? 'auto');
   return (
     <section className="settings-form appearance" aria-labelledby="appearance-title">
