@@ -6,3 +6,4 @@ instance/
 .env
 node_modules/
 club/static/app/
+instance
