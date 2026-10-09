@@ -168,7 +168,7 @@ function heroMeta(item: DiscoverItem): string[] {
   return [item.course?.title ?? '', item.minutes ? `${item.minutes} мин` : '', item.level ?? ''].filter(Boolean);
 }
 
-/** Featured items as a strip of large cards: swipe, scroll or use the arrows; nothing moves by itself. */
+/** Featured items, one full-width card at a time. Swipe or the arrows slide to the next; nothing moves by itself. */
 export function Hero({items}: {items: DiscoverItem[]}) {
   const track = useRef<HTMLUListElement>(null);
   const [index, setIndex] = useState(0);
