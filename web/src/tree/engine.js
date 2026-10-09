@@ -478,13 +478,17 @@ export function mountTree(root, data) {
   size();
   measure();
   const linked = location.hash.startsWith('#course-') && document.getElementById(location.hash.slice(1));
+  // On a phone the whole round tree is too small to read: start on the course you're taking, if any.
+  const phone = window.matchMedia('(max-width: 700px)').matches;
+  const mine = !linked && phone && canvas.querySelector('.tree-course.is-current');
+  const start = linked || (mine && mine.closest('.tree-node'));
   // Choose the starting zoom first, so the first frame is already at the right level of detail.
-  lod = linked ? levelFor(0.62) : 'far';
+  lod = start ? levelFor(0.62) : 'far';
   canvas.dataset.lod = canvas.dataset.detail = lod;
   shown = copy(layouts[lod]); paint();
-  if (linked) {
-    flyToCourse(nodeOf.get(linked), 0.62, 0);
-    linked.classList.add('is-linked');
+  if (start) {
+    flyToCourse(nodeOf.get(start), 0.62, 0);
+    if (linked) linked.classList.add('is-linked');
   } else {
     home(0);
   }

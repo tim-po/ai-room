@@ -623,25 +623,42 @@ def create_app(config=None):
             db().execute('UPDATE users SET onboarding_done=1 WHERE id=?', (g.user['id'],))
         return redirect(url_for('home'))
 
+    def my_learning():
+        """The courses this learner has started (a lesson opened, done or practised), the most recently touched first."""
+        recent = {row['course_id']: row['at'] for row in query('''SELECT course_id,MAX(at) at FROM (
+            SELECT course_id,created_at at FROM course_starts WHERE user_id=?
+            UNION ALL SELECT m.course_id,p.updated_at FROM progress p JOIN lessons l ON l.id=p.lesson_id
+                JOIN modules m ON m.id=l.module_id WHERE p.user_id=?
+            UNION ALL SELECT m.course_id,p.updated_at FROM practice p JOIN lessons l ON l.id=p.lesson_id
+                JOIN modules m ON m.id=l.module_id WHERE p.user_id=?) GROUP BY course_id''', (g.user['id'],) * 3)}
+        brief = lambda l: dict(id=l['id'], title=l['title']) if l else None
+        learning = []
+        for c in cards():
+            if c['id'] in recent:
+                remaining = [l for l in lesson_list(c['id']) if not l['completed']]
+                # next_locked explains a course whose next step is a club lesson instead of showing a bare button.
+                learning.append(dict(id=c['id'], title=c['title'], done=c['done'], total=c['total'], touched_at=recent[c['id']],
+                                     next=brief(next((l for l in remaining if can_access(l)), None)),
+                                     next_locked=brief(next((l for l in remaining if not can_access(l)), None))))
+        return sorted(learning, key=lambda c: c['touched_at'] or '', reverse=True)
+
+    @app.get('/api/app/my-courses')
+    @require_user
+    def my_courses_api():
+        """The header's «Мои курсы»: what to continue, then the started courses not yet finished, newest first."""
+        unfinished = continuation_context()['unfinished']
+        active = [c for c in my_learning() if not (c['total'] and c['done'] == c['total'])]
+        return jsonify(continue_=unfinished and dict(title=unfinished['title'], url=unfinished['url'], status=unfinished.get('status')),
+                       courses=[dict(id=c['id'], title=c['title'], done=c['done'], total=c['total'], url=f"/courses/{c['id']}",
+                                     next=c['next'] and dict(title=c['next']['title'], url=f"/lessons/{c['next']['id']}")) for c in active[:6]])
+
     def profile_data():
         practices = query('''SELECT p.lesson_id,p.body,p.status,p.updated_at,l.title,m.course_id FROM practice p JOIN lessons l ON l.id=p.lesson_id
             JOIN modules m ON m.id=l.module_id WHERE p.user_id=? ORDER BY p.updated_at DESC''', (g.user['id'],))
         favourites = query('''SELECT c.id,c.title FROM favourites f JOIN courses c ON c.id=f.course_id
             WHERE f.user_id=? AND c.status='published' ''', (g.user['id'],))
-        started_ids = {row['course_id'] for row in query('''SELECT course_id FROM course_starts WHERE user_id=?
-            UNION SELECT m.course_id FROM progress p JOIN lessons l ON l.id=p.lesson_id
-                JOIN modules m ON m.id=l.module_id WHERE p.user_id=?
-            UNION SELECT m.course_id FROM practice p JOIN lessons l ON l.id=p.lesson_id
-                JOIN modules m ON m.id=l.module_id WHERE p.user_id=?''', (g.user['id'],) * 3)}
-        brief = lambda l: dict(id=l['id'], title=l['title']) if l else None
-        learning = []
-        for c in cards():
-            if c['id'] in started_ids:
-                remaining = [l for l in lesson_list(c['id']) if not l['completed']]
-                # next_locked explains a course whose next step is a club lesson instead of showing a bare button.
-                learning.append(dict(id=c['id'], title=c['title'], done=c['done'], total=c['total'],
-                                     next=brief(next((l for l in remaining if can_access(l)), None)),
-                                     next_locked=brief(next((l for l in remaining if not can_access(l)), None))))
+        learning = my_learning()
+        started_ids = {c['id'] for c in learning}
         completed = [c for c in learning if c['total'] and c['done'] == c['total']]
         material_favourites = query('''SELECT m.id,m.title FROM material_favourites f JOIN materials m ON m.id=f.material_id WHERE f.user_id=? AND m.status='published' ''', (g.user['id'],))
         user = g.user

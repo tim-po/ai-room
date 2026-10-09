@@ -149,7 +149,7 @@ export function ShelfRow({shelf}: {shelf: Shelf}) {
           </span>
         )}
       </header>
-      <ul className="shelf-track" ref={track}>
+      <ul className="shelf-track shelf-bleed" ref={track}>
         {shelf.items.map((item, i) => (
           <li key={(item.id ?? item.title) + i}>
             {shelf.style === 'top' ? <TopCard item={item} rank={i + 1} /> : shelf.style === 'wide' ? <WideCard item={item} /> : <ItemCard item={item} />}
@@ -168,7 +168,7 @@ function heroMeta(item: DiscoverItem): string[] {
   return [item.course?.title ?? '', item.minutes ? `${item.minutes} мин` : '', item.level ?? ''].filter(Boolean);
 }
 
-/** Featured items, one full-width card at a time. Swipe or the arrows slide to the next; nothing moves by itself. */
+/** Featured items as big cards in a row out to the screen's edges, the next one peeking in. Swipe or the arrows slide on; nothing moves by itself. */
 export function Hero({items}: {items: DiscoverItem[]}) {
   const track = useRef<HTMLUListElement>(null);
   const [index, setIndex] = useState(0);
@@ -191,7 +191,7 @@ export function Hero({items}: {items: DiscoverItem[]}) {
   };
   return (
     <section className={'d-hero' + (items.length === 1 ? ' is-single' : '')} aria-label="Рекомендуем">
-      <ul className="d-hero-track" ref={track}>
+      <ul className="d-hero-track shelf-bleed" ref={track}>
         {items.map((item, i) => (
           <li key={(item.id ?? item.title) + i} className="d-hero-slide" aria-label={`${i + 1} из ${items.length}`}>
             <Cover item={item} />

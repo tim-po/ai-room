@@ -181,3 +181,6 @@
   :root[data-glass] .tree-legend{flex-wrap:wrap;gap:6px 12px;font-size:12px;padding:8px 12px}
   :root[data-glass] .learner-surface .club-header nav a[aria-current="page"]{text-underline-offset:6px}
 }
+/* The lesson's side panel (contents, course programme) sits on the sky: give it its own frosted card so it reads */
+:root[data-glass] .learner-surface .lesson-sidebar{background:var(--glass-strong);border:1px solid var(--glass-border);border-radius:20px;padding:18px 20px;
+  box-shadow:0 1px 0 var(--glass-highlight) inset,var(--glass-shadow,0 12px 30px var(--shadow));-webkit-backdrop-filter:blur(var(--blur,24px)) saturate(140%);backdrop-filter:blur(var(--blur,24px)) saturate(140%)}

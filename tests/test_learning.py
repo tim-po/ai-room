@@ -112,3 +112,16 @@ def test_rendered_learning_journey(app):
     db = sqlite3.connect(app.config['DATABASE'])
     assert db.execute('SELECT COUNT(*) FROM lessons l JOIN modules m ON l.module_id=m.id WHERE m.course_id=?',('ai-foundations',)).fetchone()[0] == 37
     db.close()
+
+
+def test_my_courses_for_the_header(app):
+    c = app.test_client()
+    assert c.get('/api/app/my-courses').status_code == 401
+    csrf = login(c)
+    assert c.get('/api/app/my-courses').json['courses'] == []
+    c.get('/lessons/' + FREE)
+    post(c, f'/api/lessons/{FREE}/practice', {'body': 'Черновик', 'status': 'draft'}, csrf)
+    data = c.get('/api/app/my-courses').json
+    course = data['courses'][0]
+    assert course['url'] == '/courses/' + course['id'] and course['total'] >= 1
+    assert data['continue_'] and data['continue_']['url'].startswith('/lessons/')

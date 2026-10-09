@@ -1,6 +1,6 @@
 import {useLoaderData} from 'react-router';
 import {useState} from 'react';
-import {ApiError, bootstrap, deleteJson, getJson, postJson} from '../api';
+import {ApiError, deleteJson, getJson, postJson} from '../api';
 import {copyAsync, type Link} from '../components/AssistantHandoff';
 import {ReturnBriefing, stepLabel} from '../components/Briefing';
 import {CalendarLinks} from '../components/PlanEditor';
@@ -126,30 +126,18 @@ export default function Profile() {
             <AppLink to="#club" className={`me-status is-${user.entitlement === 'member' || user.role !== 'learner' ? 'member' : user.entitlement}`}>{user.role !== 'learner' ? 'Полный доступ' : ACCESS_LABEL[user.entitlement]}</AppLink>
             <span>{user.email}</span>
           </p>
+          <p className="me-facts">{[
+            data.stats.lessons_done ? `${data.stats.lessons_done} ${plural(data.stats.lessons_done, 'урок пройден', 'урока пройдено', 'уроков пройдено')}` : '',
+            data.stats.works ? `${data.stats.works} ${plural(data.stats.works, 'работа', 'работы', 'работ')}` : '',
+            data.stats.days ? `${data.stats.days} ${plural(data.stats.days, 'день', 'дня', 'дней')} учёбы за месяц` : '',
+            data.active_courses.length ? `${data.active_courses.length} ${plural(data.active_courses.length, 'курс', 'курса', 'курсов')} в работе` : '',
+          ].filter(Boolean).join(' · ') || 'Начните первый урок — прогресс появится здесь.'}</p>
         </div>
-        <nav className="me-hero-actions" aria-label="Настройки">
-          <AppLink className="button secondary" to="/onboarding">Интересы и темп</AppLink>
-          <AppLink className="button secondary" to="/preferences">Настройки</AppLink>
-          <AppLink className="button secondary" to="/help">Помощь</AppLink>
-          <form className="me-logout" method="post" action="/logout">
-            <input type="hidden" name="csrf" value={bootstrap.csrf} />
-            <button type="submit" className="link-button">Выйти</button>
-          </form>
-        </nav>
+        <AppLink className="me-settings" to="/preferences" aria-label="Настройки">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" /><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14.1 2.5h-4.2l-.4 2.5a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-.9a7.5 7.5 0 0 0 2.6 1.5l.4 2.5h4.2l.4-2.5a7.5 7.5 0 0 0 2.6-1.5l2.3.9 2-3.4z" /></svg>
+          <span>Настройки</span>
+        </AppLink>
       </header>
-      {[[data.stats.lessons_done, plural(data.stats.lessons_done, 'урок пройден', 'урока пройдено', 'уроков пройдено')],
-        [data.stats.works, plural(data.stats.works, 'работа сохранена', 'работы сохранено', 'работ сохранено')],
-        [data.stats.days, plural(data.stats.days, 'день', 'дня', 'дней') + ' с обучением за месяц'],
-        [data.active_courses.length, plural(data.active_courses.length, 'курс', 'курса', 'курсов') + ' в работе'],
-      ].some(([n]) => n) && (
-        <ul className="me-stats" aria-label="Итоги">
-          {[[data.stats.lessons_done, plural(data.stats.lessons_done, 'урок пройден', 'урока пройдено', 'уроков пройдено')],
-            [data.stats.works, plural(data.stats.works, 'работа сохранена', 'работы сохранено', 'работ сохранено')],
-            [data.stats.days, plural(data.stats.days, 'день', 'дня', 'дней') + ' с обучением за месяц'],
-            [data.active_courses.length, plural(data.active_courses.length, 'курс', 'курса', 'курсов') + ' в работе'],
-          ].filter(([n]) => n).map(([n, label]) => <li key={String(label)}><strong>{n}</strong><span>{label}</span></li>)}
-        </ul>
-      )}
       <div className="me-grid">
         <div className="me-main">
           {briefing?.returning ? (

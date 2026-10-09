@@ -88,15 +88,17 @@
 .d-poster-text .d-kicker{color:rgba(255,255,255,.75)}
 .d-poster-text .d-title{color:#fff;font-size:15.5px;-webkit-line-clamp:3}
 
-/* ---- Hero: one full-width card at a time, sliding to the next ---- */
-.d-hero{position:relative;width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw)}
-.d-hero-track{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:100%;gap:0;list-style:none;margin:0;padding:0;
+/* ---- Hero: big cards in a row that runs out to the screen's edges; the next one peeks in ---- */
+.d-hero{position:relative;margin:0 0 4px}
+.d-hero-track{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:min(900px,86%);gap:18px;list-style:none;margin:0;padding:6px 0 16px;
   overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none}
 .d-hero-track::-webkit-scrollbar{display:none}
-.d-hero-slide{position:relative;height:clamp(360px,38vw,480px);overflow:hidden;isolation:isolate;scroll-snap-align:start;scroll-snap-stop:always}
+.d-hero.is-single .d-hero-track{grid-auto-columns:100%}
+.d-hero-slide{position:relative;height:clamp(340px,32vw,430px);border-radius:24px;overflow:hidden;isolation:isolate;scroll-snap-align:start;scroll-snap-stop:always;
+  box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 16px 40px var(--shadow)}
 .d-hero-slide:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,5,3,.72) 0,rgba(8,5,3,.4) 46%,transparent 76%)}
-.d-hero .d-word{font-size:clamp(120px,15vw,210px);right:-.04em;left:auto;bottom:-.2em}
-.d-hero-copy{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:center;gap:12px;height:100%;max-width:640px;padding:36px max(28px,calc((100vw - var(--sheet-w,1240px)) / 2 + var(--sheet-pad,48px))) 72px;box-sizing:border-box;color:#fff}
+.d-hero .d-word{font-size:clamp(110px,13vw,190px);right:-.04em;left:auto;bottom:-.2em}
+.d-hero-copy{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:center;gap:12px;height:100%;max-width:620px;padding:32px 44px;box-sizing:border-box;color:#fff}
 .d-hero-copy .d-kicker{color:rgba(255,255,255,.78)}
 .learner-surface .d-hero-copy h2{margin:0;color:#fff;font-size:clamp(28px,3.2vw,40px);line-height:1.08;letter-spacing:-1px}
 .d-hero-copy p{margin:0;color:rgba(255,255,255,.84);font-size:16px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -105,12 +107,10 @@
 .d-hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
 :root[data-glass] .learner-surface .d-hero .button.secondary{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.28)}
 :root[data-glass] .learner-surface .d-hero .button.secondary:hover{background:rgba(255,255,255,.22)}
-.d-hero-nav{position:absolute;left:0;right:0;bottom:18px;z-index:2;display:flex;align-items:center;justify-content:space-between;margin:0;padding:0 max(22px,calc((100vw - var(--sheet-w,1240px)) / 2 + var(--sheet-pad,48px)));pointer-events:none}
-.d-hero-nav>*{pointer-events:auto}
+.d-hero-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:2px 0 0}
 .d-hero-dots{display:flex;gap:8px}
-.d-hero-dots button{width:8px;height:8px;padding:0;border:0;border-radius:99px;background:rgba(255,255,255,.4);cursor:pointer;transition:width .35s ease,background .35s ease}
-.d-hero-dots button[aria-current]{width:26px;background:#fff}
-.d-hero .shelf-arrows button{background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.3)}
+.learner-surface .d-hero-dots button{width:8px;height:8px;min-height:0;padding:0;border:0;border-radius:99px;background:var(--line-strong);box-shadow:none;cursor:pointer;transition:width .35s ease,background .35s ease}
+.learner-surface .d-hero-dots button[aria-current]{width:26px;background:var(--text)}
 
 /* ---- Topics ---- */
 .topic-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;list-style:none;margin:0;padding:0}
@@ -221,10 +221,11 @@
   .shelf-wide .shelf-track{grid-auto-columns:88%}
   .shelf-top .shelf-track{grid-auto-columns:64%}
   .d-rank{font-size:104px;margin-right:-18px}
-  .d-hero-slide{height:440px}
+  .d-hero-track{grid-auto-columns:88%;gap:12px}
+  .d-hero-slide{height:440px;border-radius:20px}
   .d-hero-slide:after{background:linear-gradient(180deg,transparent 0,rgba(8,5,3,.45) 34%,rgba(8,5,3,.86) 70%)}
   .d-hero .d-word{top:-.16em;bottom:auto;right:auto;left:.1em;font-size:92px}
-  .d-hero-copy{justify-content:flex-end;padding:22px 22px 64px;gap:8px}
+  .d-hero-copy{justify-content:flex-end;padding:22px 22px 26px;gap:8px}
   .learner-surface .d-hero-copy h2{font-size:26px}
   .d-hero-actions{flex-wrap:nowrap;gap:8px}
   .d-hero-actions .button{padding-inline:16px}
@@ -247,3 +248,9 @@
   .search-dialog[open],.search-inline .search-panel{animation:none}
   .d-cover,.d-poster,.topic-tile{transition:none}
 }
+
+/* Rows that scroll sideways run out to the screen's edges; the first card still lines up with the page. */
+/* (cqw: the page column's width; a percentage in scroll-padding would mean the row's own width) */
+.discover{container-type:inline-size}
+.discover .shelf-bleed{--bleed:calc(50vw - 50cqw);margin-inline:calc(-1 * var(--bleed));padding-inline:var(--bleed);scroll-padding-inline:var(--bleed)}
+.learner-surface .shell:has(.discover){overflow-x:clip}

@@ -1,6 +1,6 @@
 import {useState, type FormEvent} from 'react';
 import {useLoaderData, useNavigate, type LoaderFunctionArgs} from 'react-router';
-import {ApiError, getJson, postJson} from '../api';
+import {ApiError, bootstrap, getJson, postJson} from '../api';
 import Appearance from '../components/Appearance';
 import PlanEditor from '../components/PlanEditor';
 import Select from '../components/Select';
@@ -34,6 +34,7 @@ export default function Preferences() {
   }
   return (
     <section className="settings">
+      <AppLink className="settings-back" to="/profile">← Профиль</AppLink>
       <h1>Настройки</h1>
       <p className="lead">Оформление, план и опыт. Пропущенная неделя ничего не обнуляет.</p>
       <Appearance />
@@ -55,6 +56,14 @@ export default function Preferences() {
         <p>Направления, с которых удобно начинать. Вся карта всё равно открыта.</p>
         <AppLink to="/onboarding">Изменить интересы →</AppLink>
       </div>
+      <section className="settings-more settings-account" aria-labelledby="account-title">
+        <h2 id="account-title">Аккаунт</h2>
+        <p>Вы вошли как {bootstrap.user?.name}.</p>
+        <form method="post" action="/logout">
+          <input type="hidden" name="csrf" value={bootstrap.csrf} />
+          <button type="submit" className="button secondary">Выйти из аккаунта</button>
+        </form>
+      </section>
     </section>
   );
 }

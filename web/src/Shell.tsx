@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useLayoutEffect, useState, type ReactNode} from 'react';
 import {Outlet, ScrollRestoration, useLocation, useNavigate, useNavigation} from 'react-router';
 import {bootstrap, type Notice} from './api';
+import MyCourses from './components/MyCourses';
 import {SearchDialog, useSearchShortcut} from './components/Search';
 import ErrorPage from './ErrorPage';
 import {AppLink, isSpaPath} from './links';
@@ -79,20 +80,20 @@ function Header() {
     <header className="club-header">
       <AppLink className="brand" to={user ? '/discover' : '/'}>AI ROOM</AppLink>
       <nav aria-label="Главная навигация">
-        <NavLink to="/discover" active={/^\/(discover|catalogue|courses\/|lessons\/|materials\/)/.test(pathname)}>Обзор</NavLink>
+        <NavLink to="/discover" active={/^\/(discover|catalogue|materials\/)/.test(pathname) || (!user && /^\/(courses|lessons)\//.test(pathname))}>Обзор</NavLink>
         <NavLink to="/map" active={pathname === '/map'}>Карта навыков</NavLink>
-        {/* the profile took over the club page: membership lives there now */}
-        <NavLink to="/profile" active={/^\/(profile|preferences)$/.test(pathname) || (!!user && pathname === '/membership')}>Профиль</NavLink>
+        {user && <MyCourses active={/^\/(courses|lessons)\//.test(pathname)} />}
         {user && user.role !== 'learner' && <NavLink to="/admin" active={pathname.startsWith('/admin')}>Админка</NavLink>}
       </nav>
       <div className="header-account">
         <ThemeToggle />
         <AppLink to={user ? '/help' : '/login'} className={user ? 'header-help' : 'header-login'} aria-current={pathname === '/help' ? 'page' : undefined}>{user ? 'Помощь' : 'Войти'}</AppLink>
+        {/* the profile (and, from it, Настройки with «Выйти») sits at the side as the person's own button */}
         {user && (
-          <form className="session-exit" method="post" action="/logout">
-            <input type="hidden" name="csrf" value={bootstrap.csrf} />
-            <button>Выйти</button>
-          </form>
+          <AppLink to="/profile" className="header-profile" aria-label={`Профиль: ${user.name}`} title="Профиль"
+            aria-current={/^\/(profile|preferences)$/.test(pathname) || pathname === '/membership' ? 'page' : undefined}>
+            {(user.name.trim()[0] ?? '·').toUpperCase()}
+          </AppLink>
         )}
       </div>
     </header>

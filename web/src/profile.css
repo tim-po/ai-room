@@ -10,13 +10,7 @@
   background:var(--soft-fill);border:1px solid var(--glass-border);color:var(--text)}
 :root[data-glass] .learner-surface a.me-status.is-member{background:var(--accent);border-color:transparent;color:var(--on-accent)}
 :root[data-glass] .learner-surface a.me-status.is-revoked,:root[data-glass] .learner-surface a.me-status.is-expired{color:var(--gold-ink)}
-.me-hero-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
-:root[data-glass] .learner-surface .me-hero-actions .button{min-height:var(--control-sm,36px);padding:0 16px;font-size:14px}
 
-.me-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;list-style:none;margin:0 0 36px;padding:0}
-.me-stats li{display:grid;gap:2px;padding:16px 18px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)}
-.me-stats strong{font-size:28px;line-height:1.1;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
-.me-stats span{font-size:13.5px;color:var(--muted)}
 
 .me-club.is-member{border-color:var(--accent-line,var(--glass-border))}
 .me-club-status{margin:0 0 4px;font-size:19px;font-weight:750;color:var(--text)}
@@ -30,15 +24,10 @@
 
 @media(max-width:900px){
   .me-hero{grid-template-columns:auto minmax(0,1fr)}
-  .me-hero-actions{grid-column:1/-1;justify-content:flex-start}
-  .me-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:520px){
   .me-avatar{width:60px;height:60px;font-size:26px}
   :root[data-glass] .learner-surface main .me-id h1{font-size:28px}
-  .me-stats{gap:8px;margin-bottom:28px}
-  .me-stats li{padding:12px 14px}
-  .me-stats strong{font-size:24px}
 }
 /* Side panels: compact text, so a narrow column doesn't read as a wall */
 :root[data-glass] .learner-surface .me-side .me-panel p{font-size:14.5px;line-height:1.5}
