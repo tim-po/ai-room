@@ -176,13 +176,13 @@ def test_the_admin_shapes_the_skill_map(app):
     assert placed['topic'] == 'coding' and placed['rank_name'] == 'продаж с ИИ' and placed['modules'][0]['title'] == 'Письма'
     # Moved to another topic, then placed first in it and then after a chosen course.
     detail = editor.get('/api/admin/courses/' + identity).json
-    put(editor, '/api/admin/courses/' + identity, {'map_topic': 'agents', 'revision': detail['revision']}, csrf)
-    assert tree()[identity]['topic'] == 'agents'
-    order = lambda: [c['id'] for c in sorted(tree().values(), key=lambda c: 0) if c['topic'] == 'agents']
-    others = [c['id'] for c in editor.get('/api/admin/courses/' + identity).json['map']['order']['agents']]
+    put(editor, '/api/admin/courses/' + identity, {'map_topic': 'basic-ai', 'revision': detail['revision']}, csrf)
+    assert tree()[identity]['topic'] == 'basic-ai'
+    order = lambda: [c['id'] for c in sorted(tree().values(), key=lambda c: 0) if c['topic'] == 'basic-ai']
+    others = [c['id'] for c in editor.get('/api/admin/courses/' + identity).json['map']['order']['basic-ai']]
     assert len(others) >= 2 and order()[-1] == identity
     detail = editor.get('/api/admin/courses/' + identity).json
-    moved = put(editor, '/api/admin/courses/' + identity, {'map_topic': 'agents', 'map_after': '', 'revision': detail['revision']}, csrf).json
+    moved = put(editor, '/api/admin/courses/' + identity, {'map_topic': 'basic-ai', 'map_after': '', 'revision': detail['revision']}, csrf).json
     assert order()[0] == identity and moved['map']['after'] == ''
     moved = put(editor, '/api/admin/courses/' + identity, {'map_after': others[0], 'revision': moved['revision']}, csrf).json
     assert order()[:2] == [others[0], identity] and moved['map']['after'] == others[0]

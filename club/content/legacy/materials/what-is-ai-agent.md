@@ -2,13 +2,17 @@
 id: what-is-ai-agent
 title: Что такое ИИ-агент и как он может работать за тебя
 source: https://app.airoom.club/guides/who-ai-agents
-course: Гайд
 branch: agents
+goal: agents
 level: beginner
 format: guide
 minutes: 15
 access: free
 summary: Чем агент отличается от чата, из чего он состоит и какие задачи можно отдать ему первыми.
+outcome: Поймёте устройство агента и составите список задач для делегирования.
+tools: Для первого урока ничего устанавливать не нужно.
+prerequisites: Не нужны
+published: 2026-10-05 00:00:00
 ---
 ![](https://airoom-storage.s3.twcstorage.ru/uploads/1780380393999-1.webp)
 

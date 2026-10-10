@@ -2,13 +2,17 @@
 id: chatcut-video-editing
 title: Автомонтаж видео с любым ИИ-агентом (ChatCut)
 source: https://app.airoom.club/guides/avtomontazh-video-chatcut
-course: Гайд
 branch: content
+goal: build
 level: beginner
 format: guide
 minutes: 15
 access: free
 summary: Монтируйте видео словами: подключите Claude или Codex к ChatCut и соберите ролик готовыми промптами.
+outcome: Смонтируете первый ролик с помощью Claude или Codex и готовых промптов.
+tools: ChatCut и Claude Code или Codex.
+prerequisites: Не нужны
+published: 2026-10-05 00:00:00
 ---
 ## Что это
 

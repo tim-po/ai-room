@@ -59,6 +59,11 @@ def register_materials(app, db, query, can_access, require_user, goals, shell):
         public = {k: item[k] for k in ('id', 'title', 'description', 'outcome', 'format', 'level', 'minutes', 'access',
                                        'tools', 'prerequisites', 'author', 'updated_at')}
         public['format_label'] = FORMATS[item['format']]
+        # Listed from the old platform's catalogue only: its length isn't known here.
+        if query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='material_profiles'", one=True):
+            profile = query('SELECT * FROM material_profiles WHERE material_id=?', (identity,), True)
+            if profile and 'club_only' in profile.keys() and profile['club_only'] and item['format'] != 'workshop':
+                public['minutes'] = None
         if not can_access(item):
             return jsonify(locked=True, item=public)
         saved = position = None

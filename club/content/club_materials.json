@@ -1,0 +1,511 @@
+{
+ "note": "Club-only guides, use cases and workshops of app.airoom.club, read 2026-10-09 from what a visitor without a subscription sees: title, topic, level and the one-line description (workshops: their programme and length). No paid text. The app's «Основы»/Claude vibecoding guides are filed under «Код» here. Installed by club/legacy_content.py as club materials.",
+ "items": [
+  {
+   "id": "upakovyvaem-proekt-v-docker",
+   "title": "Упаковываем проект в Docker, чтобы он работал не только у тебя",
+   "format": "guide",
+   "branch": "coding",
+   "level": "intermediate",
+   "summary": "Docker простыми словами: собираем проект в «коробку», запускаем сайт кофейни «Пауза» в контейнере на своём компьютере и готовим его к переезду на сервер. Все промпты для Codex внутри.",
+   "source": "https://app.airoom.club/guides/upakovyvaem-proekt-v-docker"
+  },
+  {
+   "id": "motion-club-kit-roliki-promptami",
+   "title": "Motion Club Kit: собираем ролики промптами",
+   "format": "guide",
+   "branch": "content",
+   "level": "intermediate",
+   "summary": "Архив клуба для роликов: ставим, собираем ролик по готовому примеру, подключаем Codex для картинок и делаем ролик под свой бренд — всё промптами, без монтажа.",
+   "source": "https://app.airoom.club/guides/motion-club-kit-roliki-promptami"
+  },
+  {
+   "id": "harnes-dlya-claude-code-sem-sloev",
+   "title": "Харнес для Claude Code и Codex: как он устроен и зачем нужен",
+   "format": "guide",
+   "branch": "coding",
+   "level": "advanced",
+   "summary": "Понимаешь, из каких слоёв состоит харнес и зачем нужен каждый, и получаешь аудит своего харнеса от своего агента",
+   "source": "https://app.airoom.club/guides/harnes-dlya-claude-code-sem-sloev"
+  },
+  {
+   "id": "stavim-github-chtoby-ne-poteryat-kod",
+   "title": "Ставим GitHub, чтобы не потерять весь свой код",
+   "format": "guide",
+   "branch": "coding",
+   "level": "beginner",
+   "summary": "Разбираем GitHub на простом примере: сохраняем проект, вносим правку в отдельной ветке, объединяем и всегда знаем, где последняя рабочая версия. Все промпты для Codex внутри.",
+   "source": "https://app.airoom.club/guides/stavim-github-chtoby-ne-poteryat-kod"
+  },
+  {
+   "id": "deploim-proekt-na-server",
+   "title": "Правильно деплоим проект на сервер",
+   "format": "guide",
+   "branch": "coding",
+   "level": "intermediate",
+   "summary": "Проект упакован, поднимается одной командой, вход работает, агент отвечает. Только живёт всё это на твоём ноутбуке: закрыл крышку — CRM недоступна, клиент написал в бота и не получил ответа.",
+   "source": "https://app.airoom.club/guides/deploim-proekt-na-server"
+  },
+  {
+   "id": "gotovim-proekt-k-zapusku",
+   "title": "Готовим навайбкоженный проект к запуску на сервере",
+   "format": "guide",
+   "branch": "coding",
+   "level": "advanced",
+   "summary": "Проект работает у тебя на компьютере, но это ещё демо. Проходим с Codex/Claude семь шагов до версии, которую не страшно выложить в интернет: вход, своя база, отдельный агент, Docker и проверка запуска с нуля.",
+   "source": "https://app.airoom.club/guides/gotovim-proekt-k-zapusku"
+  },
+  {
+   "id": "kontent-zavod-planirovshchik",
+   "title": "Собираем контент-завод. Планировщик рилс и каруселей",
+   "format": "guide",
+   "branch": "content",
+   "level": "intermediate",
+   "summary": "Создаем контент-завод. Локальная контент-студия: от поиска темы до готового сценария Reels и собранной карусели.",
+   "source": "https://app.airoom.club/guides/kontent-zavod-planirovshchik"
+  },
+  {
+   "id": "avtomontazh-s-ii-openmontage",
+   "title": "АВТОМОНТАЖ С ИИ (OpenMontage)",
+   "format": "guide",
+   "branch": "content",
+   "level": "beginner",
+   "summary": "Открытая система, которая превращает твоего ИИ-помощника в видеостудию: исследование темы, сценарий, раскадровка, монтаж и сборка. Разбираем фишки и даём промпт, по которому ИИ установит всё сам — на маке и на виндовсе.",
+   "source": "https://app.airoom.club/guides/avtomontazh-s-ii-openmontage"
+  },
+  {
+   "id": "pikselnyy-ii-ofis",
+   "title": "Пиксельный ИИ-офис: Claude сам собирает команду под задачу",
+   "format": "guide",
+   "branch": "agents",
+   "level": "beginner",
+   "summary": "Munder Difflin превращает Claude Code в офис ИИ-сотрудников: ставишь одну большую задачу руководителю, он сам создаёт команду и раздаёт работу.",
+   "source": "https://app.airoom.club/guides/pikselnyy-ii-ofis"
+  },
+  {
+   "id": "tehlid-v-claude-code",
+   "title": "СТАВИМ ТЕХЛИДА в Claude Code",
+   "format": "guide",
+   "branch": "coding",
+   "level": "intermediate",
+   "summary": "Открытый плагин Oh My ClaudeCode делит работу между агентами: один планирует, другой пишет, третий проверяет. Разбираем, зачем это ставить и что нужно до установки.",
+   "source": "https://app.airoom.club/guides/tehlid-v-claude-code"
+  },
+  {
+   "id": "ai-administrator-vmesto-zhivogo",
+   "title": "Перестаём сливать заявки: агент AI-администратор заменил живого администратора на ночь и всё утро для Клиники (и любого бизнеса с услугами)",
+   "format": "guide",
+   "branch": "agents",
+   "level": "advanced",
+   "summary": "Агент отвечает клиентам ночью, записывает в реальное расписание, переносит и напоминает — и знает, где остановиться и позвать человека. Разбор на примере клиники, стек и границы.",
+   "source": "https://app.airoom.club/guides/ai-administrator-vmesto-zhivogo"
+  },
+  {
+   "id": "kontent-plan-iz-telegram-kanalov",
+   "title": "Собери контент-план из своих Telegram-каналов с помощью Claude или Codex",
+   "format": "guide",
+   "branch": "agents",
+   "level": "advanced",
+   "summary": "Подключаем Telegram к агенту на чтение через MCP и превращаем свои и чужие каналы в контент-план: что зашло, о чём уже писал, что происходит в нише.",
+   "source": "https://app.airoom.club/guides/kontent-plan-iz-telegram-kanalov"
+  },
+  {
+   "id": "kuda-ischezayut-limity-v-claude-i-codex",
+   "title": "Куда исчезают лимиты в Claude и Codex: учимся управлять контекстом",
+   "format": "guide",
+   "branch": "coding",
+   "level": "intermediate",
+   "summary": "Что делать, когда память сессии кончается? Где смотреть контекст и лимиты в приложениях Claude и Codex и чем приложения отличаются от командной строки",
+   "source": "https://app.airoom.club/guides/kuda-ischezayut-limity-v-claude-i-codex"
+  },
+  {
+   "id": "autoposting-v1",
+   "title": "Создаем контент-завод. Автопостинг. Часть 1",
+   "format": "guide",
+   "branch": "content",
+   "level": "intermediate",
+   "summary": "Показываем процесс вайбкодинга автопостинга в различные соцсети",
+   "source": "https://app.airoom.club/guides/autoposting-v1"
+  },
+  {
+   "id": "agent-iz-bota-v-telegram-akkaunt",
+   "title": "Переносим агента из бота в Телеграм-аккаунт",
+   "format": "guide",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "У тебя есть агент на Hermes, но он живёт в боте, куда пишешь только ты. Разбираем, что меняется, когда агент переезжает в твой личный Телеграм-аккаунт: сценарии, границы, безопасность и что решить до включения.",
+   "source": "https://app.airoom.club/guides/agent-iz-bota-v-telegram-akkaunt"
+  },
+  {
+   "id": "agent-dzharvis-za-1-chas",
+   "title": "Агент-Джарвис за 1 час",
+   "format": "guide",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Голосовой ИИ-ассистент, который живёт на ноутбуке и в телефоне одновременно: слышит по фразе «Хей Джарвис», видит через камеру, говорит и помнит.",
+   "source": "https://app.airoom.club/guides/agent-dzharvis-za-1-chas"
+  },
+  {
+   "id": "kak-sdelat-agenta-initsiativnee",
+   "title": "Как сделать агента проактивным",
+   "format": "guide",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Дополнение к курсу по Hermes: как прямо в чате задать агенту правило поведения, сохранить предпочтение, поставить задание по расписанию и научить его напоминать о недоделанном. Без Codex и терминала.",
+   "source": "https://app.airoom.club/guides/kak-sdelat-agenta-initsiativnee"
+  },
+  {
+   "id": "razbiraem-proekt-cal-ai",
+   "title": "Разбираем проект: Cal AI, который сделал 17 летнего парня $ миллионером",
+   "format": "guide",
+   "branch": "coding",
+   "level": "intermediate",
+   "summary": "Разбор проекта и готовые промпты для Codex или Claude Code: как собрать свою упрощённую версию Cal AI",
+   "source": "https://app.airoom.club/guides/razbiraem-proekt-cal-ai"
+  },
+  {
+   "id": "fitnes-pomoshchnik-s-ii",
+   "title": "Как сделать фитнес-помощника через свои часы",
+   "format": "guide",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Как превратить фитнес-часы или браслет в помощника, который отвечает в Телеграме, следит за вашим прогрессом и составляет тренировки по вашим данным из часов.",
+   "source": "https://app.airoom.club/guides/fitnes-pomoshchnik-s-ii"
+  },
+  {
+   "id": "hermes-agent-kruche-chata-pervyy-protsess",
+   "title": "Чем ИИ-агент на Hermes круче обычного чата: собери первый рабочий процесс за 30–45 минут",
+   "format": "guide",
+   "branch": "agents",
+   "level": "beginner",
+   "summary": "Hermes Desktop. Собери первый рабочий процесс на Hermes: агент читает папку клиента, готовит сводку, пробелы, повестку и черновик клиенту, проверяет себя и сохраняется как навык с расписанием.",
+   "source": "https://app.airoom.club/guides/hermes-agent-kruche-chata-pervyy-protsess"
+  },
+  {
+   "id": "petlya-s-ii-goal-codex-claude-code",
+   "title": "Петля с ИИ: как запускать /goal в Codex и Claude Code",
+   "format": "guide",
+   "branch": "coding",
+   "level": "advanced",
+   "summary": "Зацикленная работа. Что такое петля и как её настроить?",
+   "source": "https://app.airoom.club/guides/petlya-s-ii-goal-codex-claude-code"
+  },
+  {
+   "id": "hermes-desktop-ai-agent-na-kompyutere",
+   "title": "Hermes Desktop: установка и отличие от Claude Code и Codex",
+   "format": "guide",
+   "branch": "agents",
+   "level": "beginner",
+   "summary": "Как установить Hermes Desktop на Windows и Mac, подключить модель, настроить безопасную папку и запустить три реальных сценария — разбор файлов, анализ YouTube и Instagram. И чем Hermes отличается от Claude Code и Codex.",
+   "source": "https://app.airoom.club/guides/hermes-desktop-ai-agent-na-kompyutere"
+  },
+  {
+   "id": "claude-code-ili-codex",
+   "title": "Claude Code или Codex, что выбрать?",
+   "format": "guide",
+   "branch": "coding",
+   "level": "beginner",
+   "summary": "Как выбирать между Claude Code и Codex под твою задачу",
+   "source": "https://app.airoom.club/guides/claude-code-ili-codex"
+  },
+  {
+   "id": "kak-vybrat-nishu-i-zarabotat-na-ai",
+   "title": "Как выбрать нишу и заработать на ИИ-навыке (когда кажется, что всё занято)",
+   "format": "guide",
+   "branch": "basic-ai",
+   "level": "intermediate",
+   "summary": "Практический разбор: как найти нишу, где ты заработаешь на ИИ-навыке. Метод из 5 шагов с готовыми промптами и примерами.",
+   "source": "https://app.airoom.club/guides/kak-vybrat-nishu-i-zarabotat-na-ai"
+  },
+  {
+   "id": "kak-delat-proekt-s-pervogo-raza",
+   "title": "Как делать проект с первого раза: 3 правила вайбкодера",
+   "format": "guide",
+   "branch": "coding",
+   "level": "intermediate",
+   "summary": "Как перестать переписывать проект по три раза? Почему Claude ломает твой проект и как собирать всё с первого раза? Разбираем 3 правила вайбкодинга.",
+   "source": "https://app.airoom.club/guides/kak-delat-proekt-s-pervogo-raza"
+  },
+  {
+   "id": "ai-startap-pleybuk-osnovatelya",
+   "title": "Как построить AI-стартап: плейбук от Anthropic",
+   "format": "guide",
+   "branch": "basic-ai",
+   "level": "beginner",
+   "summary": "Практический гайд для тех, кто хочет построить бизнес с AI: 4 стадии стартапа. По мотивам плейбука Anthropic.",
+   "source": "https://app.airoom.club/guides/ai-startap-pleybuk-osnovatelya"
+  },
+  {
+   "id": "airc-ai-helper-claude-code",
+   "title": "AI Helper папка-помощник для Claude Code: запусти своего помощника за вечер",
+   "format": "guide",
+   "branch": "basic-ai",
+   "level": "beginner",
+   "summary": "Готовая рабочая папка-помощник для Claude Code: скачай, открой в Claude Code и сразу работай — посты, ответы клиентам, разбор файлов и документов, идеи, контент-план, итоги недели и безопасная работа с Gmail, Google Drive и Calendar. С установкой Claude Code и Git (Windows и macOS), готовыми командами и правилами безопасности.",
+   "source": "https://app.airoom.club/guides/airc-ai-helper-claude-code"
+  },
+  {
+   "id": "ai-memory-system",
+   "title": "Память для AI-агентов: как сделать так, чтобы ассистент не забывал тебя",
+   "format": "guide",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Принципы и рабочая схема памяти для AI-агентов: файлы под git как источник правды + семантический слой. Три варианта сборки — от эталона до боевого примера, с готовыми промптами.",
+   "source": "https://app.airoom.club/guides/ai-memory-system"
+  },
+  {
+   "id": "kak-ubrat-neyroslop",
+   "title": "Как убрать нейрослоп (ИИшный текст)",
+   "format": "guide",
+   "branch": "basic-ai",
+   "level": "beginner",
+   "summary": "Как убрать нейрослоп из текстов: 6 признаков ИИ-письма и готовая инструкция для ассистента, чтобы текст не узнавали с первой строчки.",
+   "source": "https://app.airoom.club/guides/kak-ubrat-neyroslop"
+  },
+  {
+   "id": "sber-napisal-strategiyu-budushchego-biznesa-spoyler-eto-to-chemu-my-uchim-v-klub",
+   "title": "Сбер написал стратегию будущего бизнеса. Спойлер: это то, чему мы учим в клубе",
+   "format": "guide",
+   "branch": "basic-ai",
+   "level": "beginner",
+   "summary": "Статья помогает понять, почему умение работать с ИИ — это не хобби и не временный хайп, а главный навык ближайших лет. И как занять правильную позицию уже сейчас, пока остальные раскачиваются.",
+   "source": "https://app.airoom.club/guides/sber-napisal-strategiyu-budushchego-biznesa-spoyler-eto-to-chemu-my-uchim-v-klub"
+  },
+  {
+   "id": "notion-k-svoemu-ai-agentu",
+   "title": "Подключаем Notion к своему AI-агенту",
+   "format": "guide",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Один готовый промпт и твой AI-агент сам создаёт страницы, наполняет проекты и держит структуру в Notion в порядке.",
+   "source": "https://app.airoom.club/guides/notion-k-svoemu-ai-agentu"
+  },
+  {
+   "id": "kak-postavit-lichnogo-ii-agenta-v-telegram-na-baze-codex-cli",
+   "title": "Создание AI-агента на базе Codex CLI",
+   "format": "guide",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Практическая инструкция по сборке AI-агента на Codex CLI — базовый агент, которого дальше можно кастомизировать под свои задачи.",
+   "source": "https://app.airoom.club/guides/kak-postavit-lichnogo-ii-agenta-v-telegram-na-baze-codex-cli"
+  },
+  {
+   "id": "sozdanie",
+   "title": "Создание AI-агента на базе Claude",
+   "format": "guide",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Пошаговый гайд: сборка AI-агента на базе Claude с нуля.",
+   "source": "https://app.airoom.club/guides/sozdanie"
+  },
+  {
+   "id": "5-faylov-bez-kotorykh-claude-code-rabotaet-neeffektivno",
+   "title": "5 файлов, без которых Claude Code работает неэффективно",
+   "format": "guide",
+   "branch": "coding",
+   "level": "intermediate",
+   "summary": "5 шагов, после которых ваш Claude Code будет иметь рабочий мозг и память.",
+   "source": "https://app.airoom.club/guides/5-faylov-bez-kotorykh-claude-code-rabotaet-neeffektivno"
+  },
+  {
+   "id": "kak-sobrat-lichnogo-operatsionnogo-assistenta-openclaw-chatgpt-codex",
+   "title": "Создание AI-агента на базе OpenClaw",
+   "format": "guide",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Полная инструкция по сборке агента — персонального ассистента на базе OpenClaw + ChatGPT (Codex).",
+   "source": "https://app.airoom.club/guides/kak-sobrat-lichnogo-operatsionnogo-assistenta-openclaw-chatgpt-codex"
+  },
+  {
+   "id": "vtoroy-mozg-claude-obisdian",
+   "title": "Создаем «второй мозг» с Claude + Obsidian",
+   "format": "guide",
+   "branch": "basic-ai",
+   "level": "intermediate",
+   "summary": "Как собрать личную базу знаний с помощью Obsidian и Claude Code и избавиться от информационнного хаоса.",
+   "source": "https://app.airoom.club/guides/vtoroy-mozg-claude-obisdian"
+  },
+  {
+   "id": "skills",
+   "title": "Лучшие скиллы для твоего Claude",
+   "format": "guide",
+   "branch": "basic-ai",
+   "level": "intermediate",
+   "summary": "Подборка обязательных скиллов, чтобы твой Claude работал на все 100% и мог больше, чем ты думаешь.",
+   "source": "https://app.airoom.club/guides/skills"
+  },
+  {
+   "id": "pdf-v-claude-referensy-i-probnaya-stranitsa-dlya-nastroiki-dizaina-2026-w41-3",
+   "title": "PDF в Claude: референсы и пробная страница для настройки дизайна",
+   "format": "use_case",
+   "branch": "basic-ai",
+   "level": "beginner",
+   "summary": "Участник пожаловался на стандартное оформление документов в Claude. В ответ предложили собрать 3–5 референсов, описать элементы дизайна и доработать одну страницу перед сборкой всего PDF. Большой брендбук для начала не нужен; результат применения совета в обсуждении не показан.",
+   "source": "https://app.airoom.club/usecases/pdf-v-claude-referensy-i-probnaya-stranitsa-dlya-nastroiki-dizaina-2026-w41-3"
+  },
+  {
+   "id": "sborka-rolika-remotion-pdoom-motion-canvas-i-hyperframes-2026-w41-2",
+   "title": "Сборка ролика: Remotion, pdoom, Motion Canvas и HyperFrames",
+   "format": "use_case",
+   "branch": "content",
+   "level": "advanced",
+   "summary": "Участник поделился архивом с готовым роликом и объяснил распределение задач: монтаж, эффекты, графики и вёрстку делают разные инструменты, а фрагменты соединяются в долю музыки. Ролик внутри лежит целиком, но названия заменены на ALPHA и OMEGA, а цифры — на демонстрационные.",
+   "source": "https://app.airoom.club/usecases/sborka-rolika-remotion-pdoom-motion-canvas-i-hyperframes-2026-w41-2"
+  },
+  {
+   "id": "roliki-v-claude-svoi-arhiv-videoreferensy-i-zvuk-iz-elevenlabs-2026-w41-4",
+   "title": "Ролики в Claude: свой архив, видеореференсы и звук из ElevenLabs",
+   "format": "use_case",
+   "branch": "content",
+   "level": "intermediate",
+   "summary": "Участник показал ролики, сделанные в Claude на основе своего архива: к видеореференсам он добавляет пояснения, что нравится и что нет. Картинки делает Codex, звук и озвучку берёт из ElevenLabs. В обсуждении конверсию таких видео поставили под сомнение, но измерений не привели.",
+   "source": "https://app.airoom.club/usecases/roliki-v-claude-svoi-arhiv-videoreferensy-i-zvuk-iz-elevenlabs-2026-w41-4"
+  },
+  {
+   "id": "skill-brag-video-prezentatsiya-proekta-sobrannaya-avtomaticheski-po-ego-kodu-2026-w40-11",
+   "title": "Скилл brag: видео-презентация проекта, собранная автоматически по его коду",
+   "format": "use_case",
+   "branch": "content",
+   "level": "intermediate",
+   "summary": "Участник поделился скиллом brag с github: он смотрит код проекта и на его основе автоматически делает видео-презентацию, без ручного монтажа. К сообщению приложено демо-видео с результатом. Как именно скилл запускать и что подавать на вход, в ветке не описано — только ссылка на репозиторий и пример готового ролика.",
+   "source": "https://app.airoom.club/usecases/skill-brag-video-prezentatsiya-proekta-sobrannaya-avtomaticheski-po-ego-kodu-2026-w40-11"
+  },
+  {
+   "id": "montazh-rilsov-cherez-ii-format-video-instrument-i-referensy-po-shagam-2026-w40-5",
+   "title": "Монтаж рилсов через ИИ: формат видео, инструмент и референсы по шагам",
+   "format": "use_case",
+   "branch": "content",
+   "level": "intermediate",
+   "summary": "Участница спросила, как настроить монтаж рилсов с помощью ИИ, и не знала, с чего начать. Ей предложили сначала определить нужный формат видео, затем поставить по гайду один из инструментов монтажа, скачать понравившиеся референсы и попросить ИИ повторить их, отдельно указав, что именно нравится в примерах.",
+   "source": "https://app.airoom.club/usecases/montazh-rilsov-cherez-ii-format-video-instrument-i-referensy-po-shagam-2026-w40-5"
+  },
+  {
+   "id": "sbor-dannyh-s-chuzhih-akkauntov-instagram-hikerapi-ili-apify-dlya-analiza-2026-w40-4",
+   "title": "Сбор данных с аккаунтов Instagram: HikerApi или Apify для анализа",
+   "format": "use_case",
+   "branch": "agents",
+   "level": "advanced",
+   "summary": "Участник спросил, на каких сервисах собрать данные с определённых аккаунтов Instagram для анализа стратегии. Посоветовали HikerApi (ключ, 100 токенов бесплатно) или Apify — оба умеют анализировать инсту. Уточнили: задача — смотреть контент коллег в нише и с помощью ИИ адаптировать его под свой аккаунт.",
+   "source": "https://app.airoom.club/usecases/sbor-dannyh-s-chuzhih-akkauntov-instagram-hikerapi-ili-apify-dlya-analiza-2026-w40-4"
+  },
+  {
+   "id": "nochnaya-smena-7-zadach-za-49-minut",
+   "title": "Ночная смена: агенты работают, пока ты спишь",
+   "format": "use_case",
+   "branch": "agents",
+   "level": "advanced",
+   "summary": "Поймёшь, как устроена ночная смена агентов, что для неё нужно, и получишь промпт для сборки своей смены.",
+   "source": "https://app.airoom.club/usecases/nochnaya-smena-7-zadach-za-49-minut"
+  },
+  {
+   "id": "kak-povtorit-stil-referensnogo-foto-cherez-promt-ot-chatgpt-2026-w39-5",
+   "title": "Как повторить стиль референсного фото через промт от ChatGPT",
+   "format": "use_case",
+   "branch": "content",
+   "level": "beginner",
+   "summary": "Участник поделился приёмом: попросить ChatGPT описать промтом референсное фото, а затем отправить получившийся промт вместе со своим фото. По словам автора приёма, результат похож на референс, и так можно перебирать любые референсы. Другой участник пробовал так же, но иногда результат получался хуже исходного фото.",
+   "source": "https://app.airoom.club/usecases/kak-povtorit-stil-referensnogo-foto-cherez-promt-ot-chatgpt-2026-w39-5"
+  },
+  {
+   "id": "montazh-reels-avtomaticheskaya-ochistka-zvuka-cherez-api-auphonic-2026-w39-1",
+   "title": "Монтаж Reels: автоматическая очистка звука через API Auphonic",
+   "format": "use_case",
+   "branch": "content",
+   "level": "advanced",
+   "summary": "Участник собрал через вайбкодинг собственный сервис для монтажа Reels и подключил к нему по API сервис Auphonic — раньше звук доводили вручную. После автоматической прогонки через Auphonic звук стал заметно чище и качественнее, отдельные микрофоны для записи больше не нужны. По просьбе автор показал примеры готовых роликов.",
+   "source": "https://app.airoom.club/usecases/montazh-reels-avtomaticheskaya-ochistka-zvuka-cherez-api-auphonic-2026-w39-1"
+  },
+  {
+   "id": "agent-vo-vtorom-telegram-akkaunte-parsit-chaty-s-zayavkami-i-uvedomlyaet-o-podho-2026-w39-2",
+   "title": "Агент во втором Telegram-аккаунте парсит чаты с заявками и уведомляет о подходящих",
+   "format": "use_case",
+   "branch": "agents",
+   "level": "advanced",
+   "summary": "Участник хотел не пропускать заявки в чатах, где предложение получает тот, кто ответил первым. Предложено завести второй личный Telegram-аккаунт без API — инструкция есть в файлах клуба — и через Codex прописать правила, что парсить и пересылать. У советчика уже был похожий рабочий бот. Для WhatsApp то же возможно, но сложнее.",
+   "source": "https://app.airoom.club/usecases/agent-vo-vtorom-telegram-akkaunte-parsit-chaty-s-zayavkami-i-uvedomlyaet-o-podho-2026-w39-2"
+  },
+  {
+   "id": "marketing-vstroennyy-v-produkt",
+   "title": "Как Lovable, Gamma и Base44 встроили маркетинг в продукт",
+   "format": "use_case",
+   "branch": "content",
+   "level": "beginner",
+   "summary": "Разбор одной механики на трёх продуктах: дать человеку результат как можно быстрее и сделать так, чтобы этот результат увидели другие.",
+   "source": "https://app.airoom.club/usecases/marketing-vstroennyy-v-produkt"
+  },
+  {
+   "id": "razbor-proekta-gazoporshnevaya-elektrostantsiya",
+   "title": "Разбор проекта участника клуба: создал систему управления газопоршневой электростанцией на Codex",
+   "format": "use_case",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Инженер без опыта в разработке за неделю собрал систему мониторинга электростанции: алёрты в телеграм, журнал событий, отчёты. Разбираем, что он сделал и как готовить такой проект к работе на других объектах.",
+   "source": "https://app.airoom.club/usecases/razbor-proekta-gazoporshnevaya-elektrostantsiya"
+  },
+  {
+   "id": "reaktivatsiya-bazy-klientov-s-ai-kak-vernut-starye-lidy-v-dialog-bez-spama",
+   "title": "Реактивация базы клиентов с AI: как вернуть старые лиды в диалог без спама",
+   "format": "use_case",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Разбор кейса: как с помощью AI-агента вернуть в диалог старые заявки из базы.",
+   "source": "https://app.airoom.club/usecases/reaktivatsiya-bazy-klientov-s-ai-kak-vernut-starye-lidy-v-dialog-bez-spama"
+  },
+  {
+   "id": "vnutrennyaya-kukhnya-kak-agenty-risuyut-nashi-kursy-odin-personazh-na-ves-kurs",
+   "title": "Внутренняя кухня: как агенты рисуют наши курсы — один персонаж на весь курс",
+   "format": "use_case",
+   "branch": "content",
+   "level": "intermediate",
+   "summary": "Кейс, как сделать так, чтобы ваш агент сам делал вам изображения высокого качества.",
+   "source": "https://app.airoom.club/usecases/vnutrennyaya-kukhnya-kak-agenty-risuyut-nashi-kursy-odin-personazh-na-ves-kurs"
+  },
+  {
+   "id": "ai-agent-OP-maneger",
+   "title": "Как мы собрали AI-агента в отдел продаж для обработки заявок AI Room Club",
+   "format": "use_case",
+   "branch": "agents",
+   "level": "intermediate",
+   "summary": "Use-case, в котором мы рассказали о том, как собрали агента-менеджера для обработки заявок и ответов на вопросы наших клиентов.",
+   "source": "https://app.airoom.club/usecases/ai-agent-OP-maneger"
+  },
+  {
+   "id": "lyuboy-agent-za-3-vechera",
+   "title": "Любой агент за 3 вечера",
+   "format": "workshop",
+   "branch": "agents",
+   "level": "beginner",
+   "minutes": 335,
+   "summary": "28, 29 и 30 июля собираем ИИ-агентов под свои задачи: находим, где агент реально нужен в работе и бизнесе, собираем личного ассистента и команду агентов, разбираем безопасность и два пути заработка — внедрить у себя или делать под заказ.",
+   "source": "https://app.airoom.club/workshops/lyuboy-agent-za-3-vechera",
+   "parts": [
+    "День 0. Подготовка до старта",
+    "День 1. Проектируем роль и собираем личного ассистента",
+    "Запись: День 1",
+    "День 2. Усиливаем ассистента и собираем команду агентов",
+    "Запись: День 2",
+    "Запись: День 3"
+   ]
+  },
+  {
+   "id": "claude-za-3-dnya",
+   "title": "Claude за 3 дня",
+   "format": "workshop",
+   "branch": "basic-ai",
+   "level": "beginner",
+   "minutes": 80,
+   "summary": "За 3 дня превращаем Claude из «просто чата» в рабочий инструмент: настройка под себя, Проекты и Cowork, Claude Code. Практика в прямом эфире 1–3 июля, с готовыми промптами под копирование.",
+   "source": "https://app.airoom.club/workshops/claude-za-3-dnya",
+   "parts": [
+    "День 0. Подготовка до старта",
+    "День 1. Настраиваем Claude под себя",
+    "Запись эфира. День 1.",
+    "День 2. Проект №1 — Бизнес-ассистент",
+    "День 2. Проект №2 — Агенты в Cowork",
+    "Запись эфира. День 2.",
+    "День 3. Claude Code. Вайбкодим :))",
+    "Запись эфира. День 3."
+   ]
+  }
+ ]
+}

@@ -107,4 +107,4 @@ def test_v3_upgrade_preserves_work_without_inventing_visits(fresh):
         assert db.execute('SELECT completed FROM progress WHERE lesson_id=?', (lesson,)).fetchone()[0] == 1
         assert db.execute('SELECT COUNT(*) FROM lesson_visits').fetchone()[0] == 0
         assert db.execute("SELECT COUNT(*) FROM events WHERE name='onboarding_completed'").fetchone()[0] == 1
-    assert client.get('/').location == '/discover' and client.get('/discover').status_code == 200
+    assert client.get('/').status_code == 200 and client.get('/discover').status_code == 200

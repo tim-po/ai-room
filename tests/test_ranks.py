@@ -1,11 +1,14 @@
 """Milestones and course ranks: 2-3 goals between modules, stored, celebrated once, never taken back."""
+import sqlite3
+
 from club.ranks import placements, standing
+from club.tree import PLACEMENTS
 from test_learning import app, login, post
 from test_skills import skills
 from test_onboarding import onboard
 from test_legacy_content import legacy, learner, demo_app
 
-VIDEO_FREE, VIDEO_MEMBER = 'chatcut-video-editing', 'ai-video-skill'
+VIDEO, VIDEO_FREE, VIDEO_MEMBER = 'course-video', 'video-free', 'video-member'
 STATE = {'d': 'done', 'o': 'open', 'c': 'coming', 'l': 'locked'}
 
 
@@ -41,16 +44,30 @@ def test_ranks_follow_milestones():
     assert kept['rank'] == 'Практик' and stones[0]['state'] == 'reached'
 
 
+def video_course(app):
+    """A small course made the way the admin makes one: a free lesson, then a club lesson, two milestones."""
+    with sqlite3.connect(app.config['DATABASE']) as db:
+        db.execute("INSERT INTO courses VALUES(?,?,?,?,?,?,?,?,?,?,'published')",
+                   (VIDEO, 'Видео с ИИ', 'Монтаж словами.', 'Первый ролик.', 'build', 'Начальный', 'ChatCut', 'Не нужны', 'AI Room', '2026-10-09'))
+        for i, (lesson, access) in enumerate(((VIDEO_FREE, 'free'), (VIDEO_MEMBER, 'member'))):
+            db.execute('INSERT INTO modules VALUES(?,?,?,?)', (f'{VIDEO}-m{i + 1}', VIDEO, f'Модуль {i + 1}', i))
+            db.execute("INSERT INTO lessons(id,module_id,title,objective,body,minutes,position,access) VALUES(?,?,?,?,?,?,?,?)",
+                       (lesson, f'{VIDEO}-m{i + 1}', f'Урок {i + 1}', 'Цель', 'Текст', 10, 0, access))
+        db.execute(PLACEMENTS)
+        db.execute('INSERT INTO course_placements(course_id,topic_id,rank,hidden) VALUES(?,?,?,0)', (VIDEO, 'content', 'видео с ИИ'))
+
+
 def test_completion_earns_and_the_map_celebrates_once(legacy):
+    video_course(legacy)
     app = demo_app(legacy)
     c = app.test_client(); csrf = login(c, learner(app, 'climber', onboarded=True))
     earned = post(c, f'/api/lessons/{VIDEO_FREE}/completion', {'completed': True}, csrf).json['earned']
-    assert [e['id'] for e in earned] == ['rank:ai-video']                    # the milestone is celebrated as its rank
+    assert [e['id'] for e in earned] == ['rank:course-video']                    # the milestone is celebrated as its rank
     rank = earned[0]
     assert rank['title'] == 'Практик видео с ИИ' and 'Мастер видео с ИИ' in rank['next'] and rank['milestone'] == {'number': 1, 'of': 2}
     home = c.get('/api/app/home').json
-    assert [a['id'] for a in home['achievements']] == ['rank:ai-video']    # unseen until shown
-    video = next(co for t in home['tree']['topics'] for co in t['courses'] if co['id'] == 'ai-video')
+    assert [a['id'] for a in home['achievements']] == ['rank:course-video']    # unseen until shown
+    video = next(co for t in home['tree']['topics'] for co in t['courses'] if co['id'] == VIDEO)
     assert video['standing']['rank'] == 'Практик' and [m['state'] for m in video['milestones']] == ['reached', 'next']
     assert post(c, '/api/app/achievements/seen', {'ids': [a['id'] for a in home['achievements']]}, csrf).status_code == 200
     assert c.get('/api/app/home').json['achievements'] == []
@@ -60,5 +77,5 @@ def test_completion_earns_and_the_map_celebrates_once(legacy):
     assert any(e['kind'] == 'rank' and e['title'] == 'Мастер видео с ИИ' for e in master)
     post(c, f'/api/lessons/{VIDEO_MEMBER}/completion', {'completed': False}, csrf)
     profile = c.get('/api/app/profile').json
-    assert next(r for r in profile['ranks'] if r['course'] == 'ai-video')['title'] == 'Мастер видео с ИИ'
+    assert next(r for r in profile['ranks'] if r['course'] == VIDEO)['title'] == 'Мастер видео с ИИ'
     assert post(c, f'/api/lessons/{VIDEO_MEMBER}/completion', {'completed': False}, csrf).json['earned'] == []

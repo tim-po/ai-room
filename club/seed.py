@@ -9,7 +9,8 @@ def seed_database(db):
         raise RuntimeError('Set CLUB_SEED_PASSWORD to a private staging password (12+ characters).')
     with db:
         for name, role, entitlement in [('learner', 'learner', 'free'), ('member', 'learner', 'member'), ('revoked', 'learner', 'revoked'), ('editor', 'editor', 'free'), ('admin', 'admin', 'free')]:
-            db.execute('INSERT OR IGNORE INTO users(id,email,password_hash,name,role,entitlement) VALUES(?,?,?,?,?,?)',
+            # Synthetic accounts start past the onboarding (club/journey.py); real accounts go through it.
+            db.execute('INSERT OR IGNORE INTO users(id,email,password_hash,name,role,entitlement,onboarding_done) VALUES(?,?,?,?,?,?,1)',
                        ('user-' + name, name + '@example.test', generate_password_hash(password), {'learner':'Алекс', 'member':'Саша', 'revoked':'Женя', 'editor':'Редактор', 'admin':'Администратор'}[name], role, entitlement))
         courses = [
             ('ai-foundations', 'AI: от вопроса к полезному результату', 'Разберитесь в возможностях AI и подготовьте первый проверенный рабочий ответ.', 'Составите понятный запрос, проверите ответ и сохраните результат для своей задачи.', 'essentials', 'Начальный', 'Любой текстовый AI; бесплатного тарифа достаточно для практики.', 'Опыт не требуется.', 'Учебная команда AI Room'),

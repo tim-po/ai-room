@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 from flask import g, jsonify, request
 
+from .journey import alignment
 from .tree import build_tree
 
 CLASSES = {'lesson': 'Уроки', 'course': 'Курсы', 'guide': 'Гайды', 'use_case': 'Кейсы', 'workshop': 'Воркшопы', 'coming': 'Скоро'}
@@ -115,20 +116,39 @@ def register_discover(app, query, can_access, cards, continuation_context, shell
             topics.append(dict(id=topic['id'], title=topic['title'], subtitle=topic['subtitle'], interest=topic['interest'], available=topic_items,
                                coming=sum(1 for c in topic['courses'] if c['id'] not in courses)))
         names = {t['id']: t['title'] for t in topics}
-        branches = {}
+        branches, club_only = {}, set()
         if query("SELECT 1 FROM sqlite_master WHERE name='material_profiles'", one=True):
-            branches = {r['material_id']: r['branch'] for r in query('SELECT material_id,branch FROM material_profiles')}
+            profiles = query('SELECT * FROM material_profiles')
+            branches = {r['material_id']: r['branch'] for r in profiles}
+            club_only = {r['material_id'] for r in profiles if 'club_only' in r.keys() and r['club_only']}
         for m in query('''SELECT id,title,description,outcome,format,goal,level,tools,minutes,access,updated_at
                 FROM materials WHERE status='published' ORDER BY updated_at DESC,id'''):
             topic_id = branches.get(m['id']) or GOAL_TOPIC.get(m['goal'], 'basic-ai')
             items.append(dict(kind=m['format'], id=m['id'], title=m['title'], url=f'/materials/{m["id"]}', text=m['description'],
-                              minutes=m['minutes'], level=m['level'], topic=names.get(topic_id), topic_id=topic_id,
+                              minutes=None if m['id'] in club_only and m['format'] != 'workshop' else m['minutes'],
+                              level=m['level'], topic=names.get(topic_id), topic_id=topic_id,
                               access=m['access'], state='open' if m['access'] == 'free' or can_access(dict(access=m['access'])) else 'locked',
                               context=names.get(topic_id, ''), haystack=' '.join((m['outcome'], m['tools'])), learners=0, new=recent(m['updated_at'])))
         return items, topics
 
     PUBLIC = ('kind', 'sub', 'id', 'title', 'url', 'text', 'topic', 'topic_id', 'level', 'minutes', 'state', 'access', 'course',
-              'lessons', 'catalog_total', 'done', 'free', 'practice', 'learners', 'new', 'next', 'resume', 'course_done', 'course_total')
+              'lessons', 'catalog_total', 'done', 'free', 'practice', 'learners', 'new', 'next', 'resume', 'course_done', 'course_total', 'goals')
+
+    def aligned(items):
+        """Mark what serves the learner's goals (club/journey.py alignment): item['goals'] = goal ids, in their order."""
+        align = alignment(query, g.get('user'))
+        if not align:
+            return None
+        for item in items:
+            if item['kind'] in ('course', 'coming') and not item.get('sub'):
+                found = align['course'].get(item['id'])
+            elif item['kind'] == 'lesson':
+                found = align['lesson'].get(item['id']) or align['course'].get((item.get('course') or {}).get('id'))
+            else:
+                found = align['material'].get(item['id'])
+            if found:
+                item['goals'] = found
+        return align['goals']
 
     def public(item):
         return {k: item[k] for k in PUBLIC if k in item}
@@ -142,6 +162,7 @@ def register_discover(app, query, can_access, cards, continuation_context, shell
 
     def discover_data():
         items, topics = index()
+        goals = aligned(items)
         user = g.get('user')
         visible = [i for i in items if not i.get('hidden')]
         lessons = [i for i in visible if i['kind'] == 'lesson']
@@ -169,6 +190,11 @@ def register_discover(app, query, can_access, cards, continuation_context, shell
                 if lesson and all(c['id'] != lesson['id'] for c in continuing):
                     continuing.append(lesson | dict(resume='next', course_done=course['done'], course_total=course['lessons']))
         shelf('continue', 'Продолжить', continuing, style='wide')
+        # For your goals: courses and guides on the learner's path, the ones serving the most goals first.
+        if goals:
+            mine = [i for i in visible if i.get('goals') and i['kind'] in ('course', 'guide', 'use_case') and i['state'] != 'done']
+            # a personal row: it repeats what the rows below hold (like «Мой список»), so they stay whole
+            shelf('goals', 'Для твоих целей', sorted(mine, key=lambda i: -len(i['goals']))[:12], subtitle='Курсы и гайды с твоего пути', link='/path', repeat=True)
 
         started = {c['id'] for c in continuing}
         free = [i for i in lessons if i['access'] == 'free' and i['state'] == 'open' and i['id'] not in started]
@@ -203,7 +229,7 @@ def register_discover(app, query, can_access, cards, continuation_context, shell
             featured = [continuing[0] | dict(cta='Продолжить')]
         hero = [public(i) | {k: i[k] for k in ('cta', 'resume') if k in i} for i in featured[:3]]
 
-        return dict(hero=hero, shelves=shelves, topics=topics, suggestions=SUGGESTIONS, classes=classes(visible))
+        return dict(hero=hero, shelves=shelves, topics=topics, suggestions=SUGGESTIONS, classes=classes(visible), goals=goals or [])
 
     def search_data():
         q = request.args.get('q', '').strip()[:120]
@@ -211,6 +237,7 @@ def register_discover(app, query, can_access, cards, continuation_context, shell
         free_only = request.args.get('access') == 'free'
         limit = min(max(request.args.get('limit', 60, type=int), 1), 200)
         items, topics = index()
+        goals = aligned(items)
         parts = stems(q)
         hits = []
         for item in items:
@@ -227,7 +254,7 @@ def register_discover(app, query, can_access, cards, continuation_context, shell
         hits.sort(key=lambda pair: (-pair[0], pair[1]['kind'] == 'coming', -pair[1]['learners']))
         ranked = [public(item) for _, item in hits[:limit]]
         return dict(query=q, stems=parts, total=len(hits), items=ranked, topics=topics,
-                    classes=classes([i for i in items if not i.get('hidden')]), suggestions=SUGGESTIONS)
+                    classes=classes([i for i in items if not i.get('hidden')]), suggestions=SUGGESTIONS, goals=goals or [])
 
     @app.get('/discover')
     def discover():

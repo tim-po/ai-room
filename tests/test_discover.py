@@ -47,7 +47,7 @@ def test_search_ranks_filters_and_hides_content(legacy):
     c = legacy.test_client()
     agents = c.get('/api/app/search', query_string={'q': 'агенты'}).json
     assert agents['stems'] == ['аген'] and agents['total'] > 3
-    assert agents['items'][0]['kind'] in ('course', 'lesson') and 'агент' in agents['items'][0]['title'].lower()
+    assert agents['items'][0]['kind'] in ('course', 'lesson', 'guide', 'use_case') and 'агент' in agents['items'][0]['title'].lower()
     assert all(i['kind'] == 'course' for i in c.get('/api/app/search', query_string={'q': 'агент', 'class': 'course'}).json['items'])
     free = c.get('/api/app/search', query_string={'access': 'free'}).json['items']
     assert free and all(i['access'] == 'free' for i in free)

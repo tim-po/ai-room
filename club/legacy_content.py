@@ -10,11 +10,17 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
+import json
+
 import click
 from markupsafe import Markup, escape
 
 CONTENT_DIR = Path(__file__).with_name('content') / 'legacy'
 MATERIALS_DIR = CONTENT_DIR / 'materials'   # free guides and use cases (materials, not lessons)
+# Club-only guides, use cases and workshops: what a visitor of the old platform sees (title, topic, level,
+# one line; workshops their programme). No paid text: here they open a short page linking to the original.
+CLUB_MATERIALS = CONTENT_DIR.parent / 'club_materials.json'
+CLUB_GOALS = {'basic-ai': 'essentials', 'coding': 'build', 'content': 'work', 'agents': 'agents'}
 IMAGE_HOSTS = ('https://airoom-storage.s3.twcstorage.ru/',)
 VIDEO_EMBED = re.compile(r'https://kinescope\.io/embed/[A-Za-z0-9]+(\?[A-Za-z0-9_=&]*)?')
 IMAGE_SOURCES = ' '.join(h.rstrip('/') for h in IMAGE_HOSTS)
@@ -35,36 +41,20 @@ COURSES = [
      'Практический курс: настроить Claude под себя, давать правильный контекст и получать рабочие результаты.',
      'Получите первый рабочий результат на своей задаче и сохраните запрос, который сработал.',
      'essentials', 'basic-ai', 'Claude, бесплатного тарифа достаточно.',
-     [('Старт с Claude', ['claude-first-result']),
-      ('Контекст и промты', [('demo', 'claude-basics-context', 'Контекст — фундамент хорошего ответа', 'Понять, какой контекст нужен модели для точного ответа.', 10,
+     [('Старт с Claude: что это и как не утонуть в функциях', ['claude-first-result']),
+      ('Контекст и промты: как получать точные ответы', [('demo', 'claude-basics-context', 'Контекст — фундамент хорошего ответа', 'Понять, какой контекст нужен модели для точного ответа.', 10,
                               ('Почему модель отвечает «средне»', 'Четыре слоя контекста', 'Что не нужно добавлять')),
                              ('demo', 'claude-basics-formula', 'Формула рабочего запроса', 'Собрать запрос из роли, задачи, формата и ограничений.', 10,
                               ('Роль и задача', 'Формат и объём', 'Запреты и критерии', 'Шаблон для своей библиотеки'))])]),
-    ('ai-video', 'Видео с ИИ-агентом',
-     'Монтаж словами: агент собирает ролик из исходников по вашим инструкциям.',
-     'Смонтируете первый ролик с помощью Claude или Codex и готовых промптов.',
-     'build', 'content', 'ChatCut и Claude Code или Codex.',
-     [('Монтаж словами', ['chatcut-video-editing']),
-      ('Свой формат', [('demo', 'ai-video-skill', 'Скилл монтажа под свой формат', 'Превратить удачный монтаж в повторяемый скилл агента.', 15,
-                         ('Разбираем удачный монтаж', 'Пишем инструкцию скилла', 'Проверяем на новом ролике'))])]),
-    ('ai-agents-start', 'Первый ИИ-агент',
-     'Что такое агент, из чего он состоит и какие задачи отдать ему первыми.',
-     'Поймёте устройство агента и составите список задач для делегирования.',
-     'agents', 'agents', 'Для первого урока ничего устанавливать не нужно.',
-     [('Что такое агент', ['what-is-ai-agent']),
-      ('Запускаем агента', [('demo', 'ai-agents-server', 'Ставим агента на сервер', 'Подготовить сервер и запустить готовую архитектуру агента.', 20,
-                            ('Выбираем и оплачиваем сервер', 'Автоустановка агента', 'Подключаем Telegram', 'Первая проверка')),
-                            ('demo', 'ai-agents-soul', 'Душа и первые скиллы', 'Описать личность агента и дать ему первые инструкции.', 15,
-                            ('Кто ваш агент', 'Цели и границы', 'Первые три скилла'))])]),
 ]
+
+# Courses this module used to install. Their source guides are guides now (materials/); the courses are
+# archived on install so they leave the map (learners' rows are kept).
+RETIRED = ('ai-video', 'ai-agents-start')
 
 PRACTICE = {
     'claude-first-result': ('Сохраните свою задачу, запрос, который сработал, и одно уточнение, которое улучшило ответ.',
                             'Задача помещается в 20 минут\nВ запросе есть роль, аудитория, формат и запреты\nПервый ответ оценён: что хорошо и что плохо\nСделано хотя бы одно конкретное уточнение'),
-    'chatcut-video-editing': ('Опишите ролик, который собрали, и промпт, который сработал лучше всего.',
-                              'Агенту дана цель, порядок и запреты\nПлан монтажа проверен до сборки\nПравки названы таймкодами'),
-    'what-is-ai-agent': ('Выпишите в столбик рутинные задачи, которые отдали бы первому агенту.',
-                         'Задачи повторяются регулярно\nУ каждой понятен результат\nОтмечено, где нужно ваше подтверждение'),
 }
 
 
@@ -77,6 +67,19 @@ def read_lesson(lesson_id, folder=CONTENT_DIR):
 
 def legacy_materials():
     return [read_lesson(path.stem, MATERIALS_DIR) for path in sorted(MATERIALS_DIR.glob('*.md'))]
+
+
+def club_materials():
+    return json.loads(CLUB_MATERIALS.read_text(encoding='utf-8'))['items']
+
+
+def club_body(item):
+    """A club material's page here: its line, the workshop programme, and where the full material lives."""
+    parts = [item['summary']]
+    if item.get('parts'):
+        parts += ['## Программа', '\n'.join(f'1. {part}' for part in item['parts'])]
+    parts.append(f"!note Это материал клуба AI Room. Полностью он открыт участникам на [app.airoom.club]({item['source']}).")
+    return '\n\n'.join(parts)
 
 
 def parse_blocks(body):
@@ -131,12 +134,12 @@ def _chunks(body):
 
 def inline(text):
     """Escape, then allow **bold**, [label](https://…) links and links to this platform's own
-    lessons, courses and materials ([label](/materials/id))."""
+    lessons, courses and materials ([label](/materials/id)) and to a course on the map ([label](/map#course-id))."""
     html = str(escape(text))
     html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
     html = re.sub(r'\[([^\]]+)\]\((https?://[^\s)&]+(?:&amp;[^\s)&]+)*)\)',
                   r'<a href="\2" rel="noopener noreferrer" target="_blank">\1 ↗</a>', html)
-    html = re.sub(r'\[([^\]]+)\]\((/(?:lessons|courses|materials)/[A-Za-z0-9_.-]+)\)', r'<a href="\2">\1</a>', html)
+    html = re.sub(r'\[([^\]]+)\]\((/(?:lessons|courses|materials)/[A-Za-z0-9_.-]+|/map#course-[a-z0-9-]+)\)', r'<a href="\2">\1</a>', html)
     return Markup(html.replace('\n', '<br>'))
 
 
@@ -196,6 +199,9 @@ def ensure_schema(db):
         db.execute("ALTER TABLE materials ADD COLUMN body_format TEXT NOT NULL DEFAULT 'text'")
     db.execute('''CREATE TABLE IF NOT EXISTS material_profiles (
         material_id TEXT PRIMARY KEY REFERENCES materials(id), branch TEXT NOT NULL, source_url TEXT)''')
+    if 'club_only' not in {r[1] for r in db.execute('PRAGMA table_info(material_profiles)')}:
+        # 1: listed from the old platform's catalogue only (no text here, length unknown)
+        db.execute('ALTER TABLE material_profiles ADD COLUMN club_only INTEGER NOT NULL DEFAULT 0')
 
 
 def install(db, retire_synthetic=False):
@@ -235,12 +241,13 @@ def install(db, retire_synthetic=False):
                 db.execute('''INSERT INTO lesson_profiles VALUES(?,?,?,?,?,?) ON CONFLICT(lesson_id) DO UPDATE SET
                     branch=excluded.branch,level=excluded.level,format=excluded.format,source_url=excluded.source_url,demo=excluded.demo''',
                     (lesson_id, branch, level if not demo else 'beginner', fmt, source, demo))
+    db.execute(f"UPDATE courses SET status='archived' WHERE status='published' AND id IN ({','.join('?' * len(RETIRED))})", RETIRED)
     materials = legacy_materials()
     if retire_synthetic:
         legacy_ids = [c[0] for c in COURSES]
         # Ids made in the admin (course-<hex>, material-<hex>) are the team's own work and stay as they are.
         db.execute(f"UPDATE courses SET status='archived' WHERE id NOT IN ({','.join('?' * len(legacy_ids))}) AND status='published' AND id NOT GLOB 'course-*'", legacy_ids)
-        material_ids = [meta['id'] for meta, _ in materials] or ['']
+        material_ids = [meta['id'] for meta, _ in materials] + [item['id'] for item in club_materials()] or ['']
         db.execute(f"UPDATE materials SET status='archived' WHERE status='published' AND id NOT GLOB 'material-*' AND id NOT IN ({','.join('?' * len(material_ids))})", material_ids)
     for meta, body in materials:
         assert meta['access'] == 'free', meta['id']   # only free legacy content is ever installed
@@ -251,8 +258,18 @@ def install(db, retire_synthetic=False):
             status='published',updated_at=excluded.updated_at,body_format='blocks' '''),
             (meta['id'], meta['title'], meta['summary'], meta['outcome'], meta['format'], meta['goal'], LEVELS[meta['level']], meta['tools'],
              meta['prerequisites'], 'AI Room', int(meta['minutes']), body, meta['published']))
-        db.execute('''INSERT INTO material_profiles VALUES(?,?,?) ON CONFLICT(material_id) DO UPDATE SET
-            branch=excluded.branch,source_url=excluded.source_url''', (meta['id'], meta['branch'], meta['source']))
+        db.execute('''INSERT INTO material_profiles(material_id,branch,source_url,club_only) VALUES(?,?,?,0) ON CONFLICT(material_id) DO UPDATE SET
+            branch=excluded.branch,source_url=excluded.source_url,club_only=0''', (meta['id'], meta['branch'], meta['source']))
+    today = datetime.now(timezone.utc).date().isoformat()
+    for item in club_materials():
+        db.execute('''INSERT INTO materials(id,title,description,outcome,format,goal,level,tools,prerequisites,author,minutes,body,prompt,video,access,status,updated_at,body_format)
+            VALUES(?,?,?,'',?,?,?,'','','AI Room',?,?,NULL,NULL,'member','published',?,'blocks') ON CONFLICT(id) ''' + (keep('material', item['id']) or '''DO UPDATE SET
+            title=excluded.title,description=excluded.description,format=excluded.format,goal=excluded.goal,level=excluded.level,
+            minutes=excluded.minutes,body=excluded.body,access='member',status='published',body_format='blocks' '''),
+            (item['id'], item['title'], item['summary'], item['format'], CLUB_GOALS[item['branch']], LEVELS[item['level']],
+             item.get('minutes') or 1, club_body(item), today))
+        db.execute('''INSERT INTO material_profiles(material_id,branch,source_url,club_only) VALUES(?,?,?,1) ON CONFLICT(material_id) DO UPDATE SET
+            branch=excluded.branch,source_url=excluded.source_url,club_only=1''', (item['id'], item['branch'], item['source']))
 
 
 def managed_ids(query):
@@ -260,7 +277,7 @@ def managed_ids(query):
     courses = {c[0] for c in COURSES}
     marks = ','.join('?' * len(courses))
     lessons = {r['id'] for r in query(f'SELECT l.id FROM lessons l JOIN modules m ON m.id=l.module_id WHERE m.course_id IN ({marks})', tuple(courses))}
-    return dict(courses=courses, lessons=lessons, materials={meta['id'] for meta, _ in legacy_materials()})
+    return dict(courses=courses, lessons=lessons, materials={meta['id'] for meta, _ in legacy_materials()} | {i['id'] for i in club_materials()})
 
 
 def register_legacy_content(app, db):

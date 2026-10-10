@@ -301,11 +301,10 @@ def create_app(config=None):
 
     @app.get('/')
     def home():
-        # Обзор is the main page for people signed in; visitors get the welcome page. The map is /map.
+        # Главная for people signed in (next steps of their path), the welcome page for visitors. The map is
+        # «Мой путь» (/path; /map is the same page, also for visitors).
         if request.args.get('view') == 'map':
             return redirect('/map' + (f"#{request.args['course']}" if request.args.get('course') else ''))
-        if g.user:
-            return redirect('/discover')
         return spa_shell()
 
     @app.get('/map')
@@ -830,8 +829,11 @@ def create_app(config=None):
     from .teaching import register_teaching
     register_teaching(app, db, query)
 
+    from .journey import register_journey
+    from .tree import build_tree as tree_builder
+    journey = register_journey(app, db, query, require_user, lambda user: tree_builder(query, user, can_access), spa_shell)
     from .onboarding import register_onboarding
-    onboarding_destination = register_onboarding(app, db, query, require_user, spa_shell)
+    onboarding_destination = register_onboarding(app, db, query, require_user, spa_shell, journey)
 
     from .support_admin import register_support
     register_support(app, db, query, require_user)

@@ -97,8 +97,8 @@ def build_tree(query, user, can_access, current_lesson=None):
         return dict(id=row['id'], title=row['title'], minutes=row['minutes'], state=state,
                     url='/lessons/' + row['id'], current=row['id'] == current_lesson)
 
-    def coming(title):
-        return dict(id=None, title=title, state='coming')
+    def coming(title, minutes=None):
+        return dict(id=None, title=title, state='coming', minutes=minutes)
 
     catalog = load_catalog()
     by_topic = arrange(query, courses_db)
@@ -121,6 +121,8 @@ def build_tree(query, user, can_access, current_lesson=None):
             for item in module['lessons']:
                 if isinstance(item, str):
                     items.append(coming(item))
+                elif 'id' not in item:   # {"title", "minutes"}: on the old platform, not here yet
+                    items.append(coming(item['title'], item.get('minutes')))
                 elif module_id is not None:
                     if item['id'] in lessons and queue:   # the catalogue's slot, filled in the order set in the admin
                         items.append(lesson_node(queue.pop(0)))

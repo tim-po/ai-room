@@ -15,7 +15,7 @@ from werkzeug.exceptions import HTTPException
 
 SEARCH = ('q', 'class', 'topic', 'level', 'access')
 FIXED = {'/': '/api/app/home', '/map': '/api/app/home', '/profile': '/api/app/profile', '/preferences': '/api/app/preferences',
-         '/onboarding': '/api/onboarding', '/oauth/consent': '/api/app/oauth/consent'}
+         '/onboarding': '/api/app/journey', '/path': '/api/app/journey', '/oauth/consent': '/api/app/oauth/consent'}
 
 
 def page_data_url(path, args, query):
