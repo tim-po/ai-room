@@ -126,6 +126,7 @@ export default function MyPath() {
     const colours = new Map<string, string[]>();
     for (const goal of path.goals) if (colour.has(goal.id)) for (const key of goal.modules) colours.set(key, [...(colours.get(key) ?? []), goal.color]);
     const lessons = new Map(path.lessons.map(l => [l.key, l.goals.filter(id => colour.has(id)).map(id => colour.get(id)!)]));
+    const order = new Map(path.lessons.map((l, i) => [l.key, i]));
     canvas.classList.toggle('has-path', colours.size > 0);
     let repaint = false;
     canvas.querySelectorAll<HTMLElement>('[data-module]').forEach(el => {
@@ -148,6 +149,10 @@ export default function MyPath() {
     canvas.querySelectorAll<HTMLElement>('.tree-lesson[data-key]').forEach(row => {
       const on = lessons.get(row.dataset.key!);
       row.classList.toggle('on-path', !!on?.length);
+      // the lesson being read in the plan (or on the timeline), and those done by then
+      const at = order.get(row.dataset.key!);
+      row.classList.toggle('path-now', !!on?.length && at === reading);
+      row.classList.toggle('path-passed', !!on?.length && at != null && at < reading);
       row.style.setProperty('--pie', on?.length ? pie(on) : '');
     });
     canvas.querySelectorAll<HTMLElement>('.tree-island').forEach(isle => {

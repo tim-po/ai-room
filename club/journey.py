@@ -25,7 +25,7 @@ SLIDERS = {
     'agents': ('Автоматизации и ИИ-агенты', {'automation': 1, 'agents': .8}),
     'media': ('Картинки и видео с ИИ', {'visual': 1, 'video': .7}),
 }
-COLORS = ('#dfff4f', '#4fc3ff', '#ff7ad9')   # one per chosen goal, on the map and in the plan
+COLORS = ('#dfff4f', '#8eb8e0', '#d9b88f')   # one per chosen goal, on the map and in the plan: the club's lime, then muted steel and sand
 
 
 def levels_from(answers):

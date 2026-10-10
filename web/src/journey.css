@@ -338,7 +338,7 @@ a.tree-island:hover{border-style:solid;border-color:var(--accent)}
 .dash-courses a:hover{outline:2px solid var(--accent)}
 .dash-courses strong{font-size:15px;line-height:1.3}
 .dash-courses small{font-size:12.5px;line-height:1.4;color:var(--muted)}
-.dash-map{text-decoration:none;background:radial-gradient(circle at 85% 20%,color-mix(in srgb,#4fc3ff 22%,transparent),transparent 45%),
+.dash-map{text-decoration:none;background:radial-gradient(circle at 85% 20%,color-mix(in srgb,#8eb8e0 18%,transparent),transparent 45%),
   radial-gradient(circle at 15% 90%,color-mix(in srgb,#dfff4f 22%,transparent),transparent 45%),var(--glass,var(--panel))}
 .dash-map strong{font-size:18px}
 .dash-map span{font-size:14px;line-height:1.45;color:var(--muted)}
@@ -350,3 +350,12 @@ a.tree-island:hover{border-style:solid;border-color:var(--accent)}
 @media(max-width:700px){.dash-steps li{grid-template-columns:44px 22px minmax(0,1fr);gap:6px}}
 .tree-island.is-focus{outline:3px dashed var(--text);outline-offset:6px;opacity:1}
 .metro-guide.is-now>a{border-style:solid;border-color:var(--text);background:color-mix(in srgb,var(--text) 8%,transparent)}
+/* scrolling the plan: the lesson being read lights up in its module, the ones done by then are filled */
+.tree-canvas .tree-lesson.path-passed .tree-dot{--dot-fill:color-mix(in srgb,var(--text) 55%,transparent)}
+.tree-canvas .tree-lesson.path-now{position:relative;opacity:1;background:color-mix(in srgb,var(--text) 10%,transparent);box-shadow:inset 3px 0 0 var(--text);font-weight:700}
+.tree-canvas .tree-lesson.path-now .tree-dot{--dot-fill:var(--text);transform:scale(1.25);box-shadow:0 0 0 4px color-mix(in srgb,var(--text) 18%,transparent)}
+.tree-canvas[data-detail="mid"] .tree-lesson.path-now,.tree-canvas[data-detail="far"] .tree-lesson.path-now{background:none;box-shadow:none}
+.tree-canvas[data-detail="mid"] .tree-lesson.path-now .tree-dot{transform:scale(1.35);box-shadow:0 0 0 6px color-mix(in srgb,var(--text) 22%,transparent)}
+.tree-canvas[data-detail="far"] .tree-lesson.path-now .tree-dot{transform:scale(1.35);box-shadow:0 0 0 8px color-mix(in srgb,var(--text) 25%,transparent)}
+.tree-canvas .tree-lesson .tree-dot{transition:transform .2s,box-shadow .2s}
+@media (prefers-reduced-motion:reduce){.tree-canvas .tree-lesson .tree-dot{transition:none}}
