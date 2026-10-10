@@ -1,0 +1,352 @@
+/* Onboarding v2 (pages/Onboarding.tsx) and «Мой путь» (pages/MyPath.tsx) */
+.journey{max-width:1080px;margin:0 auto;display:grid;gap:22px}
+.journey-progress{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:420px}
+.journey-progress span{height:6px;border-radius:99px;background:var(--track)}
+.journey-progress span.is-on{background:var(--accent)}
+.learner-surface .journey h1{margin:0;font-size:clamp(32px,4.4vw,52px);line-height:1.06;letter-spacing:-1.2px;max-width:860px}
+.journey-lead{margin:12px 0 0;max-width:720px;font-size:18px;line-height:1.6;color:var(--muted)}
+.journey-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin-top:24px}
+.journey>.journey-hello{padding-block:clamp(36px,7vh,72px)}
+.journey-hello .journey-lead{font-size:19px}
+
+/* goals */
+.journey-custom{display:grid;gap:8px;margin-top:22px;max-width:720px}
+.journey-custom label{font-weight:700}
+.journey-custom .small{margin:0}
+.journey-paywall{margin:4px 0 0;padding:12px 16px;border-radius:14px;background:var(--gold-soft);color:var(--text);font-size:14px;line-height:1.5}
+
+/* «Строим твой путь» */
+.journey-building{display:grid;justify-items:center;text-align:center;gap:8px}
+.journey-building-art{display:grid;gap:18px;justify-items:center;width:min(560px,100%);margin-bottom:8px}
+.journey-building-goals{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.journey-building-goals span{padding:8px 14px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:14px;
+  opacity:0;transform:translateY(8px);animation:journey-in .5s ease forwards}
+.journey-building .journey-lead{margin:0;min-height:1.6em}
+@keyframes journey-in{to{opacity:1;transform:none}}
+@keyframes journey-grow{to{height:var(--h,70%)}}
+@media (prefers-reduced-motion:reduce){.journey-building *{animation-duration:.01s!important}}
+/* onboarding is a focused flow: no main navigation in the header until it is done, no footer */
+body:has(.journey) .club-header nav,body:has(.journey) main footer{display:none}
+/* every step on a glass card, so text never sits straight on the sky and hills */
+.journey>section{padding:clamp(22px,3.4vw,40px);border-radius:30px;background:var(--glass-strong,var(--panel));border:1px solid var(--glass-border,var(--line));
+  -webkit-backdrop-filter:blur(22px) saturate(1.2);backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 30px 80px var(--shadow)}
+.journey-progress{margin-bottom:-6px}
+.journey .journey-lead,.journey .small,.journey .link-button{color:color-mix(in srgb,var(--text) 72%,transparent)}
+
+/* level, deadlines and the first look at the path */
+.journey-level{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:28px;align-items:start}
+.journey-level-map{position:sticky;top:calc(var(--header-h,68px) + 16px);display:grid;gap:10px;padding:16px;border-radius:24px;
+  background:var(--soft-fill,var(--surface));border:1px solid var(--glass-border,var(--line))}
+.journey-level-map .small{margin:0}
+.learner-surface .journey-level h1{font-size:clamp(28px,3.4vw,40px)}
+.journey-question{display:grid;gap:12px;margin:22px 0 0;padding:0;border:0}
+.journey-question legend{padding:0;margin-bottom:12px;font-size:19px;font-weight:750}
+.journey-options{display:flex;flex-wrap:wrap;gap:8px}
+.learner-surface .journey-options button{min-height:40px;padding:0 16px;border-radius:999px;border:1.5px solid var(--glass-border,var(--line));background:var(--soft-fill,var(--surface));
+  box-shadow:none;color:var(--text);font:inherit;font-size:14.5px;font-weight:650;cursor:pointer}
+.learner-surface .journey-options button.is-on{border-color:var(--accent);background:var(--accent);color:var(--on-accent)}
+.learner-surface .journey-options.is-small button{min-height:34px;padding:0 12px;font-size:13.5px}
+.journey-sliders{display:grid;gap:10px;margin-top:6px;padding:14px 16px;border-radius:16px;background:var(--soft-fill,var(--surface))}
+.journey-sliders .small{margin:0}
+.journey-slider{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,1.1fr) 24px;align-items:center;gap:12px;font-size:14.5px}
+.journey-slider input{width:100%;accent-color:var(--accent)}
+.journey-slider output{font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.journey-deadline{display:grid;gap:8px;padding:10px 0;border-top:1px solid var(--glass-border,var(--line))}
+.journey-deadline>span,.journey-legend li{display:flex;align-items:center;gap:8px;font-weight:650}
+.journey-deadline i,.journey-legend i,.journey-plan-card li i,.my-path-goal>i{flex:none;width:12px;height:12px;border-radius:50%}
+.journey-legend i.is-now{background:color-mix(in srgb,var(--text) 35%,transparent);border:2px solid var(--text);box-sizing:border-box}
+.journey-legend{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:14px}
+
+/* goals: a ring of cards (components/GoalRing.tsx) */
+.goal-ring{display:grid;gap:14px;margin-top:22px}
+.goal-ring-stage{position:relative;height:270px;perspective:1400px;perspective-origin:50% 40%;outline:none;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.goal-ring-stage:focus-visible{outline:3px solid var(--accent);outline-offset:6px;border-radius:24px}
+.learner-surface .goal-ring-card{position:absolute;left:50%;top:0;display:grid;align-content:start;gap:10px;width:min(320px,74vw);height:250px;box-sizing:border-box;padding:22px 22px 20px;
+  border-radius:24px;border:1.5px solid var(--glass-border,var(--line));background:var(--panel);box-shadow:0 18px 40px var(--shadow);color:var(--text);font:inherit;text-align:left;cursor:pointer;
+  transition:transform .5s cubic-bezier(.2,.75,.2,1),opacity .4s,border-color .2s,background .2s;backface-visibility:hidden}
+.learner-surface .goal-ring-card:not(.is-front){filter:saturate(.85)}
+.learner-surface .goal-ring-card:not(.is-front) span{opacity:.6}
+.learner-surface .goal-ring-card.is-front{border-color:var(--line-strong);box-shadow:0 26px 60px var(--shadow)}
+.learner-surface .goal-ring-card.is-on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--panel))}
+.goal-ring-card strong{font-size:20px;line-height:1.22;padding-right:30px}
+.goal-ring-card span{font-size:14.5px;line-height:1.5;color:color-mix(in srgb,var(--text) 72%,transparent)}
+.goal-ring-card em{position:absolute;left:22px;bottom:18px;padding:7px 14px;border-radius:999px;background:var(--text);color:var(--bg);font-style:normal;font-size:13.5px;font-weight:750}
+.goal-ring-card.is-on em{background:var(--accent);color:var(--on-accent)}
+.goal-ring-card i{position:absolute;top:18px;right:18px;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-style:normal;font-size:13px;font-weight:800}
+.goal-ring-nav{display:flex;align-items:center;justify-content:center;gap:16px}
+.learner-surface .goal-ring-nav button{width:40px;height:40px;min-height:0;padding:0;border-radius:50%;border:1px solid var(--glass-border,var(--line));background:var(--panel);box-shadow:none;color:var(--text);font:inherit;font-size:18px;cursor:pointer}
+.goal-ring-dots{display:flex;gap:6px}
+.goal-ring-dots i{width:7px;height:7px;border-radius:50%;background:var(--line-strong);transition:width .2s}
+.goal-ring-dots i.is-on{background:var(--accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 40%,transparent)}
+.goal-ring-dots i.is-active{width:20px;border-radius:99px}
+.goal-ring-chosen{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;min-height:38px}
+.learner-surface .goal-ring-chosen button{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 8px 0 6px;border-radius:999px;border:0;background:var(--accent);box-shadow:none;color:var(--on-accent);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.goal-ring-chosen b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--on-accent);color:var(--accent);font-size:12px}
+.goal-ring-chosen span{opacity:.6;font-size:16px;padding:0 4px}
+@media (prefers-reduced-motion:reduce){.learner-surface .goal-ring-card{transition:none}}
+
+/* the skills radar (components/SkillRadar.tsx) */
+.skill-radar{width:100%;height:auto;overflow:visible}
+.skill-radar-ring{fill:none;stroke:var(--line-strong);stroke-width:1;opacity:.5}
+.skill-radar-axis{stroke:var(--line-strong);stroke-width:1;opacity:.45}
+.skill-radar-goal{transform-origin:180px 180px;transform:scale(0);opacity:0;animation:radar-grow .9s cubic-bezier(.2,.8,.2,1.1) forwards}
+.skill-radar-goal polygon{fill:color-mix(in srgb,currentColor 22%,transparent);stroke:currentColor;stroke-width:3;stroke-linejoin:round}
+.skill-radar-goal .skill-radar-casing{fill:none;stroke:var(--text);stroke-width:6;opacity:.35}
+:root[data-theme=dusk] .skill-radar-goal .skill-radar-casing{opacity:0}
+.skill-radar-now{fill:color-mix(in srgb,var(--text) 30%,transparent);stroke:var(--text);stroke-width:2;stroke-linejoin:round;transition:all .3s}
+.skill-radar-label{font-size:13px;font-weight:650;fill:var(--muted)}
+.skill-radar-label.is-needed{fill:var(--text);font-weight:800}
+@keyframes radar-grow{to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.skill-radar-goal{animation:none;transform:none;opacity:1}}
+
+/* schedule */
+.journey-plan-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:22px}
+.learner-surface .journey-plan-card{display:grid;align-content:start;gap:10px;padding:18px;border-radius:20px;border:1.5px solid var(--glass-border,var(--line));
+  background:var(--glass,var(--panel));box-shadow:none;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.learner-surface .journey-plan-card.is-on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--glass,var(--panel)))}
+.journey-plan-card strong{display:flex;align-items:center;gap:8px;font-size:18px}
+.journey-plan-card strong em{padding:2px 8px;border-radius:99px;background:var(--accent);color:var(--on-accent);font-style:normal;font-size:11.5px;font-weight:800}
+.journey-plan-pace{font-size:14px;font-weight:650;color:var(--muted)}
+.journey-plan-card ul{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13.5px}
+.journey-plan-card li{display:flex;align-items:center;gap:8px}
+.journey-plan-card .is-ok{color:var(--text)}
+.journey-plan-card .is-late{color:var(--muted)}
+.journey-plan-card.is-custom .journey-slider{grid-template-columns:minmax(0,1fr) 24px;font-size:13px}
+.journey-plan-card.is-custom .journey-slider input{grid-column:1/-1;grid-row:2}
+.journey-calendar{display:grid;gap:10px;margin-top:22px;padding:16px 20px;border-radius:18px;background:var(--soft-fill,var(--surface))}
+.journey-calendar p{margin:0;line-height:1.6}
+.journey-calendar>.button{justify-self:start}
+.learner-surface .journey-calendar select{display:inline-block;width:auto;min-width:0;min-height:0;height:auto;margin:0 2px;padding:3px 26px 3px 10px;border-radius:10px;font:inherit;font-weight:700;vertical-align:baseline}
+
+@media(max-width:900px){
+  .journey-level{grid-template-columns:minmax(0,1fr)}
+  .journey-level-map{position:static}
+  .journey-plan-options{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+@media(max-width:560px){.journey-plan-options{grid-template-columns:minmax(0,1fr)}.journey-slider{grid-template-columns:minmax(0,1fr) 24px}.journey-slider input{grid-column:1/-1;grid-row:2}}
+
+/* «Мой путь»: the map is the page, the plan a panel floating on its right (pages/MyPath.tsx) */
+main:has(> .page > .my-path) footer{display:none}
+/* the page's entrance animation transforms it, which would pin the fixed map to it instead of the window */
+.page:has(> .my-path){animation:none;transform:none}
+.my-path{position:fixed;z-index:1;top:var(--top,68px);left:0;right:0;bottom:0}
+.my-path-invite{position:absolute;z-index:8;right:12px;bottom:12px;width:min(360px,calc(100vw - 24px));box-sizing:border-box;display:grid;gap:8px;padding:18px 18px 16px;
+  border-radius:22px;border:1px solid var(--glass-border,var(--line));background:var(--popover,var(--panel));box-shadow:0 20px 50px var(--shadow)}
+.my-path-invite h2{margin:0;font-size:19px;line-height:1.25}
+.my-path-invite p{margin:0;font-size:13.5px;line-height:1.45;color:var(--muted)}
+.my-path-invite .eyebrow{font-size:11px}
+.my-path-invite .button{justify-self:start;margin-top:4px}
+.my-path.is-plain .my-path-map .tree-bar-top{right:16px}
+.my-path-map,.my-path-map .tree{height:100%;margin:0}
+.my-path-map .tree{position:relative;display:block!important}
+.my-path-map .tree-bar-top{position:absolute;z-index:4;top:14px;left:16px;right:calc(var(--panel-w,400px) + 40px);display:flex!important;align-items:center;gap:10px 14px;margin:0;pointer-events:none}
+.my-path.is-folded .tree-bar-top{right:96px}
+.my-path-map .tree-bar-top>*{pointer-events:auto}
+.my-path-map .tree-bar-top>div:first-child{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}   /* the date is in the plan; the course label sits here */
+.my-path-map .tree-bar-top{justify-content:flex-end}
+.my-path-map .tree [data-here]{display:none}
+:root[data-glass] .my-path-map .tree-viewport,.my-path-map .tree-viewport,:root[data-glass] .my-path-map .tree>.tree-viewport{height:100%!important;margin:0;border:0;border-radius:0;box-shadow:none}
+:root[data-glass] .my-path-map .tree-legend-box{left:16px;bottom:16px}
+/* the panel */
+.my-path{--panel-w:400px}
+.my-path-panel{position:absolute;z-index:8;top:12px;right:12px;bottom:12px;width:var(--panel-w);border-radius:24px;overflow:hidden;
+  background:var(--popover,var(--panel));border:1px solid var(--glass-border,var(--line));box-shadow:0 24px 70px var(--shadow);transition:width .25s cubic-bezier(.2,.7,.2,1)}
+.my-path.is-folded .my-path-panel{width:56px;overflow:visible}
+.my-path-plan-scroll{height:100%;overflow:auto;overscroll-behavior:contain}
+.learner-surface .my-path-fold{position:absolute;z-index:6;top:10px;right:10px;width:30px;height:30px;min-height:0;padding:0;border-radius:50%;border:1px solid var(--glass-border,var(--line));
+  background:var(--panel);box-shadow:none;color:var(--text);font:inherit;font-size:18px;line-height:1;cursor:pointer}
+
+/* the plan (components/PathPlan.tsx) */
+.path-plan{display:grid;gap:16px;padding:0 14px 45vh;font-size:13px}
+.path-plan-head{position:sticky;top:0;z-index:3;display:grid;gap:8px;margin:0 -14px;padding:12px 50px 10px 14px;background:var(--popover,var(--bg));border-bottom:1px solid var(--glass-border,var(--line))}
+.path-plan-when{margin:0;font-size:16px;font-weight:850;line-height:1.3}
+.path-plan-when small{margin-left:4px;font-size:12px;font-weight:600;color:var(--muted)}
+.path-plan-goals{display:flex;flex-wrap:wrap;gap:5px}
+.learner-surface .path-plan-goal{position:relative;display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:28px;padding:0 9px 0 8px;border-radius:999px;overflow:hidden;
+  border:1px solid var(--glass-border,var(--line));background:var(--soft-fill,var(--surface));box-shadow:none;color:var(--text);font:inherit;font-size:12px;font-weight:700;cursor:pointer;opacity:.45}
+.learner-surface .path-plan-goal.is-on{opacity:1}
+.path-plan-goal::before{content:'';position:absolute;left:0;bottom:0;height:3px;width:calc(var(--value,0) * 100%);background:var(--goal);transition:width .25s}
+.path-plan-goal>i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--goal);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--text) 25%,transparent)}
+.path-plan-goal>span{min-width:0;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.path-plan-goal>b{font-variant-numeric:tabular-nums}
+.learner-surface .path-plan-goal.is-custom{opacity:1;border-style:dashed}
+.path-plan-goal.is-custom>i{background:none;border:1.5px dashed var(--line-strong);box-shadow:none}
+.path-plan-known,.path-plan-learn{display:grid;gap:8px}
+.learner-surface .path-plan h3{margin:0;font-size:15px}
+.path-plan h3 small{font-size:12px;font-weight:600;color:var(--muted)}
+.path-plan-known p{margin:0;font-size:12.5px;line-height:1.45;color:var(--muted)}
+.path-plan-known ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.path-plan-known li{display:grid;gap:1px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--text) 7%,transparent);border-left:3px solid color-mix(in srgb,var(--text) 45%,transparent)}
+.path-plan-known li strong{font-size:13px}
+.path-plan-known li span{font-size:12px;line-height:1.4;color:var(--muted)}
+.path-plan-pace{margin:0;font-size:12px;color:var(--muted)}
+/* lessons as a metro line: one rail per goal; a lesson's dots sit on the rails of the goals it serves */
+.metro{--lane:12px;--dot:10px;list-style:none;margin:0;padding:0}
+.metro>li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:stretch}
+.metro-rails{position:relative;display:flex;min-width:calc(var(--lanes) * var(--lane))}
+.metro-rails>i{position:relative;flex:none;width:3px;margin:0 4.5px;border-radius:2px}
+.metro-rails>i.is-over{visibility:hidden}
+.metro-lesson .metro-rails>i:not(.is-stop),.metro-module .metro-rails>i{opacity:.55}
+.metro-rails>i.is-stop::after{content:'';position:absolute;z-index:2;top:9px;left:50%;width:var(--dot);height:var(--dot);transform:translateX(-50%);box-sizing:border-box;border-radius:50%;
+  background:var(--popover,var(--bg));border:2.5px solid currentColor}
+.metro-lesson.is-done .metro-rails>i.is-stop::after,.metro-lesson.is-now .metro-rails>i.is-stop::after{background:currentColor}
+.metro-lesson.is-now .metro-rails>i.is-stop::after{box-shadow:0 0 0 4px color-mix(in srgb,currentColor 35%,transparent)}
+.metro-interchange{position:absolute;z-index:1;top:7px;height:calc(var(--dot) + 4px);border-radius:99px;background:var(--popover,var(--bg));border:2px solid var(--text);box-sizing:border-box}
+.metro-module>div{display:grid;gap:1px;padding:12px 0 4px}
+.metro-module strong{font-size:13.5px;line-height:1.3}
+.metro-module strong em{font-style:normal;font-weight:600;color:var(--muted)}
+.metro-module small{font-size:11.5px;color:var(--muted)}
+.metro-lesson>div{display:grid;gap:0;padding:5px 8px 6px;border-radius:9px;transition:background .15s}
+.metro-lesson>div>a,.metro-lesson>div>span{font-size:13px;line-height:1.35;color:var(--text);text-decoration:none}
+.metro-lesson>div>a:hover{text-decoration:underline}
+.metro-lesson small{font-size:11.5px;color:var(--muted)}
+.metro-lesson.is-done>div{opacity:.6}
+.metro-lesson.is-now>div{background:color-mix(in srgb,var(--text) 8%,transparent)}
+.metro-guide>a{display:grid;gap:1px;margin:3px 0 5px;padding:7px 10px;border-radius:10px;border:1px dashed var(--line-strong);color:var(--text);text-decoration:none}
+.metro-guide>a:hover{border-style:solid;background:var(--soft-fill,var(--surface))}
+.metro-guide em{font-style:normal;font-size:11px;font-weight:750;letter-spacing:.02em;color:var(--muted)}
+.metro-guide span{font-size:12.5px;line-height:1.35}
+.metro-finish>span:last-child{align-self:center;margin:4px 0 8px;padding:7px 10px;border-radius:10px;background:var(--soft-fill,var(--surface));font-size:12px;line-height:1.4}
+.metro-finish .metro-rails>i.is-end{height:50%}
+.metro-finish .metro-rails>i.is-end::after{content:'';position:absolute;bottom:-6px;left:50%;width:12px;height:12px;transform:translateX(-50%);border-radius:3px;background:currentColor;box-shadow:0 0 0 2px var(--popover,var(--bg))}
+
+/* folded: a slim timeline, today at the top, the end of the path at the bottom */
+.plan-timeline{display:grid;grid-template-rows:auto minmax(0,1fr);height:100%;padding:10px 0 18px;box-sizing:border-box;justify-items:center;gap:12px}
+.learner-surface .plan-timeline-open{width:30px;height:30px;min-height:0;padding:0;border-radius:50%;border:1px solid var(--glass-border,var(--line));background:var(--panel);box-shadow:none;color:var(--text);font:inherit;font-size:18px;line-height:1;cursor:pointer}
+.plan-timeline-track{position:relative;width:40px;cursor:ns-resize;touch-action:none;outline:none}
+.plan-timeline-track:focus-visible{box-shadow:0 0 0 3px var(--accent);border-radius:12px}
+.plan-timeline-month{position:absolute;left:8px;right:8px;height:1px;background:color-mix(in srgb,var(--text) 18%,transparent)}
+.plan-timeline-rail{position:absolute;top:0;width:3px;margin-left:-1.5px;border-radius:2px}
+.plan-timeline-rail::after{content:'';position:absolute;bottom:-5px;left:50%;width:9px;height:9px;transform:translateX(-50%);border-radius:2px;background:currentColor}
+.plan-timeline-knob{position:absolute;left:50%;width:26px;height:26px;transform:translate(-50%,-50%);border-radius:50%;background:var(--text);border:3px solid var(--popover,var(--bg));box-shadow:0 4px 14px var(--shadow);transition:top .15s}
+.plan-timeline-knob span{position:absolute;right:calc(100% + 12px);top:50%;transform:translateY(-50%);padding:6px 12px;border-radius:999px;white-space:nowrap;
+  background:var(--text);color:var(--bg);font-size:13px;font-weight:800;box-shadow:0 6px 18px var(--shadow);pointer-events:none}
+
+/* the map: the path in colour, what's probably known lit grey, everything else as usual. A module or lesson
+   shared by several goals carries all their colours equally: a striped band and border on the module, a split
+   ring around the lesson's dot, one parallel line per goal along the branch (MyPath.tsx sets the colours). */
+.tree-canvas{--ink-mix:62%}
+:root[data-theme=dusk] .tree-canvas{--ink-mix:100%}
+.tree-canvas .tree-module.on-path.on-path{border:3px solid transparent;background:linear-gradient(var(--path-fill),var(--path-fill)) padding-box,var(--goal-band) border-box;
+  --path-fill:color-mix(in srgb,var(--text) 5%,var(--node-fill,var(--panel)));box-shadow:0 10px 30px var(--shadow)}
+.tree-canvas .tree-module.on-path::before{content:'';position:absolute;z-index:1;left:0;right:0;top:0;height:7px;background:var(--goal-band);pointer-events:none}
+.tree-canvas[data-detail="far"] .tree-module.on-path::before{height:16px}
+.tree-canvas .tree-module.on-path.path-done{--path-fill:color-mix(in srgb,var(--text) 14%,var(--node-fill,var(--panel)))}
+.tree-canvas .tree-module.on-path h3{color:var(--text);padding-top:16px}
+.tree-canvas .tree-module.on-path h3[data-goals]::after{content:attr(data-goals);align-self:center;margin-left:auto;padding:2px 8px;border-radius:99px;white-space:nowrap;
+  background:var(--text);color:var(--bg);font-size:10.5px;font-weight:850;letter-spacing:.02em}
+.tree-canvas[data-detail="mid"] .tree-module.on-path h3[data-goals]::after{font-size:14px;padding:3px 10px}
+.tree-canvas .tree-module.path-here{outline:3px dashed var(--text);outline-offset:6px}
+.tree-canvas .tree-module.path-known.path-known{border:2px solid color-mix(in srgb,var(--text) 45%,transparent);background:color-mix(in srgb,var(--text) 12%,var(--node-fill,var(--panel)))}
+.tree-canvas .tree-module.path-known h3::after{content:'знаешь';margin-left:auto;padding:1px 7px;border-radius:99px;background:color-mix(in srgb,var(--text) 14%,transparent);font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap}
+/* lessons on the path: the dot ringed in the colours of the goals it serves; the module's other lessons recede */
+.tree-canvas .tree-module.on-path .tree-lesson:not(.on-path){opacity:.5}
+.tree-canvas .tree-lesson.on-path .tree-dot{border-color:transparent;border-width:3px;background:linear-gradient(var(--dot-fill,var(--panel)),var(--dot-fill,var(--panel))) padding-box,var(--pie) border-box}
+.tree-canvas[data-detail="mid"] .tree-lesson.on-path .tree-dot{border-width:5px}
+.tree-canvas[data-detail="far"] .tree-lesson.on-path .tree-dot{border-width:7px}
+.tree-canvas .tree-lesson.on-path.is-done .tree-dot{--dot-fill:var(--accent)}
+.tree-canvas .tree-lesson.on-path.is-progress .tree-dot{background:linear-gradient(90deg,var(--accent) 50%,var(--panel) 50%) padding-box,var(--pie) border-box}
+/* the branch: a dark track with a coloured line per goal on it */
+.tree-canvas .tree-edges path.on-path{stroke:color-mix(in srgb,var(--text) 22%,transparent)!important;vector-effect:none;stroke-dasharray:none!important;opacity:1;
+  stroke-width:calc(var(--lanes-n,1) * 10px + 6px)!important}
+.tree-canvas[data-lod="mid"] .tree-edges path.on-path{stroke-width:calc(var(--lanes-n,1) * 13px + 8px)!important}
+.tree-canvas[data-lod="far"] .tree-edges path.on-path{stroke-width:calc(var(--lanes-n,1) * 22px + 12px)!important}
+.tree-edges .tree-lane{stroke:color-mix(in srgb,var(--lane) var(--ink-mix),var(--text));stroke-width:7px;vector-effect:none}
+.tree-canvas[data-lod="mid"] .tree-edges .tree-lane{stroke-width:9px}
+.tree-canvas[data-lod="far"] .tree-edges .tree-lane{stroke-width:16px}
+.tree-canvas .tree-edges path.path-known{stroke:color-mix(in srgb,var(--text) 50%,transparent)!important;stroke-width:5px!important;stroke-dasharray:none!important}
+
+/* guides beside a module: small islands on a dotted line */
+.tree-island{box-sizing:border-box;display:grid;gap:2px;padding:9px 12px 10px;border-radius:16px;border:1.5px dashed var(--line-strong);
+  background:var(--node-fill,var(--panel));color:var(--text);text-decoration:none;box-shadow:0 6px 18px var(--shadow,rgba(0,0,0,.15));transition:opacity .2s,border-color .2s}
+a.tree-island:hover{border-style:solid;border-color:var(--accent)}
+.tree-island[style*="--goal-band"]{border:2px solid transparent;background:linear-gradient(var(--node-fill,var(--panel)),var(--node-fill,var(--panel))) padding-box,var(--goal-band) border-box}
+.tree-island.is-dim{opacity:.35}
+.tree-island-kind{font-size:10px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tree-island strong{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tree-island-meta{font-size:11px;color:var(--muted)}
+.tree-island>*{transition:opacity .2s ease}
+.tree-canvas.lod-fade .tree-island>*{opacity:0;transition-duration:.1s}
+.tree-canvas[data-detail="mid"] .tree-island strong{font-size:17px}
+.tree-canvas[data-detail="mid"] .tree-island-meta{display:none}
+.tree-canvas[data-detail="far"] .tree-island{place-items:center;border-radius:999px;padding:18px}
+.tree-canvas[data-detail="far"] .tree-island :is(strong,.tree-island-meta){display:none}
+.tree-canvas[data-detail="far"] .tree-island-kind{font-size:26px;letter-spacing:.04em}
+.tree-canvas:not([data-lod="near"]) .tree-island{cursor:zoom-in}
+.tree-edges .island-link{stroke:var(--line-strong);stroke-width:2;stroke-dasharray:2 6}
+
+@media(max-width:700px){
+  .my-path{--panel-w:calc(100vw - 24px)}
+  .my-path-panel{top:auto;height:58%}
+  .my-path.is-folded .my-path-panel{top:12px;height:auto}
+  .my-path-map .tree-bar-top{right:16px}
+  .my-path.is-folded .tree-bar-top{right:80px}
+}
+
+/* Главная (pages/Dashboard.tsx): the lesson to jump into, goals, the next steps, guides along the way, courses */
+.dash{display:grid;gap:18px;padding:8px 0 40px}
+.dash-head h1{margin:2px 0 4px;font-size:clamp(28px,3.4vw,40px);letter-spacing:-.8px}
+.dash-head .eyebrow{margin:0}
+.dash-lead{margin:0;font-size:15px;color:var(--muted)}
+.dash-grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:16px;align-items:start}
+.dash-col{display:grid;gap:16px;min-width:0}
+.dash-card{box-sizing:border-box;display:grid;gap:10px;align-content:start;min-width:0;padding:20px;border-radius:var(--radius-card,20px);background:var(--glass,var(--panel));
+  border:1px solid var(--glass-border,var(--line));box-shadow:0 1px 0 var(--glass-highlight,transparent) inset,0 10px 30px var(--shadow,rgba(0,0,0,.12));
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);color:var(--text)}
+.dash-card h2{margin:0;font-size:18px;line-height:1.25}
+.dash-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.dash-card-head a{font-size:13px;font-weight:650;white-space:nowrap}
+.dash-kicker{margin:0;font-size:11px;font-weight:850;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.dash-note{margin:0;font-size:14px;color:var(--muted)}
+.dash-jump,.dash-invite{padding:28px;gap:12px}
+.dash-jump h2,.dash-invite h2{font-size:clamp(22px,2.4vw,30px);letter-spacing:-.5px}
+.dash-invite p{margin:0;font-size:15px;line-height:1.5;color:var(--muted);max-width:52ch}
+.dash-jump .button,.dash-invite .button{justify-self:start;margin-top:6px}
+.dash-jump{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 18%,transparent),transparent 60%),var(--glass,var(--panel))}
+.dash-goals ul{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.dash-goals li{display:grid;gap:5px}
+.dash-goal-name{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.dash-goal-name i{flex:none;width:10px;height:10px;border-radius:50%;background:var(--goal);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--text) 25%,transparent)}
+.dash-goal-bar{display:block;height:6px;border-radius:99px;background:var(--track,var(--line));overflow:hidden}
+.dash-goal-bar b{display:block;height:100%;width:calc(var(--value) * 100%);border-radius:inherit;
+  background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--goal) 55%,transparent) 0 3px,transparent 3px 6px)}
+.dash-goals-note{display:flex;gap:8px;align-items:flex-start;margin:0;font-size:12px;line-height:1.4;color:var(--muted)}
+.dash-goals-note i{flex:none;width:18px;height:6px;margin-top:5px;border-radius:99px;background:repeating-linear-gradient(-45deg,var(--muted) 0 3px,transparent 3px 6px)}
+:root[data-theme=dusk] .dash{--ink-mix:100%}
+.dash{--ink-mix:62%}
+.dash-goals small{font-size:12px;color:var(--muted)}
+.dash-goals .skill-radar{max-width:300px;justify-self:center;margin-top:4px}
+.dash-steps ol{list-style:none;margin:0;padding:0;display:grid}
+.dash-steps li{display:grid;grid-template-columns:58px 34px minmax(0,1fr);align-items:start;gap:8px;padding:9px 0;border-top:1px solid var(--line-soft,var(--line))}
+.dash-steps li:first-child{border-top:0}
+.dash-steps time{font-size:13px;font-weight:750;color:var(--muted);padding-top:1px}
+.dash-steps li>div{display:grid;gap:1px}
+.dash-steps li>div>a,.dash-steps li>div>span{font-size:14.5px;font-weight:650;line-height:1.35;color:var(--text);text-decoration:none}
+.dash-steps li>div>a:hover{text-decoration:underline}
+.dash-steps small{font-size:12.5px;color:var(--muted)}
+.dash-step-dots{display:flex;gap:3px;padding-top:5px}
+.dash-step-dots i{width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1.5px color-mix(in srgb,var(--text) 25%,transparent)}
+.dash-more{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.dash-guides ul,.dash-courses ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.dash-guides li a{display:grid;gap:2px;padding:10px 12px;border-radius:14px;border:1px dashed var(--line-strong);color:var(--text);text-decoration:none}
+.dash-guides li a:hover{border-style:solid;border-color:var(--accent)}
+.dash-guides em{font-style:normal;font-size:11px;font-weight:750;color:var(--muted)}
+.dash-guides span{font-size:14px;line-height:1.35}
+.dash-guides .dash-step-dots{padding-top:3px}
+.dash-courses ul{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.dash-courses a{display:grid;gap:8px;padding:14px;border-radius:14px;background:var(--soft-fill,var(--surface));color:var(--text);text-decoration:none}
+.dash-courses a:hover{outline:2px solid var(--accent)}
+.dash-courses strong{font-size:15px;line-height:1.3}
+.dash-courses small{font-size:12.5px;line-height:1.4;color:var(--muted)}
+.dash-map{text-decoration:none;background:radial-gradient(circle at 85% 20%,color-mix(in srgb,#4fc3ff 22%,transparent),transparent 45%),
+  radial-gradient(circle at 15% 90%,color-mix(in srgb,#dfff4f 22%,transparent),transparent 45%),var(--glass,var(--panel))}
+.dash-map strong{font-size:18px}
+.dash-map span{font-size:14px;line-height:1.45;color:var(--muted)}
+.dash-map:hover{border-color:var(--accent)}
+@media(max-width:900px){
+  .dash-grid{grid-template-columns:minmax(0,1fr)}
+  .dash-jump,.dash-invite{padding:22px}
+}
+@media(max-width:700px){.dash-steps li{grid-template-columns:44px 22px minmax(0,1fr);gap:6px}}
+.tree-island.is-focus{outline:3px dashed var(--text);outline-offset:6px;opacity:1}
+.metro-guide.is-now>a{border-style:solid;border-color:var(--text);background:color-mix(in srgb,var(--text) 8%,transparent)}

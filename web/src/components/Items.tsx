@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useRef, useState, type ReactNode} from 'react';
 import {plural} from '../format';
 import {AppLink} from '../links';
+import GoalMarks from './GoalMarks';
 import type {DiscoverItem, DiscoverTopic, ItemKind, Shelf} from '../types';
 
 // Обзор: posters, shelves and the hero. Every item links to its page (coming ones to their place
@@ -80,6 +81,7 @@ export function ItemCard({item, stems}: {item: DiscoverItem; stems?: string[]}) 
         <span className="d-kicker">{kicker(item)}</span>
         <strong className="d-title">{highlight(item.title, stems)}</strong>
         <span className="d-sub">{subline(item)}</span>
+        <GoalMarks ids={item.goals} />
       </span>
     </AppLink>
   );
@@ -112,7 +114,7 @@ function TopCard({item, rank}: {item: DiscoverItem; rank: number}) {
       <span className="d-poster">
         <Cover item={item} />
         <Badges item={item} />
-        <span className="d-poster-text"><span className="d-kicker">{kicker(item)}</span><strong className="d-title">{item.title}</strong></span>
+        <span className="d-poster-text"><span className="d-kicker">{kicker(item)}</span><strong className="d-title">{item.title}</strong><GoalMarks ids={item.goals} compact /></span>
       </span>
       <span className="visually-hidden">Место {rank}</span>
     </AppLink>
@@ -224,6 +226,7 @@ export function Hero({items}: {items: DiscoverItem[]}) {
                 <p className="d-hero-meta">
                   {heroMeta(item).join(' · ')}
                   {item.access === 'free' && <span className="is-free">Бесплатно</span>}
+                  <GoalMarks ids={item.goals} />
                 </p>
                 <div className="d-hero-actions">
                   <AppLink className="button" to={item.url + (item.resume === 'draft' ? '#practice' : '')}>{item.cta ?? 'Открыть'} →</AppLink>

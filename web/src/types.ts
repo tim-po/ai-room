@@ -239,7 +239,8 @@ export interface MaterialInfo {
   format: string;
   format_label: string;
   level: string;
-  minutes: number;
+  /** null for a club material listed from the old platform's catalogue (length unknown) */
+  minutes: number | null;
   access: 'free' | 'member';
   tools: string;
   prerequisites: string;
@@ -342,6 +343,8 @@ export interface DiscoverItem {
   course_done?: number;
   course_total?: number;
   cta?: string;
+  /** the learner's goals this serves (club/journey.py alignment) */
+  goals?: string[];
 }
 
 export interface Shelf {
@@ -368,9 +371,11 @@ export interface DiscoverData {
   topics: DiscoverTopic[];
   suggestions: string[];
   classes: {id: ItemKind; title: string; count: number}[];
+  goals: {id: string; title: string; color: string}[];
 }
 
 export interface SearchData {
+  goals: {id: string; title: string; color: string}[];
   query: string;
   stems: string[];
   total: number;

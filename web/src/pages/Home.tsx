@@ -1,12 +1,19 @@
-import {useLoaderData, useLocation} from 'react-router';
-import {getJson} from '../api';
+import {useLoaderData} from 'react-router';
+import {bootstrap, getJson} from '../api';
 import {plural} from '../format';
 import {AppLink} from '../Shell';
-import SkillMap from '../tree/SkillMap';
+import type {JourneyData} from '../journey';
 import type {HomeData} from '../types';
 import {useTitle} from '../useTitle';
 
-export const homeLoader = ({request}: {request: Request}) => getJson<HomeData>('/api/app/home', request.signal);
+import Dashboard from './Dashboard';
+
+// Visitors get the welcome page; people signed in, Главная (Dashboard.tsx).
+export const homeLoader = async ({request}: {request: Request}) => {
+  const [home, journey] = await Promise.all([getJson<HomeData>('/api/app/home', request.signal),
+    bootstrap.user ? getJson<JourneyData>('/api/app/journey', request.signal) : Promise.resolve(null)]);
+  return {home, journey};
+};
 
 // The words are the club's own, from airoom.club: what the club is, how it works, the first month.
 const PILLARS = [
@@ -97,14 +104,7 @@ function Welcome({data}: {data: HomeData}) {
   );
 }
 
-function MapPage({data}: {data: HomeData}) {
-  useTitle('Карта навыков');
-  return <SkillMap data={data} />;
-}
-
 export default function Home() {
-  const data = useLoaderData() as HomeData;
-  const {pathname} = useLocation();
-  if (pathname !== '/map') return <Welcome data={data} />;
-  return <MapPage data={data} />;
+  const {home, journey} = useLoaderData() as {home: HomeData; journey: JourneyData | null};
+  return bootstrap.user ? <Dashboard home={home} journey={journey} /> : <Welcome data={home} />;
 }

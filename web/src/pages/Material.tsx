@@ -45,13 +45,14 @@ export default function Material() {
         <span className="chip">{item.format_label} · {item.access === 'free' ? 'Бесплатно' : 'Материал клуба'}</span>
         <h1>{item.title}</h1>
         <p className="lead">{item.description}</p>
-        <p className="metadata">{item.level} · {item.minutes} мин · {item.author} · обновлено {humanDate(item.updated_at)}</p>
-        <section className="panel warm">
-          <h2>Что получится</h2>
-          <p>{item.outcome}</p>
-          {item.prerequisites && <p><strong>Перед началом:</strong> {item.prerequisites}</p>}
-          {item.tools && <p><strong>Инструменты и расходы:</strong> {item.tools}</p>}
-        </section>
+        <p className="metadata">{[item.level, item.minutes ? `${item.minutes} мин` : null, item.author, `обновлено ${humanDate(item.updated_at)}`].filter(Boolean).join(' · ')}</p>
+        {(item.outcome || item.prerequisites || item.tools) && (
+          <section className="panel warm">
+            {item.outcome && <><h2>Что получится</h2><p>{item.outcome}</p></>}
+            {item.prerequisites && <p><strong>Перед началом:</strong> {item.prerequisites}</p>}
+            {item.tools && <p><strong>Инструменты и расходы:</strong> {item.tools}</p>}
+          </section>
+        )}
         {data.locked ? (
           <section className="paywall-offer" aria-labelledby="paywall-title">
             <h2 id="paywall-title">{bootstrap.user?.entitlement === 'revoked' ? 'Доступ к клубу приостановлен' : 'Этот материал — для участников клуба'}</h2>

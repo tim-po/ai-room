@@ -1,287 +1,327 @@
-import {useEffect, useRef, useState, type ReactNode} from 'react';
-import {useLoaderData, useLocation, useNavigate, useNavigationType, type LoaderFunctionArgs, type ShouldRevalidateFunctionArgs} from 'react-router';
-import {bootstrap, getJson} from '../api';
-import {AppLink, isSpaPath} from '../Shell';
-import type {OnboardingState, OnboardingStep} from '../types';
+import {useEffect, useMemo, useRef, useState} from 'react';
+import {useLoaderData, useNavigate, type LoaderFunctionArgs} from 'react-router';
+import {ApiError, getJson, postJson, putJson} from '../api';
+import {CalendarLinks} from '../components/PlanEditor';
+import GoalRing from '../components/GoalRing';
+import SkillRadar from '../components/SkillRadar';
+import {DEADLINE_LABEL, GOAL_COLORS, weeksLabel, type JourneyAnswers, type JourneyData, type JourneyGoalOption, type JourneyOptions, type JourneyPath, type Pace} from '../journey';
+import {DAYS_SHORT} from '../plan';
+import type {Plan} from '../types';
 import {useTitle} from '../useTitle';
 
-// Optional onboarding v1 (club/onboarding.py). Every step is saved on the server with a revision
-// and an idempotency key; browser back/forward walks the steps by asking the server to move.
+// Onboarding v2 (club/journey.py): getting to know the learner and building their path.
+// hello → goals → «Строим твой путь» → level and deadlines (with a first look at the path) → plan and calendar.
+// Answers are saved as the learner goes; finishing (or skipping) opens the rest of the site.
 
-export const onboardingLoader = ({request}: LoaderFunctionArgs) => getJson<OnboardingState>('/api/onboarding', request.signal);
-/** Steps are pushed onto history as the learner moves; those entries share the URL and don't refetch. */
-export const onboardingShouldRevalidate = ({currentUrl, nextUrl, defaultShouldRevalidate}: ShouldRevalidateFunctionArgs) =>
-  currentUrl.pathname === nextUrl.pathname && currentUrl.search === nextUrl.search ? false : defaultShouldRevalidate;
+export const onboardingLoader = ({request}: LoaderFunctionArgs) => getJson<JourneyData>('/api/app/journey', request.signal);
 
-const STEPS: OnboardingStep[] = ['welcome', 'interests', 'pace', 'start'];
-const BRANCHES: [string, string][] = [['basic-ai', 'Основы: Claude и ChatGPT'], ['coding', 'Код: сайты и инструменты'], ['content', 'Контент: картинки и видео'], ['agents', 'ИИ-агенты']];
-const BRANCH_IDS = new Set(BRANCHES.map(([id]) => id));
-type Action = 'save' | 'back' | 'next' | 'complete' | 'skip' | 'edit' | 'cancel';
+type Step = 'hello' | 'goals' | 'building' | 'level' | 'plan';
+const STEP_NUMBER: Record<Step, number> = {hello: 1, goals: 2, building: 2, level: 3, plan: 4};
+const LEVELS = [
+  ['start', 'Только начинаю'],
+  ['sometimes', 'Иногда пользуюсь'],
+  ['work', 'Использую в работе'],
+  ['build', 'Делаю на ИИ проекты'],
+] as const;
+// Study days suggested for a number of sessions a week (ISO weekdays).
+const DAYS_FOR: Record<number, number[]> = {1: [3], 2: [2, 4], 3: [1, 3, 5], 4: [1, 2, 4, 6], 5: [1, 2, 3, 4, 5], 6: [1, 2, 3, 4, 5, 6], 7: [1, 2, 3, 4, 5, 6, 7]};
+const BUILDING_LINES = ['Смотрим, какие навыки нужны твоим целям', 'Подбираем уроки и их порядок', 'Считаем, сколько времени займёт путь'];
 
-interface Form {
-  interests: string[];
-  experience: string;
-  minutes: string;
-}
-const formOf = (state: OnboardingState): Form => ({
-  interests: state.draft.interests.filter(id => BRANCH_IDS.has(id)),
-  experience: state.draft.experience ?? '',
-  minutes: state.draft.available_minutes ? String(state.draft.available_minutes) : '',
-});
-
-function draftFor(state: OnboardingState, form: Form) {
-  if (state.step === 'interests') return {interests: [...state.draft.interests.filter(id => !BRANCH_IDS.has(id)), ...form.interests]};
-  if (state.step === 'pace') return {experience: form.experience || null, available_minutes: Number(form.minutes) || null};
-  return {};
-}
-
-function reason(r: NonNullable<OnboardingState['recommendation']>) {
-  const parts: string[] = [];
-  const branch = BRANCHES.find(([id]) => id === r.branch)?.[1];
-  if (r.reasons.includes('interest') && branch) parts.push(`Под ваш интерес «${branch}»`);
-  else if (r.reasons.includes('foundation')) parts.push('Общая основа для любого направления');
-  if (r.reasons.includes('level')) parts.push('для начинающих');
-  if (r.minutes) parts.push(`${r.minutes} минут` + (r.reasons.includes('time') ? ' — укладывается в ваше время' : ''));
-  return parts.join(' · ');
-}
-
-function Choices({legend, name, options, selected, multiple, disabled, onChange}: {
-  legend: string; name: string; options: [string, string][]; selected: string | string[]; multiple?: boolean; disabled: boolean;
-  onChange: (value: string, checked: boolean) => void;
-}) {
-  return (
-    <fieldset>
-      <legend>{legend}</legend>
-      {options.map(([value, label]) => (
-        <label key={value} className="onboarding-choice">
-          <input type={multiple ? 'checkbox' : 'radio'} name={name} value={value} disabled={disabled}
-            checked={Array.isArray(selected) ? selected.includes(value) : selected === value}
-            onChange={event => onChange(value, event.target.checked)} />
-          <span>{label}</span>
-        </label>
-      ))}
-    </fieldset>
-  );
-}
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default function Onboarding() {
-  const initial = useLoaderData() as OnboardingState;
+  const initial = useLoaderData() as JourneyData;
   const navigate = useNavigate();
-  const location = useLocation();
-  const navigationType = useNavigationType();
-  useTitle('Ваше начало');
+  const {options} = initial;
+  const [answers, setAnswers] = useState<JourneyAnswers>({beginner: true, sliders: {}, deadlines: {}, ...initial.answers});
+  const [step, setStep] = useState<Step>(() => (initial.answers.step as Step) && initial.answers.step !== 'building' && initial.answers.goals?.length ? initial.answers.step as Step : 'hello');
+  const [path, setPath] = useState<JourneyPath | null>(initial.path);
+  const [error, setError] = useState('');
+  useTitle('Знакомство');
+  const goals = answers.goals ?? [];
+  const number = STEP_NUMBER[step];
 
-  const [state, setState] = useState(initial);
-  const [form, setForm] = useState(() => formOf(initial));
-  const [busy, setBusy] = useState(false);
-  const [conflict, setConflict] = useState(false);
-  const [status, setStatus] = useState<ReactNode>('');
-  // Async step walks (back/forward) read the latest values, not a render's snapshot.
-  const stateRef = useRef(state), formRef = useRef(form), busyRef = useRef(false);
-  const pending = useRef<{signature: string; payload: object} | null>(null);
-  const title = useRef<HTMLHeadingElement>(null), statusRef = useRef<HTMLParagraphElement>(null), footer = useRef<HTMLDivElement>(null);
-  const focusTitle = useRef(false);
-
-  function apply(next: OnboardingState) {
-    stateRef.current = next; setState(next);
-    const nextForm = formOf(next);
-    formRef.current = nextForm; setForm(nextForm);
-  }
-  function edit(change: Partial<Form>) {
-    const next = {...formRef.current, ...change};
-    formRef.current = next; setForm(next);
-    setStatus('Есть несохранённые изменения. Сохраните выбор, чтобы продолжить.');
-  }
-  function go(destination: string) {
-    if (isSpaPath(destination.split(/[?#]/)[0])) navigate(destination);
-    else window.location.assign(destination);
-  }
-  function report(message: ReactNode) {
-    setStatus(message);
-    requestAnimationFrame(() => statusRef.current?.focus());
-  }
-
-  async function send(action: Action, extra: object = {}, destination: string | null = null, recordHistory = true): Promise<boolean> {
-    if (busyRef.current) return false;
-    busyRef.current = true; setBusy(true);
-    const current = stateRef.current;
-    const payload = {action, expected_revision: current.revision,
-      draft: ['edit', 'cancel', 'skip'].includes(action) ? {} : {...draftFor(current, formRef.current), ...extra}};
-    const signature = JSON.stringify(payload);
-    // A retry of the same request reuses its key, so a save the server already applied isn't applied twice.
-    if (!pending.current || pending.current.signature !== signature) pending.current = {signature, payload: {...payload, idempotency_key: crypto.randomUUID()}};
-    setStatus('Сохраняем…');
-    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 15000);
+  async function save(patch: JourneyAnswers & {status?: string}) {
+    setAnswers(a => ({...a, ...patch}));
     try {
-      const response = await fetch('/api/onboarding', {method: 'PUT', signal: controller.signal,
-        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': bootstrap.csrf}, body: JSON.stringify(pending.current.payload)});
-      if (response.status === 401) {
-        report(<>Сессия завершена. Войдите снова: сохранённые шаги останутся в аккаунте. <AppLink to="/login?next=/onboarding">Войти снова</AppLink></>);
-        return false;
-      }
-      let data: OnboardingState;
-      try {
-        data = await response.json();
-      } catch (error) {
-        if ((error as Error).name === 'AbortError') throw error;
-        report('Сервер не подтвердил сохранение. Ваш выбор остаётся на экране. Повторите действие.');
-        return false;
-      }
-      if (response.status === 409) {
-        pending.current = null;
-        setConflict(true);
-        report(<>Настройки изменились в другой вкладке. Загрузите сохранённую версию перед продолжением.{' '}
-          <button type="button" className="link-button" onClick={() => window.location.reload()}>Загрузить сохранённую версию</button></>);
-        return false;
-      }
-      if (!response.ok) {
-        report('Не удалось сохранить. Ваш выбор остаётся на экране. Повторите действие.');
-        return false;
-      }
-      pending.current = null;
-      apply(data);
-      setStatus('');
-      if (action === 'complete' || action === 'skip' || action === 'cancel') {
-        go(destination || data.next_url || '/');
-        return true;
-      }
-      if (recordHistory) navigate(location.pathname, {state: {onboardingStep: data.step}});
-      focusTitle.current = true;
-      return true;
-    } catch (error) {
-      report((error as Error).name === 'AbortError'
-        ? 'Сервер пока не подтвердил сохранение. Ваш выбор остаётся на экране. Повторите действие.'
-        : 'Нет связи с сервером. Ваш выбор остаётся на экране. Повторите действие.');
-      return false;
-    } finally {
-      clearTimeout(timeout);
-      busyRef.current = false; setBusy(false);
+      await putJson('/api/app/journey', patch);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Не удалось сохранить. Проверьте соединение.');
     }
   }
-
-  useEffect(() => {
-    if (!focusTitle.current) return;
-    focusTitle.current = false;
-    title.current?.focus();
-  }, [state]);
-
-  // History holds the step only (never revisions or request bodies).
-  useEffect(() => {
-    navigate(location.pathname, {replace: true, state: {onboardingStep: stateRef.current.step}});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  useEffect(() => {
-    const target = (location.state as {onboardingStep?: OnboardingStep} | null)?.onboardingStep;
-    if (navigationType !== 'POP' || !target || !STEPS.includes(target) || target === stateRef.current.step) return;
-    if (busyRef.current || pending.current) {
-      navigate(location.pathname, {state: {onboardingStep: stateRef.current.step}});
-      if (!busyRef.current) setStatus('Сначала повторите сохранение текущего шага: сервер ещё не подтвердил его.');
-      return;
+  async function skip() {
+    await putJson('/api/app/journey', {status: 'skipped'}).catch(() => undefined);
+    navigate('/');
+  }
+  async function build() {
+    setStep('building');
+    setError('');
+    const started = Date.now();
+    try {
+      const [{path: next}] = await Promise.all([
+        postJson<{path: JourneyPath}>('/api/app/journey/preview', {...answers, goals}),
+        putJson('/api/app/journey', {goals, custom: answers.custom ?? '', step: 'level'}),
+      ]);
+      await delay(Math.max(0, 3200 - (Date.now() - started)));
+      setPath(next);
+      setStep('level');
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Не удалось построить путь. Попробуйте ещё раз.');
+      setStep('goals');
     }
-    // Each step on the way is a new request with the current choices and revision.
-    (async () => {
-      while (stateRef.current.step !== target) {
-        const action = STEPS.indexOf(target) < STEPS.indexOf(stateRef.current.step) ? 'back' : 'next';
-        if (!await send(action, {}, null, false)) {
-          navigate(location.pathname, {replace: true, state: {onboardingStep: stateRef.current.step}});
-          break;
-        }
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key]);
-
-  // Keep focused fields clear of the sticky footer.
-  useEffect(() => {
-    if (!footer.current) return;
-    const root = document.documentElement;
-    const observer = new ResizeObserver(() => { root.style.scrollPaddingBottom = `${(footer.current?.offsetHeight ?? 0) + 24}px`; });
-    observer.observe(footer.current);
-    return () => { observer.disconnect(); root.style.scrollPaddingBottom = ''; };
-  }, []);
-
-  const locked = busy || conflict;
-  const button = (text: string, onClick: () => void, style: 'primary' | 'secondary' | 'quiet' = 'primary') => (
-    <button key={text} type="button" disabled={locked} onClick={onClick}
-      className={style === 'quiet' ? 'link-button' : style === 'secondary' ? 'button secondary' : 'button'}>{text}</button>
-  );
-
-  const done = (state.status === 'completed' || state.status === 'skipped') && !state.editing;
-  const index = done ? -1 : STEPS.indexOf(state.step);
-  let heading: string, progress: string;
-  const body: ReactNode[] = [], actions: ReactNode[] = [];
-
-  if (done) {
-    heading = 'Настройки сохранены';
-    progress = 'Настройки обучения';
-    body.push(<p key="p">Можно изменить интересы и время. Уроки, работы и результаты сохранятся.</p>);
-    actions.push(button('Изменить интересы и темп', () => send('edit')),
-      <AppLink key="back" to={state.return_to || '/'}>Вернуться к обучению</AppLink>,
-      <AppLink key="prefs" to="/preferences">Недельная цель и аккаунт</AppLink>);
-  } else {
-    progress = `${state.editing ? 'Настройки · ' : ''}Шаг ${index + 1} из 4`;
-    if (state.step === 'welcome') {
-      heading = 'Расскажите о себе — или пропустите';
-      body.push(<p key="a">Четыре коротких вопроса, чтобы подобрать первый урок. Все вопросы можно пропустить и выбрать урок самому.</p>,
-        <p key="b">Ответы сохраняются в аккаунте и меняются позже в настройках.</p>);
-    } else if (state.step === 'interests') {
-      heading = 'Что хочется попробовать?';
-      body.push(<p key="p">Выберите несколько направлений или ни одного. Вся карта останется открытой.</p>,
-        <Choices key="c" legend="Ваши интересы" name="interests" multiple options={BRANCHES} selected={form.interests} disabled={locked}
-          onChange={(value, checked) => edit({interests: checked ? [...formRef.current.interests, value] : formRef.current.interests.filter(i => i !== value)})} />);
-    } else if (state.step === 'pace') {
-      heading = 'Сколько места для нового?';
-      body.push(
-        <Choices key="e" legend="Опыт работы с ИИ" name="experience" disabled={locked} selected={form.experience}
-          options={[['', 'Пока не хочу выбирать'], ['beginner', 'Начинаю разбираться'], ['experienced', 'Уже использую в работе']]}
-          onChange={value => edit({experience: value})} />,
-        <Choices key="m" legend="Время на один подход" name="minutes" disabled={locked} selected={form.minutes}
-          options={[['', 'Без плана'], ['5', '5 минут'], ['10', '10 минут'], ['20', '20 минут']]}
-          onChange={value => edit({minutes: value})} />,
-        <p key="p">Это пожелание, а не обязательство. Пропуски не обнуляют обучение.</p>);
-    } else {
-      heading = 'Начните с одной идеи';
-      body.push(<p key="p">Этот доступный урок — отправная точка. Это не оценка ваших знаний и не ограничение выбранными интересами.</p>);
-      const pick = state.recommendation;
-      if (pick) {
-        const returning = !!state.return_to && state.return_to !== '/';
-        body.push(
-          <div key="pick" className="onb-pick">
-            <span>{returning ? 'Продолжим' : 'Ваш первый урок'}</span>
-            <strong>{returning ? 'Продолжим с того, что вы открывали' : pick.title}</strong>
-            {!returning && <p>{reason(pick)}</p>}
-          </div>);
-        actions.push(button(state.editing ? 'Сохранить настройки' : returning ? 'Сохранить и продолжить →' : 'Открыть первый урок →',
-          () => send('complete', {diagnostic_choice: 'skip'}, state.editing ? null : returning ? state.return_to : pick.url)));
-      } else {
-        body.push(<p key="none">Сейчас нет доступного стартового урока. Можно исследовать карту и вернуться позже.</p>);
-        actions.push(button('Сохранить и открыть карту', () => send('complete', {}, '/')));
-      }
-      if (state.diagnostic.available) {
-        body.push(<p key="diag">Уже знакомы с темой? Можно начать с необязательной проверки знаний.</p>);
-        actions.push(button('Сначала проверить знания', () => send('complete', {diagnostic_choice: 'start'}, '/diagnostic'), 'secondary'));
-      }
-    }
-    if (state.step !== 'start') actions.push(button(state.step === 'welcome' ? 'Дальше →' : 'Сохранить и дальше →', () => send('next')));
-    if (state.step !== 'welcome') actions.push(button('← Назад', () => send('back'), 'quiet'));
-    actions.push(button(state.editing ? 'Отменить изменения' : 'Пропустить настройку', () => send(state.editing ? 'cancel' : 'skip'), 'quiet'));
   }
 
   return (
-    <section className="onboarding" data-step={index < 0 ? 'done' : STEPS[index]}>
-      <div className="onboarding-copy">
-        <p id="onboarding-progress">{progress}</p>
-        <div className="onb-steps" aria-hidden="true" hidden={index < 0}>
-          {STEPS.map((step, i) => <span key={step} className={i <= index ? 'is-done' : undefined} />)}
-        </div>
-        <h1 id="onboarding-title" tabIndex={-1} ref={title}>{heading}</h1>
-        <div id="onboarding-body">{body}</div>
-        <div className="onboarding-footer" ref={footer}>
-          <p id="onboarding-status" role="status" tabIndex={-1} ref={statusRef}>{status}</p>
-          <div id="onboarding-actions" className="development-actions">{actions}</div>
+    <div className="journey">
+      <div className="journey-progress" aria-label={`Шаг ${number} из 4`}>
+        {[1, 2, 3, 4].map(n => <span key={n} className={n <= number ? 'is-on' : undefined} />)}
+      </div>
+      {error && <p className="notice error" role="alert">{error}</p>}
+      {step === 'hello' && <Hello onNext={() => { setStep('goals'); void save({step: 'goals'}); }} onSkip={skip} />}
+      {step === 'goals' && (
+        <Goals data={initial} answers={answers} onChange={patch => setAnswers(a => ({...a, ...patch}))} onNext={build}
+          onBack={() => setStep('hello')} />
+      )}
+      {step === 'building' && <Building skills={options.skills} goals={goals.map(id => options.goals.find(g => g.id === id)).filter(g => !!g)} />}
+      {step === 'level' && path && (
+        <Level data={initial} answers={answers} path={path} onPath={setPath} onChange={patch => setAnswers(a => ({...a, ...patch}))}
+          onBack={() => setStep('goals')}
+          onNext={() => { setStep('plan'); void save({beginner: answers.beginner, sliders: answers.sliders, deadlines: answers.deadlines, step: 'plan'}); }} />
+      )}
+      {step === 'plan' && path && (
+        <Schedule answers={answers} path={path} onBack={() => setStep('level')}
+          onDone={async pace => {
+            await putJson('/api/app/journey', {pace, status: 'done', step: 'done'});
+            navigate('/path');
+          }} />
+      )}
+    </div>
+  );
+}
+
+function Hello({onNext, onSkip}: {onNext: () => void; onSkip: () => void}) {
+  return (
+    <section className="journey-hello">
+      <h1>Давай познакомимся и&nbsp;сделаем твой путь персональным</h1>
+      <p className="journey-lead">
+        Расскажи, к чему ты идёшь и с чем уже знаком, — мы соберём из уроков AI Room маршрут под тебя: какие навыки прокачать,
+        в каком порядке и сколько времени это займёт. Ответы сохранятся в твоём профиле и будут влиять на рекомендации и цели.
+        Их всегда можно изменить в настройках, а путь перестроится сам.
+      </p>
+      <div className="journey-actions">
+        <button type="button" className="button" onClick={onNext}>Начнём →</button>
+        <button type="button" className="link-button" onClick={onSkip}>Пропустить</button>
+      </div>
+    </section>
+  );
+}
+
+function Goals({data, answers, onChange, onNext, onBack}: {
+  data: JourneyData; answers: JourneyAnswers; onChange: (patch: JourneyAnswers) => void; onNext: () => void; onBack: () => void;
+}) {
+  const chosen = answers.goals ?? [];
+  const max = data.options.max_goals;
+  const [customNote, setCustomNote] = useState('');
+  function toggle(id: string) {
+    if (chosen.includes(id)) onChange({goals: chosen.filter(g => g !== id)});
+    else if (chosen.length < max) onChange({goals: [...chosen, id]});
+  }
+  async function analyse() {
+    try {
+      await getJson('/api/app/journey/custom');
+    } catch (e) {
+      setCustomNote(e instanceof ApiError ? e.message : 'Нужна подписка для анализа');
+    }
+  }
+  return (
+    <section className="journey-goals">
+      <h1>Ради чего ты здесь?</h1>
+      <p className="journey-lead">Выбери до {max} целей. Лучше выбрать близкие к твоим, даже если они совпадают не на&nbsp;100%, — так путь получится точнее, чем без цели.</p>
+      <GoalRing goals={data.options.goals} chosen={chosen} max={max} onToggle={toggle} />
+      <div className="journey-custom">
+        <label htmlFor="custom-goal">Или опиши свою цель</label>
+        <textarea id="custom-goal" rows={2} maxLength={600} value={answers.custom ?? ''} placeholder="Например: хочу открыть студию ИИ-видео для свадеб"
+          onChange={event => onChange({custom: event.target.value})} />
+        <p className="small">Сохраним её в профиле. {answers.custom?.trim() && <button type="button" className="link-button" onClick={analyse}>Построить путь по своей цели</button>}</p>
+        {customNote && <p className="journey-paywall" role="status"><strong>{customNote}</strong> Персональный путь по своей цели собирается в подписке. Пока выбери близкие цели из списка.</p>}
+      </div>
+      <div className="journey-actions">
+        <button type="button" className="button" disabled={!chosen.length} onClick={onNext}>Построить мой путь →</button>
+        <button type="button" className="link-button" onClick={onBack}>Назад</button>
+      </div>
+    </section>
+  );
+}
+
+// The eight skills as a radar, each chosen goal's shape growing to the points it needs.
+function Building({goals, skills}: {goals: JourneyGoalOption[]; skills: JourneyOptions['skills']}) {
+  const [line, setLine] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setLine(i => Math.min(i + 1, BUILDING_LINES.length - 1)), 1050);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <section className="journey-building" aria-live="polite">
+      <div className="journey-building-art" aria-hidden="true">
+        <div className="journey-building-goals">{goals.map((g, i) => <span key={g.id} style={{animationDelay: `${i * .2}s`}}>{g.title}</span>)}</div>
+        <SkillRadar skills={skills} goals={goals.map((g, i) => ({id: g.id, color: GOAL_COLORS[i % GOAL_COLORS.length], targets: g.targets}))}
+          label={`Навыки для целей: ${goals.map(g => g.title).join(', ')}`} />
+      </div>
+      <h1>Строим твой путь</h1>
+      <p className="journey-lead">{BUILDING_LINES[line]}…</p>
+    </section>
+  );
+}
+
+function Level({data, answers, path, onPath, onChange, onNext, onBack}: {
+  data: JourneyData; answers: JourneyAnswers; path: JourneyPath; onPath: (p: JourneyPath) => void;
+  onChange: (patch: JourneyAnswers) => void; onNext: () => void; onBack: () => void;
+}) {
+  const [level, setLevel] = useState<string>(answers.beginner === false ? 'work' : 'start');
+  const sliders = answers.sliders ?? {};
+  const deadlines = answers.deadlines ?? {};
+  // The path follows every answer (a short pause, then one request).
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    const timer = setTimeout(() => {
+      postJson<{path: JourneyPath}>('/api/app/journey/preview', {goals: answers.goals, beginner: answers.beginner, sliders, deadlines})
+        .then(r => onPath(r.path), () => undefined);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [answers.beginner, JSON.stringify(sliders), JSON.stringify(deadlines)]);  // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <section className="journey-level">
+      <div className="journey-level-map">
+        <SkillRadar skills={data.options.skills} goals={path.goals} start={path.start}
+          label={`Навыки: где ты сейчас и что нужно для целей ${path.goals.map(g => g.title).join(', ')}`} />
+        <ul className="journey-legend">
+          <li><i className="is-now" />Ты сейчас{Object.values(path.start).some(Boolean) ? '' : ' — с нуля'}</li>
+          {path.goals.map(g => <li key={g.id}><i style={{background: g.color}} />{g.title} · {g.lessons} уроков</li>)}
+        </ul>
+        <p className="small">Твой путь: {path.lessons.length} уроков, около {Math.round(path.minutes / 60)} часов{path.coming ? ` · ${path.coming} из них откроются позже` : ''}.</p>
+      </div>
+      <div className="journey-level-questions">
+        <h1>Почти готово</h1>
+        <fieldset className="journey-question">
+          <legend>Какой у тебя опыт с ИИ?</legend>
+          <div className="journey-options">
+            {LEVELS.map(([id, label]) => (
+              <button key={id} type="button" aria-pressed={level === id} className={level === id ? 'is-on' : undefined}
+                onClick={() => { setLevel(id); onChange({beginner: id === 'start'}); }}>{label}</button>
+            ))}
+          </div>
+          {level !== 'start' && (
+            <div className="journey-sliders">
+              <p className="small">Оцени себя от 0 до 5 — так путь не будет повторять то, что ты уже умеешь.</p>
+              {data.options.sliders.map(s => (
+                <label key={s.id} className="journey-slider">
+                  <span>{s.title}</span>
+                  <input type="range" min={0} max={5} step={1} value={sliders[s.id] ?? 0}
+                    onChange={event => onChange({sliders: {...sliders, [s.id]: Number(event.target.value)}})} />
+                  <output>{sliders[s.id] ?? 0}</output>
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
+        <fieldset className="journey-question">
+          <legend>За какое время хочешь прийти к целям?</legend>
+          {path.goals.map(goal => (
+            <div key={goal.id} className="journey-deadline">
+              <span><i style={{background: goal.color}} />{goal.title}</span>
+              <div className="journey-options is-small">
+                {data.options.deadlines.map(weeks => (
+                  <button key={weeks} type="button" aria-pressed={deadlines[goal.id] === weeks} className={deadlines[goal.id] === weeks ? 'is-on' : undefined}
+                    onClick={() => onChange({deadlines: {...deadlines, [goal.id]: weeks}})}>{DEADLINE_LABEL[weeks]}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </fieldset>
+        <div className="journey-actions">
+          <button type="button" className="button" onClick={onNext}>Подобрать расписание →</button>
+          <button type="button" className="link-button" onClick={onBack}>Назад к целям</button>
         </div>
       </div>
-      <aside className="onboarding-art" aria-hidden="true"><p>Ответы сохраняются в аккаунте<br />и меняются в настройках.</p></aside>
+    </section>
+  );
+}
+
+function Schedule({answers, path, onBack, onDone}: {answers: JourneyAnswers; path: JourneyPath; onBack: () => void; onDone: (pace: Pace) => Promise<void>}) {
+  const options = path.plans.options;
+  const needed = path.plans.needed_minutes_per_week;
+  const recommended = needed ? options.find(o => o.minutes_per_week >= needed)?.id ?? 'intense' : 'steady';
+  const [choice, setChoice] = useState<string>(answers.pace ? 'custom' : recommended);
+  const [custom, setCustom] = useState<Pace>(answers.pace ?? {sessions: 3, session_minutes: 30});
+  const [customPath, setCustomPath] = useState<JourneyPath | null>(null);
+  const [time, setTime] = useState('19:00');
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [busy, setBusy] = useState(false);
+  const pace: Pace = choice === 'custom' ? custom : (({sessions, session_minutes}) => ({sessions, session_minutes}))(options.find(o => o.id === choice)!);
+  const days = DAYS_FOR[pace.sessions];
+  useEffect(() => {
+    if (choice !== 'custom') return;
+    const timer = setTimeout(() => {
+      postJson<{path: JourneyPath}>('/api/app/journey/preview', {pace: custom}).then(r => setCustomPath(r.path), () => undefined);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [choice, custom.sessions, custom.session_minutes]);  // eslint-disable-line react-hooks/exhaustive-deps
+  const goalTitle = useMemo(() => Object.fromEntries(path.goals.map(g => [g.id, g])), [path]);
+
+  async function addToCalendar() {
+    setBusy(true);
+    try {
+      setPlan(await putJson<Plan>('/api/app/plan', {days, time}));
+    } finally {
+      setBusy(false);
+    }
+  }
+  const verdict = (weeks: number | null, goalId: string) => {
+    const deadline = goalTitle[goalId]?.deadline;
+    if (weeks == null) return <span className="is-late">часть уроков ещё готовится</span>;
+    return <span className={deadline && weeks > deadline ? 'is-late' : 'is-ok'}>{weeksLabel(weeks)}{deadline ? (weeks <= deadline ? ' ✓' : ` — позже срока (${DEADLINE_LABEL[deadline]?.toLowerCase()})`) : ''}</span>;
+  };
+  return (
+    <section className="journey-plan">
+      <h1>Как будем учиться?</h1>
+      <p className="journey-lead">Три расписания под твой путь. Выбери то, что выдержишь, — регулярность важнее скорости.
+        {needed ? ` Чтобы успеть ко всем срокам, нужно около ${needed} минут в неделю.` : ''}</p>
+      <div className="journey-plan-options" role="radiogroup" aria-label="Расписание">
+        {options.map(o => (
+          <button key={o.id} type="button" role="radio" aria-checked={choice === o.id} className={'journey-plan-card' + (choice === o.id ? ' is-on' : '')}
+            onClick={() => setChoice(o.id)}>
+            <strong>{o.title}{o.id === recommended && <em>советуем</em>}</strong>
+            <span className="journey-plan-pace">{o.sessions} × {o.session_minutes} мин в неделю</span>
+            <ul>{Object.entries(o.goals).map(([id, g]) => <li key={id}><i style={{background: goalTitle[id]?.color}} />{verdict(g.weeks, id)}</li>)}</ul>
+          </button>
+        ))}
+        <div className={'journey-plan-card is-custom' + (choice === 'custom' ? ' is-on' : '')} role="radio" aria-checked={choice === 'custom'} tabIndex={0}
+          onClick={() => setChoice('custom')} onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') setChoice('custom'); }}>
+          <strong>Свой темп</strong>
+          <label className="journey-slider"><span>Занятий в неделю</span>
+            <input type="range" min={1} max={7} value={custom.sessions} onChange={e => { setChoice('custom'); setCustom(c => ({...c, sessions: Number(e.target.value)})); }} />
+            <output>{custom.sessions}</output></label>
+          <label className="journey-slider"><span>Минут за раз</span>
+            <input type="range" min={10} max={90} step={5} value={custom.session_minutes} onChange={e => { setChoice('custom'); setCustom(c => ({...c, session_minutes: Number(e.target.value)})); }} />
+            <output>{custom.session_minutes}</output></label>
+          {choice === 'custom' && customPath?.pace && (
+            <ul>{Object.entries(customPath.pace.reached).map(([id, weeks]) => <li key={id}><i style={{background: goalTitle[id]?.color}} />{verdict(weeks, id)}</li>)}</ul>
+          )}
+        </div>
+      </div>
+      <div className="journey-calendar">
+        <p><strong>Напоминания в календаре.</strong> {pace.sessions} {pace.sessions === 1 ? 'занятие' : pace.sessions < 5 ? 'занятия' : 'занятий'} в неделю:
+          {' '}{days.map(d => DAYS_SHORT[d - 1]).join(', ')} в
+          {' '}<select value={time} onChange={e => { setTime(e.target.value); setPlan(null); }} aria-label="Время занятий">
+            {['07:00', '08:00', '09:00', '12:00', '13:00', '18:00', '19:00', '20:00', '21:00', '22:00'].map(t => <option key={t}>{t}</option>)}
+          </select></p>
+        {plan ? <CalendarLinks plan={plan} /> : <button type="button" className="button secondary" disabled={busy} onClick={addToCalendar}>Добавить в календарь</button>}
+      </div>
+      <div className="journey-actions">
+        <button type="button" className="button" onClick={() => onDone(pace)}>Открыть мой путь →</button>
+        <button type="button" className="link-button" onClick={onBack}>Назад</button>
+      </div>
     </section>
   );
 }

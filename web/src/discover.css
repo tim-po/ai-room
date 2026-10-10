@@ -260,3 +260,11 @@
 .discover{container-type:inline-size}
 .discover .shelf-bleed{--bleed:calc(50vw - 50cqw);margin-inline:calc(-1 * var(--bleed));padding-inline:var(--bleed);scroll-padding-inline:var(--bleed)}
 .learner-surface .shell:has(.discover){overflow-x:clip}
+
+/* «для цели …»: the colour dots of the learner's goals an item serves (components/GoalMarks.tsx) */
+.goal-marks{display:inline-flex;align-items:center;gap:6px;margin-top:4px;font-size:12px;font-weight:700;color:var(--text)}
+.goal-marks-dots{display:inline-flex}
+.goal-marks-dots i{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 2px var(--panel,var(--bg)),0 0 0 3px color-mix(in srgb,var(--text) 25%,transparent)}
+.goal-marks-dots i+i{margin-left:-3px}
+.goal-marks.is-compact{margin-top:6px}
+.d-hero .goal-marks{margin:0 0 0 10px;vertical-align:middle}

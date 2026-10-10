@@ -5,8 +5,14 @@
 // Three levels of detail (far / mid / near). Nodes are smaller zoomed out, so the arms are laid out
 // for every level up front and stretch between them on a change of detail, while the point under the
 // cursor stays where it is. Camera moves (buttons, clicks) fly. Phones get the trail (TrailMap.tsx).
-// Mounted by SkillMap.tsx into its own markup; returns a cleanup function.
-export function mountTree(root, data) {
+// Mounted by SkillMap.tsx into its own markup; returns a cleanup function. Options («Мой путь», where the map
+// is the whole page under a floating plan): fill — the card's height comes from the page's CSS; course — open
+// near a module (course:index) of its branch, zoomed in; inset() — how many pixels on the right a panel covers,
+// so framing centres in what's visible; islands — {course:index: [guide…]}, small cards beside a module, tied
+// to it by a short line. Event 'tree:module' {detail: course:index} frames another module, 'tree:island'
+// {detail: guide id} an island with its module (and marks it, .is-focus); 'tree:repaint'
+// redraws the edges after an edge's data-lanes (space-separated colours, one parallel line each) changed.
+export function mountTree(root, data, {fill = false, module: openModule = null, inset = () => 0, islands = {}} = {}) {
   let destroyed = false;
   // Every listener is registered with this signal, so cleanup removes all of them.
   const listeners = new AbortController();
@@ -17,7 +23,7 @@ export function mountTree(root, data) {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const MS = {layout: reduced ? 0 : 420, fly: reduced ? 0 : 560, fade: reduced ? 0 : 110};
   const PAD = 120;
-  const WIDTH = {hub: 300, topic: 320, course: 320, module: 250, milestone: 190};
+  const WIDTH = {hub: 300, topic: 320, course: 320, module: 250, milestone: 190, island: 170};
   const RADIUS = {topic: 470, course: 960};   // from the centre to a topic, and to its courses
   const SPREAD = 0.52;   // radians between the arms of one topic
   const CURL = 0.16;     // how much an arm turns per 1000px, the same way for every arm
@@ -45,10 +51,10 @@ export function mountTree(root, data) {
     nodes.push(node); nodeOf.set(element, node);
     return node;
   }
-  function link(from, to, cls) {
+  function link(from, to, cls, straight = false) {
     const path = document.createElementNS(NS, 'path');
     path.setAttribute('class', cls); svg.append(path);
-    edges.push({from, to, path});
+    edges.push({from, to, path, straight, lanes: []});
   }
 
   const MILESTONE_NOTE = {reached: 'Веха пройдена', coming: 'Скоро откроется'};
@@ -70,14 +76,27 @@ export function mountTree(root, data) {
     return box;
   }
 
-  function moduleBox(module, index) {
+  const FORMAT = {guide: 'Гайд', use_case: 'Кейс'};
+  function island(item) {
+    const box = el(item.url ? 'a' : 'div', `tree-island is-${item.format}` + (item.club ? ' is-club' : ''));
+    if (item.url) box.href = item.url;
+    box.dataset.goals = (item.goals || []).join(' ');
+    box.title = item.title;
+    box.append(el('span', 'tree-island-kind', FORMAT[item.format] || 'Гайд'), el('strong', null, item.title),
+      el('span', 'tree-island-meta', [item.minutes ? item.minutes + ' мин' : null, item.club ? 'в клубе' : 'бесплатно', 'по желанию'].filter(Boolean).join(' · ')));
+    return box;
+  }
+
+  function moduleBox(module, index, course) {
     const box = el('section', 'tree-module is-' + module.state);
+    box.dataset.module = course.id + ':' + index;   // «Мой путь» colours the modules on a goal's path by this key
     box.title = module.title;
     const head = el('h3');
     head.append(el('span', 'tree-module-index', String(index + 1)), el('span', 'tree-module-title', module.title));
     const list = el('ul');
-    for (const lesson of module.lessons) {
+    module.lessons.forEach((lesson, at) => {
       const row = el(lesson.url ? 'a' : 'span', `tree-lesson is-${lesson.state}` + (lesson.current ? ' is-current' : ''));
+      row.dataset.key = `${course.id}:${index}:${at}`;
       if (lesson.url) row.href = lesson.url;
       row.title = `${lesson.title} — ${STATE[lesson.state]}`;
       row.append(el('span', 'tree-dot'), el('span', 'tree-title', lesson.title));
@@ -85,7 +104,7 @@ export function mountTree(root, data) {
       else if (lesson.minutes && lesson.state !== 'coming') row.append(el('span', 'tree-tag', lesson.minutes + ' мин'));
       row.append(el('span', 'visually-hidden', ` (${STATE[lesson.state]})`));
       const item = el('li'); item.append(row); list.append(item);
-    }
+    });
     box.append(head, list);
     return box;
   }
@@ -102,6 +121,7 @@ export function mountTree(root, data) {
     if (topic.interest) box.append(el('em', null, 'Ваш интерес'));
     const node = add(box, 'topic');
     link(hub, node, 'trunk');
+    box.dataset.topic = topic.id; edges[edges.length - 1].path.dataset.topic = topic.id;
     const lanes = topic.courses.map((course, c) => {
       totalCourses++; totalLessons += course.total;
       const card = el(course.url ? 'a' : 'div', 'tree-course' + (course.current ? ' is-current' : ''));
@@ -120,13 +140,24 @@ export function mountTree(root, data) {
       }
       const cardNode = add(card, 'course');
       link(node, cardNode, 'branch');
+      card.dataset.course = course.id; edges[edges.length - 1].path.dataset.course = course.id;
       // The arm: modules in order, each milestone right after the module it follows.
       let previous = cardNode;
       const chain = [];
       course.modules.forEach((module, index) => {
-        const moduleNode = add(moduleBox(module, index), 'module');
+        const moduleNode = add(moduleBox(module, index, course), 'module');
         link(previous, moduleNode, 'path is-' + module.state);
+        edges[edges.length - 1].path.dataset.module = course.id + ':' + index;
         chain.push(moduleNode); previous = moduleNode;
+        // guides beside the module: islands off the arm, not part of it
+        moduleNode.islands = (islands[course.id + ':' + index] || []).map(item => {
+          const isle = add(island(item), 'island');
+          link(moduleNode, isle, 'island-link', true);
+          isle.el.dataset.island = course.id + ':' + index;
+          isle.el.dataset.guide = item.id;
+          isle.module = moduleNode;
+          return isle;
+        });
         for (const stone of (course.milestones || []).filter(m => m.after === index)) {
           const stoneNode = add(milestone(stone, course), 'milestone');
           link(previous, stoneNode, 'path is-' + (stone.state === 'reached' ? 'done' : 'active') + ' is-to-milestone');
@@ -172,6 +203,13 @@ export function mountTree(root, data) {
           const step = reach(previous.w, height.get(previous), c, s) + GAP[level] + reach(n.w, height.get(n), c, s);
           cx += c * step; cy += s * step; travelled += step;
           centre.set(n, [cx, cy]); previous = n;
+          // islands: first on one side of the arm, then the other, a third further along the first side
+          (n.islands || []).forEach((isle, i) => {
+            const side = i % 2 ? -1 : 1, nx = -s * side, ny = c * side, ih = height.get(isle);
+            const out = reach(n.w, height.get(n), nx, ny) + GAP[level] * 0.7 + reach(isle.w, ih, nx, ny);
+            const along = i < 2 ? 0 : 2 * reach(isle.w, ih, c, s) + 14;
+            centre.set(isle, [cx + nx * out + c * along, cy + ny * out + s * along]);
+          });
         }
       }
     }
@@ -204,14 +242,35 @@ export function mountTree(root, data) {
       const dx = x - hx, dy = y - hy, d = Math.hypot(dx, dy);
       return d > 1 ? [dx / d, dy / d] : fallback;
     };
+    const f = v => v.toFixed(1);
     for (const e of edges) {
       const [x1, y1] = centreOf(e.from), [x2, y2] = centreOf(e.to), len = Math.hypot(x2 - x1, y2 - y1);
+      if (e.straight) { e.path.setAttribute('d', `M${f(x1)},${f(y1)} L${f(x2)},${f(y2)}`); continue; }
       const d2 = outward(x2, y2, [1, 0]), d1 = outward(x1, y1, d2), k = len * 0.38;
-      e.path.setAttribute('d', `M${x1.toFixed(1)},${y1.toFixed(1)} C${(x1 + d1[0] * k).toFixed(1)},${(y1 + d1[1] * k).toFixed(1)} `
-        + `${(x2 - d2[0] * k).toFixed(1)},${(y2 - d2[1] * k).toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`);
+      // offset o: the same curve moved sideways (along the normal at each end), for parallel lines
+      const curve = o => `M${f(x1 - d1[1] * o)},${f(y1 + d1[0] * o)} C${f(x1 + d1[0] * k - d1[1] * o)},${f(y1 + d1[1] * k + d1[0] * o)} `
+        + `${f(x2 - d2[0] * k - d2[1] * o)},${f(y2 - d2[1] * k + d2[0] * o)} ${f(x2 - d2[1] * o)},${f(y2 + d2[0] * o)}`;
+      e.path.setAttribute('d', curve(0));
+      lanes(e, curve);
     }
     canvas.style.width = shown.width + 'px'; canvas.style.height = shown.height + 'px';
     svg.setAttribute('width', shown.width); svg.setAttribute('height', shown.height);
+  }
+
+  // A goal per lane: parallel coloured lines over the edge, like metro lines sharing a track.
+  // Lanes are drawn to scale (not in screen pixels like other edges), wider apart the further out the detail.
+  const LANE = {far: 22, mid: 13, near: 10};
+  function lanes(e, curve) {
+    const colours = e.path.dataset.lanes ? e.path.dataset.lanes.split(' ') : [];
+    while (e.lanes.length > colours.length) e.lanes.pop().remove();
+    while (e.lanes.length < colours.length) {
+      const lane = document.createElementNS(NS, 'path');
+      lane.setAttribute('class', 'tree-lane'); svg.append(lane); e.lanes.push(lane);
+    }
+    colours.forEach((colour, i) => {
+      e.lanes[i].style.setProperty('--lane', colour);
+      e.lanes[i].setAttribute('d', curve((i - (colours.length - 1) / 2) * LANE[lod || 'far']));
+    });
   }
 
   // ---- camera ------------------------------------------------------------
@@ -301,15 +360,28 @@ export function mountTree(root, data) {
     flyTo(card, k, {sx: vw / 2 - Math.cos(lane.angle) * vw * 0.3, sy: vh / 2 - Math.sin(lane.angle) * vh * 0.3, dur});
   }
   // Frame a set of nodes (in the zoomed-out layout), the hub held as the reference point.
-  function frameNodes(set, dur = MS.fly, limit = 0.6) {
-    const L = layouts.far, vw = viewport.clientWidth, vh = viewport.clientHeight;
+  function frameNodes(set, dur = MS.fly, limit = 0.6, margin = 80, floor = 0) {
+    const L = layouts.far, vw = viewport.clientWidth - inset(), vh = viewport.clientHeight;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const n of set) {
       const p = L.pos.get(n);
       minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x + n.w); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y + p.h);
     }
-    const k = clampK(Math.min(vw / (maxX - minX + 80), vh / (maxY - minY + 80), limit));
-    const hp = L.pos.get(hub);
+    // margin: 80 world units around the set, or that many screen pixels when given (a branch beside a panel)
+    const k = clampK(margin === 80 ? Math.min(vw / (maxX - minX + 80), vh / (maxY - minY + 80), limit)
+      : Math.max(floor, Math.min((vw - margin) / (maxX - minX), (vh - margin) / (maxY - minY), limit)));
+    // Zoomed in past the far level the arms stretch: frame them as they are laid out at that zoom, and an
+    // instant jump (the first view) starts at that level of detail rather than stretching into it.
+    const level = k > 0.8 ? 'near' : k > 0.5 ? 'mid' : 'far', at = layouts[level];
+    if (at !== L) {
+      minX = minY = Infinity; maxX = maxY = -Infinity;
+      for (const n of set) {
+        const p = at.pos.get(n);
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x + n.w); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y + p.h);
+      }
+    }
+    if (!dur && level !== lod) { lod = level; canvas.dataset.lod = canvas.dataset.detail = lod; shown = copy(layouts[lod]); paint(); }
+    const hp = at.pos.get(hub);
     flyTo(hub, k, {sx: vw / 2 + (hp.x + hub.w / 2 - (minX + maxX) / 2) * k, sy: vh / 2 + (hp.y + hp.h / 2 - (minY + maxY) / 2) * k, dur});
   }
   const fit = dur => frameNodes(nodes, dur);
@@ -413,7 +485,7 @@ export function mountTree(root, data) {
     if (!node) return;
     event.preventDefault();
     if (node.kind === 'hub') home();
-    else if (node.kind === 'module' || node.kind === 'milestone') flyTo(node, 0.95);
+    else if (node.kind === 'module' || node.kind === 'milestone' || node.kind === 'island') flyTo(node, 0.95);
     else if (node.kind === 'course') flyToCourse(node, lod === 'far' ? 0.55 : 0.95);
     else {
       // A direction: its courses' arms in view.
@@ -454,7 +526,7 @@ export function mountTree(root, data) {
     const top = header && getComputedStyle(header).position === 'sticky' ? header.offsetHeight : 0;
     const gap = document.documentElement.hasAttribute('data-glass') ? 16 : 64;
     document.documentElement.style.setProperty('--map-nav-bar', bar + 'px');
-    viewport.style.height = Math.max(420, window.innerHeight - top - bar - 2 * gap) + 'px';
+    if (!fill) viewport.style.height = Math.max(420, window.innerHeight - top - bar - 2 * gap) + 'px';
   }
   // Until the card has scrolled fully into view, the wheel scrolls the page down to it instead of
   // panning the map. The rest of that gesture (trackpad momentum) is absorbed rather than flinging the map.
@@ -486,15 +558,43 @@ export function mountTree(root, data) {
   lod = start ? levelFor(0.62) : 'far';
   canvas.dataset.lod = canvas.dataset.detail = lod;
   shown = copy(layouts[lod]); paint();
-  if (start) {
+  // A module with the one before and after it along the branch, zoomed in to where its lessons are listed.
+  const around = key => {
+    const [id] = (key || '').split(':');
+    for (const t of topics) for (const lane of t.lanes) {
+      if (lane.card.el.dataset.course !== id) continue;
+      const nodesOf = [lane.card, ...lane.chain], at = nodesOf.findIndex(n => n.el.dataset.module === key);
+      return at < 0 ? null : [...nodesOf.slice(Math.max(0, at - 1), at + 2), ...(nodesOf[at].islands || [])];
+    }
+    return null;
+  };
+  if (!linked && openModule && around(openModule)) {
+    frameNodes(around(openModule), 0, 1.05, 120, 0.85);
+  } else if (start) {
     flyToCourse(nodeOf.get(start), 0.62, 0);
     if (linked) linked.classList.add('is-linked');
   } else {
     home(0);
   }
+  root.addEventListener('tree:repaint', () => { if (shown) paint(); }, on);
+  root.addEventListener('tree:island', event => {
+    const isle = nodes.find(n => n.kind === 'island' && n.el.dataset.guide === event.detail);
+    canvas.querySelectorAll('.tree-island.is-focus').forEach(n => n.classList.remove('is-focus'));
+    if (!isle) return;
+    isle.el.classList.add('is-focus');
+    frameNodes([isle.module, isle], MS.fly * 1.2, 1.05, 120, 0.85);
+  }, on);
+  root.addEventListener('tree:module', event => { const set = around(event.detail); if (set) frameNodes(set, MS.fly * 1.2, 1.05, 120, 0.85); }, on);
   const onResize = () => { size(); remeasure(); };
   window.addEventListener('resize', onResize, on);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (!destroyed) { size(); remeasure(); } });
+  // Fonts arriving change the nodes' heights. A view framed on a branch that nobody has moved yet is framed again.
+  const opened = {...view};
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
+    if (destroyed) return;
+    const untouched = view.x === opened.x && view.y === opened.y && view.k === opened.k;
+    size(); remeasure();
+    if (untouched && !linked && openModule && around(openModule)) frameNodes(around(openModule), 0, 1.05, 120, 0.85);
+  });
   // The toolbar above can change height (fonts arriving, wrapping): keep the card's bottom in place.
   const above = 'ResizeObserver' in window ? new ResizeObserver(() => { if (!destroyed) size(); }) : null;
   root.querySelectorAll('.tree-bar-top').forEach(node => above && above.observe(node));

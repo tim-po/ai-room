@@ -1,5 +1,6 @@
 import {useLoaderData, useSearchParams, type LoaderFunctionArgs} from 'react-router';
 import {getJson} from '../api';
+import {GoalsContext} from '../components/GoalMarks';
 import {Hero, ItemCard, ShelfRow, TopicTiles} from '../components/Items';
 import {SearchBox} from '../components/Search';
 import {plural} from '../format';
@@ -127,7 +128,9 @@ export default function Discover() {
         <SearchBox key={params.get('q') ?? ''} variant="inline" initial={params.get('q') ?? ''} />
         <ClassChips classes={loaded.data.classes} current={params.get('class') ?? ''} />
       </header>
-      {loaded.mode === 'home' ? <Home data={loaded.data} /> : <Results data={loaded.data} />}
+      <GoalsContext.Provider value={loaded.data.goals ?? []}>
+        {loaded.mode === 'home' ? <Home data={loaded.data} /> : <Results data={loaded.data} />}
+      </GoalsContext.Provider>
     </div>
   );
 }

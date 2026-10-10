@@ -4,7 +4,7 @@ import {MapCelebration} from '../components/Ranks';
 import type {HomeData} from '../types';
 // The map is a round tree on a pan-and-zoom canvas (drag, pinch, wheel): imperative DOM code (engine.js)
 // that React mounts once per data set. On a phone it opens on your course and the legend folds away.
-import {mountTree} from './engine.js';
+import {mountTree, type TreeOptions} from './engine.js';
 
 const PHONE = '(max-width: 700px)';
 
@@ -20,13 +20,22 @@ function usePhone() {
 
 const LEGEND: [string, string][] = [['done', 'Пройден'], ['progress', 'В процессе'], ['open', 'Доступен'], ['locked', 'Урок клуба'], ['coming', 'Скоро']];
 
-export default function SkillMap({data}: {data: HomeData}) {
+/** title: the page's heading; decorate: runs on the drawn map (and again when it changes), e.g. «Мой путь» colouring its goals. */
+export default function SkillMap({data, title = 'Карта навыков', heading: Heading = 'h1', decorate, options, children}: {
+  data: HomeData; title?: string; heading?: 'h1' | 'h2'; decorate?: (root: HTMLElement) => void;
+  /** engine options («Мой путь»: fill, module, inset), read once when the map mounts */
+  options?: TreeOptions;
+  children?: React.ReactNode;
+}) {
   const root = useRef<HTMLElement>(null);
   const phone = usePhone();
   useEffect(() => {
     if (!root.current) return;
-    return mountTree(root.current, data.tree);
-  }, [data]);
+    return mountTree(root.current, data.tree, options);
+  }, [data]);   // eslint-disable-line react-hooks/exhaustive-deps -- options are where the map opens, not something to follow
+  useEffect(() => {
+    if (root.current && decorate) decorate(root.current);
+  }, [data, decorate]);
 
   const briefing = data.briefing;
   // After a break a briefing opens over the map; hiding it lasts for this visit.
@@ -60,7 +69,7 @@ export default function SkillMap({data}: {data: HomeData}) {
   return (
     <section className="tree" ref={root} aria-labelledby="tree-title">
       <div className="tree-bar-top">
-        <div><h1 id="tree-title">Карта навыков</h1></div>
+        <div><Heading id="tree-title">{title}</Heading></div>
         <div className="tree-tools">
           <span className="tree-zoom">
             <button type="button" data-zoom-out aria-label="Уменьшить">−</button>
@@ -72,6 +81,7 @@ export default function SkillMap({data}: {data: HomeData}) {
           {phone && legend}
         </div>
       </div>
+      {children}
       <div className="tree-viewport"><div className="tree-canvas" /></div>
       {overlays}
       {!phone && legend}

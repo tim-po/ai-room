@@ -78,10 +78,12 @@ function Header() {
   const user = bootstrap.user;
   return (
     <header className="club-header">
-      <AppLink className="brand" to={user ? '/discover' : '/'}>AI ROOM</AppLink>
+      <AppLink className="brand" to="/">AI ROOM</AppLink>
       <nav aria-label="Главная навигация">
+        {user && <NavLink to="/" active={pathname === '/'}>Главная</NavLink>}
+        {/* the map is the path: «Мой путь» once signed in, the plain map for visitors */}
+        <NavLink to={user ? '/path' : '/map'} active={pathname === '/map' || pathname === '/path'}>{user ? 'Мой путь' : 'Карта навыков'}</NavLink>
         <NavLink to="/discover" active={/^\/(discover|catalogue|materials\/)/.test(pathname) || (!user && /^\/(courses|lessons)\//.test(pathname))}>Обзор</NavLink>
-        <NavLink to="/map" active={pathname === '/map'}>Карта навыков</NavLink>
         {user && <MyCourses active={/^\/(courses|lessons)\//.test(pathname)} />}
         {user && user.role !== 'learner' && <NavLink to="/admin" active={pathname.startsWith('/admin')}>Админка</NavLink>}
       </nav>

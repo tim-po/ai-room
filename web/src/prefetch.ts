@@ -7,7 +7,7 @@ import {isSpaPath} from './links';
 const SEARCH = ['q', 'class', 'topic', 'level', 'access'];
 const FIXED: Record<string, string> = {
   '/': '/api/app/home', '/map': '/api/app/home', '/profile': '/api/app/profile', '/preferences': '/api/app/preferences',
-  '/onboarding': '/api/onboarding', '/oauth/consent': '/api/app/oauth/consent',
+  '/onboarding': '/api/app/journey', '/path': '/api/app/journey', '/oauth/consent': '/api/app/oauth/consent',
 };
 
 export function pageDataUrl(pathname: string, search: string): string | null {
