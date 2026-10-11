@@ -25,7 +25,9 @@ SLIDERS = {
     'agents': ('Автоматизации и ИИ-агенты', {'automation': 1, 'agents': .8}),
     'media': ('Картинки и видео с ИИ', {'visual': 1, 'video': .7}),
 }
-COLORS = ('#dfff4f', '#8eb8e0', '#d9b88f')   # one per chosen goal, on the map and in the plan: the club's lime, then muted steel and sand
+# One per chosen goal, on the map and in the plan: CSS variables, so each theme has its own shades
+# (web/src/journey.css: the club's lime, steel and sand; deeper, cleaner ones on light themes).
+COLORS = ('var(--goal-1)', 'var(--goal-2)', 'var(--goal-3)')
 
 
 def levels_from(answers):

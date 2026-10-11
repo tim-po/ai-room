@@ -115,6 +115,9 @@ export interface HomeData {
   free_lessons: (TreeLesson & {course: string; topic: string})[];
   /** Earned and not yet celebrated. */
   achievements: Achievement[];
+  /** signed in: the study days and time, and days with activity in the last twelve weeks (lessons finished that day) */
+  plan?: Plan;
+  activity?: {day: string; lessons: number}[];
 }
 
 export interface LessonInfo {

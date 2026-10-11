@@ -1,0 +1,73 @@
+import {useLoaderData, type LoaderFunctionArgs} from 'react-router';
+import {getJson} from '../api';
+import {AppLink} from '../Shell';
+import {useTitle} from '../useTitle';
+
+// A lesson that isn't on the platform yet (club/tree.py upcoming): it opens like a lesson, with its place in the
+// course, what it will train and an empty page standing in for the content, so links to it work everywhere.
+
+interface UpcomingData {
+  title: string; minutes: number | null;
+  course: {id: string; title: string; url: string | null; topic: string};
+  module: {index: number; title: string; count: number};
+  position: number;
+  lessons: {title: string; url: string | null; state: string; here: boolean}[];
+  skills: {id: string; title: string; points: number}[];
+}
+
+export const upcomingLoader = ({request, params}: LoaderFunctionArgs) =>
+  getJson<UpcomingData>(`/api/app/upcoming/${params.course}/${params.module}/${params.lesson}`, request.signal);
+
+export default function Upcoming() {
+  const data = useLoaderData() as UpcomingData;
+  useTitle(data.title);
+  const before = data.lessons[data.position - 1], after = data.lessons[data.position + 1];
+  return (
+    <article className="upcoming">
+      <nav className="upcoming-crumbs" aria-label="Где этот урок">
+        <span>{data.course.topic}</span> ›{' '}
+        {data.course.url ? <AppLink to={data.course.url}>{data.course.title}</AppLink> : <AppLink to={`/map#course-${data.course.id}`}>{data.course.title}</AppLink>} ›{' '}
+        <span>Модуль {data.module.index + 1}. {data.module.title}</span>
+      </nav>
+      <header className="upcoming-head">
+        <p className="upcoming-badge">Урок готовится</p>
+        <h1>{data.title}</h1>
+        <p className="upcoming-meta">Урок {data.position + 1} из {data.lessons.length}{data.minutes ? ` · около ${data.minutes} мин` : ''}</p>
+      </header>
+
+      <div className="upcoming-grid">
+        <div className="upcoming-body" aria-label="Содержимое урока появится здесь">
+          <div className="upcoming-video"><span>Видео и материалы урока появятся здесь</span></div>
+          <div className="upcoming-lines" aria-hidden="true"><i /><i /><i /><i /><i /></div>
+          <p className="upcoming-note">Мы ещё собираем этот урок. Он уже стоит на своём месте в курсе и в твоём пути — когда он выйдет, здесь будет полное содержимое.</p>
+          <div className="upcoming-nav">
+            {before?.url ? <AppLink className="button secondary" to={before.url}>← {before.title}</AppLink> : <span />}
+            {after?.url && <AppLink className="button secondary" to={after.url}>{after.title} →</AppLink>}
+          </div>
+        </div>
+        <aside className="upcoming-side">
+          {data.skills.length > 0 && (
+            <section>
+              <h2>Что прокачает</h2>
+              <ul className="upcoming-skills">
+                {data.skills.map(s => <li key={s.id}><span>{s.title}</span><b style={{width: `${Math.min(100, s.points * 8)}%`}} /></li>)}
+              </ul>
+            </section>
+          )}
+          <section>
+            <h2>Уроки модуля</h2>
+            <ol className="upcoming-lessons">
+              {data.lessons.map((l, i) => (
+                <li key={i} className={(l.here ? 'is-here ' : '') + `is-${l.state}`}>
+                  {l.url && !l.here ? <AppLink to={l.url}>{l.title}</AppLink> : <span>{l.title}</span>}
+                  {l.state === 'coming' && <small>скоро</small>}
+                </li>
+              ))}
+            </ol>
+          </section>
+          <AppLink to="/path">Где это на моём пути →</AppLink>
+        </aside>
+      </div>
+    </article>
+  );
+}

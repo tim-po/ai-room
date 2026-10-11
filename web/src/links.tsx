@@ -6,6 +6,7 @@ import {Link} from 'react-router';
 const SPA_PATHS = [
   /^\/$/, /^\/(map|path|profile|discover|catalogue|membership|preferences|help|onboarding|login)$/,
   /^\/(lessons|courses|materials)\/[^/]+$/,
+  /^\/upcoming\/[^/]+\/\d+\/\d+$/,
   /^\/oauth\/consent$/,
   /^\/admin(\/(courses|lessons|library|learners)(\/[^/]+)?|\/(questions|works|analytics))?$/,
 ];

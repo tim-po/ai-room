@@ -39,8 +39,7 @@ function progressAfter(path: JourneyPath, count: number) {
 }
 
 // Several goals' colours in equal parts: a striped band (left to right) and a split ring (around a dot).
-const ink = (c: string) => `color-mix(in srgb,${c} var(--ink-mix),var(--text))`;
-const parts = (cs: string[]) => cs.map((c, i) => `${ink(c)} ${(100 * i / cs.length).toFixed(2)}% ${(100 * (i + 1) / cs.length).toFixed(2)}%`).join(',');
+const parts = (cs: string[]) => cs.map((c, i) => `${c} ${(100 * i / cs.length).toFixed(2)}% ${(100 * (i + 1) / cs.length).toFixed(2)}%`).join(',');
 const band = (cs: string[]) => `linear-gradient(90deg,${parts(cs)})`;
 const pie = (cs: string[]) => `conic-gradient(${parts(cs)})`;
 

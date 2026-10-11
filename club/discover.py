@@ -84,7 +84,7 @@ def register_discover(app, query, can_access, cards, continuation_context, shell
                                              state='coming', access=None, learners=0, new=False))
                     for module in course['modules']:
                         for lesson in module['lessons']:
-                            items.append(base | dict(kind='coming', sub='lesson', id=None, title=lesson['title'], url=f'/map#course-{course["id"]}',
+                            items.append(base | dict(kind='coming', sub='lesson', id=None, title=lesson['title'], url=lesson.get('url') or f'/map#course-{course["id"]}',
                                                      text=f'Урок курса «{course["title"]}»', course=dict(id=course['id'], title=course['title']),
                                                      context=course['title'], haystack=module['title'], state='coming', access=None,
                                                      learners=0, new=False, hidden=True))
@@ -100,7 +100,7 @@ def register_discover(app, query, can_access, cards, continuation_context, shell
                 for module in course['modules']:
                     for lesson in module['lessons']:
                         if lesson['state'] == 'coming':
-                            items.append(base | dict(kind='coming', sub='lesson', id=None, title=lesson['title'], url=f'/map#course-{course["id"]}',
+                            items.append(base | dict(kind='coming', sub='lesson', id=None, title=lesson['title'], url=lesson.get('url') or f'/map#course-{course["id"]}',
                                                      text=f'Урок курса «{course["title"]}»', course=dict(id=course['id'], title=course['title']),
                                                      context=course['title'], haystack=module['title'], state='coming', access=None,
                                                      learners=0, new=False, hidden=True))

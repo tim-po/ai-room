@@ -51,7 +51,7 @@ export interface JourneyPath {
 export interface JourneyData {options: JourneyOptions; answers: JourneyAnswers; status: 'new' | 'draft' | 'done' | 'skipped'; path: JourneyPath | null}
 
 /** The colours the server gives the chosen goals, in order (club/journey.py COLORS), for screens before a path exists. */
-export const GOAL_COLORS = ['#dfff4f', '#8eb8e0', '#d9b88f'];
+export const GOAL_COLORS = ['var(--goal-1)', 'var(--goal-2)', 'var(--goal-3)'];
 
 export const DEADLINE_LABEL: Record<number, string> = {4: 'Месяц', 13: '3 месяца', 26: 'Полгода', 52: 'Год'};
 

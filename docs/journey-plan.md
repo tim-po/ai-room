@@ -124,6 +124,19 @@ late plans say «позже срока» in muted text (the club palette's gold-
 - The map is «Мой путь»: `/map` renders the same page (plain map + invitation without goals, also for
   visitors); nav: Главная · Мой путь (Карта навыков for visitors) · Обзор · Мои курсы.
 
+## Round 6 (2026-10-11): Главная and Профиль reworked, placeholders for lessons not here yet
+
+- Главная: next step + майлстоуны (next one per path course, %); «План занятий» — two weeks of sessions with the
+  path's lessons, past days with activity, 12-week activity grid, settings (sessions, days, minutes, time → pace
+  and plan), calendar links; goals with a large radar (press a goal: its skills now → target); next steps;
+  courses in progress. «По пути» and the map card removed. Home API adds `plan` and `activity`.
+- Профиль (like the app's): header with subscription status, «О себе» (goals → onboarding), Подписка, Доступ и
+  вход (Telegram — not available yet, Почта — sign-in address, ИИ-ассистенты), Помощь; works and favourites only
+  when there are any. Plan, club, continue and ranks removed. No email confirmation or Telegram linking exists yet.
+- Lessons not here yet open as placeholders (`/upcoming/<course>/<module>/<lesson>`, club/tree.py upcoming).
+- Onboarding opens at `?step=` or, after finishing, at the goals (was a blank page).
+- «Веха» → «Майлстоун» everywhere; footer «AI Room © 2026»; goal colours are per-theme CSS variables.
+
 ## Next steps after fixes
 - Settings: «Цели и путь» section (change goals/level/deadlines/pace without redoing onboarding).
 - Update README (onboarding v2, skill model, paths), run full tests + `scripts/check_admin_browser.py`, commit.

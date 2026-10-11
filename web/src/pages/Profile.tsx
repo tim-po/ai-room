@@ -1,70 +1,45 @@
 import {useLoaderData} from 'react-router';
-import {useState} from 'react';
+import {useState, type ReactNode} from 'react';
 import {ApiError, deleteJson, getJson, postJson} from '../api';
 import {copyAsync, type Link} from '../components/AssistantHandoff';
-import {ReturnBriefing, stepLabel} from '../components/Briefing';
-import {CalendarLinks} from '../components/PlanEditor';
-import {humanTime, plural} from '../format';
-import {formatDays, formatSession, nextSession} from '../plan';
+import {humanTime} from '../format';
+import type {JourneyData} from '../journey';
 import {AppLink} from '../Shell';
-import {DemoSwitch} from './Membership';
-import {RanksPanel} from '../components/Ranks';
-import type {Connection, CourseProgress, ProfileData} from '../types';
+import type {Connection, ProfileData} from '../types';
 import {useTitle} from '../useTitle';
 
-export const profileLoader = ({request}: {request: Request}) => getJson<ProfileData>('/api/app/profile', request.signal);
+// Профиль: the account. Who you are and what you're learning for («О себе»), the subscription, how you sign in
+// (Telegram, email, assistants), help; saved works and favourites when there are any. The study plan, courses
+// and progress live on Главная.
 
-const ACCESS_LABEL: Record<string, string> = {free: 'Бесплатный доступ', member: 'Участник клуба', revoked: 'Доступ приостановлен', expired: 'Доступ закончился'};
-const ACCESS_TEXT: Record<string, string> = {
-  free: 'Бесплатные уроки открыты.', member: 'Уроки клуба доступны.',
-  revoked: 'Доступ участника отозван. Бесплатные уроки остаются доступны.', expired: 'Срок доступа истёк. Бесплатные уроки остаются доступны.',
+export const profileLoader = async ({request}: {request: Request}) => {
+  const [profile, journey] = await Promise.all([getJson<ProfileData>('/api/app/profile', request.signal), getJson<JourneyData>('/api/app/journey', request.signal)]);
+  return {profile, journey};
 };
 
-/** The club page lives here now: status, what the club adds, and the way in (or out). */
-function Club({data}: {data: ProfileData}) {
-  const {user, club} = data;
-  const member = user.entitlement === 'member' || user.role !== 'learner';
-  return (
-    <section className={'me-panel me-club' + (member ? ' is-member' : '')} id="club" aria-labelledby="club-title">
-      <h2 id="club-title">Клуб</h2>
-      <p className="me-club-status">{member ? 'Вы в клубе' : ACCESS_LABEL[user.entitlement]}</p>
-      <p>{ACCESS_TEXT[user.entitlement]}</p>
-      <ul className="me-club-list">
-        <li><strong>{club.member_lessons}</strong> {plural(club.member_lessons, 'урок', 'урока', 'уроков')} клуба в дополнение к {club.free_lessons} бесплатным</li>
-        <li>Полные курсы, практика с сохранением и новые материалы</li>
-        <li>Отменить можно в любой момент — сохранённое останется</li>
-      </ul>
-      {user.entitlement === 'revoked' ? <AppLink to="/help">Написать в поддержку →</AppLink>
-        : user.role !== 'learner' ? <p className="small">У вашей роли есть доступ ко всем урокам.</p>
-        : club.demo ? <DemoSwitch next="/profile" />
-        : member ? <AppLink to="/help">Вопрос по доступу →</AppLink>
-        : <AppLink to="/membership">Как получить доступ →</AppLink>}
-    </section>
-  );
-}
+const ACCESS_LABEL: Record<string, string> = {free: 'Без подписки', member: 'Подписка активна', revoked: 'Доступ приостановлен', expired: 'Подписка закончилась'};
+const ACCESS_TEXT: Record<string, string> = {free: 'Неактивна', member: 'Активна', revoked: 'Приостановлена', expired: 'Закончилась'};
 
-function CourseRow({course, entitlement}: {course: CourseProgress; entitlement: string}) {
-  const remaining = course.done < course.total;
+const ICONS: Record<string, ReactNode> = {
+  card: <path d="M3.5 7.5h17M5 5h14a1.5 1.5 0 0 1 1.5 1.5v11A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5v-11A1.5 1.5 0 0 1 5 5Z" />,
+  telegram: <path d="m21 4-18 7.5 6.5 2L12 20l3-4.5 4.5 3.5L21 4Zm-11.5 9.5L21 4" />,
+  mail: <path d="M4 6h16v12H4zM4 7l8 6 8-6" />,
+  bot: <path d="M8 9h8a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3Zm4-4v4M9.5 14h.01M14.5 14h.01" />,
+  help: <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-5a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM5.6 5.6l3.6 3.6m5.6 5.6 3.6 3.6m0-12.8-3.6 3.6m-5.6 5.6-3.6 3.6" />,
+};
+
+/** One row of the profile: an icon, what it is, its state, and an action on the right. */
+function Row({icon, title, sub, children, id}: {icon: string; title: string; sub?: ReactNode; children?: ReactNode; id?: string}) {
   return (
-    <div className={'me-course' + (remaining ? '' : ' is-complete')}>
-      <div className="me-course-main">
-        <AppLink className="me-course-title" to={`/courses/${course.id}`}>{course.title}</AppLink>
-        {remaining && <progress className="me-progress" value={course.done} max={course.total || 1} aria-label={`Пройдено ${course.done} из ${course.total}`} />}
-        <p className="me-course-meta">
-          Пройдено {course.done} / {course.total} {plural(course.total, 'урок', 'урока', 'уроков')}
-          {course.next && <> · Дальше: <AppLink to={`/lessons/${course.next.id}`}>{course.next.title}</AppLink></>}
-          {!course.next && course.next_locked && <> · Дальше — урок клуба: <AppLink to={`/lessons/${course.next_locked.id}`}>{course.next_locked.title}</AppLink></>}
-          {!course.next && !course.next_locked && remaining && ' · Открытые уроки пройдены'}
-        </p>
-      </div>
-      {remaining && (course.next
-        ? <AppLink className="button secondary" to={`/lessons/${course.next.id}`}>Продолжить</AppLink>
-        : course.next_locked && entitlement !== 'revoked'
-          ? <AppLink className="button secondary" to={`/membership?next=/lessons/${course.next_locked.id}`}>Открыть доступ</AppLink>
-          : <AppLink className="button secondary" to={`/courses/${course.id}`}>Открыть курс</AppLink>)}
+    <div className="pf-row" id={id}>
+      <span className="pf-icon" aria-hidden="true"><svg viewBox="0 0 24 24">{ICONS[icon]}</svg></span>
+      <div className="pf-row-main"><strong>{title}</strong>{sub && <span>{sub}</span>}</div>
+      {children && <div className="pf-row-actions">{children}</div>}
     </div>
   );
 }
+
+const masked = (email: string) => { const [name, domain] = email.split('@'); return domain ? `${name[0] ?? ''}•••@${domain}` : email; };
 
 /** Assistants connected with a link from a lesson; each can be switched off. */
 function Connections({initial}: {initial: Connection[]}) {
@@ -91,8 +66,9 @@ function Connections({initial}: {initial: Connection[]}) {
     }
   }
   return (
-    <section className="me-panel" id="connections" aria-labelledby="connections-title">
-      <h2 id="connections-title">Подключения</h2>
+    <div className="pf-row is-stack" id="connections">
+      <span className="pf-icon" aria-hidden="true"><svg viewBox="0 0 24 24">{ICONS.bot}</svg></span>
+      <div className="pf-row-main"><strong>ИИ-ассистенты</strong><span>{items.length ? `Подключено: ${items.length}` : 'Не подключены'}</span>
       {items.length ? (
         <ul className="connections">
           {items.map(c => (
@@ -102,136 +78,107 @@ function Connections({initial}: {initial: Connection[]}) {
             </li>
           ))}
         </ul>
-      ) : <p className="me-note">Дайте своему ИИ-ассистенту ссылку из урока — он увидит задание и сможет сохранить вашу работу сюда. Подключённые ассистенты появятся здесь.</p>}
-      <button type="button" className="button secondary" onClick={newLink}>Ссылка для ассистента</button>
+      ) : <p className="me-note">Дай своему ИИ-ассистенту ссылку — он увидит задание урока и сможет сохранить работу сюда.</p>}
       {link && <input className="connection-link" readOnly value={link.url} aria-label="Ссылка для ассистента" onFocus={e => e.currentTarget.select()} />}
-      <p className="small" role="status">{status}</p>
-    </section>
+      {status && <p className="small" role="status">{status}</p>}
+      </div>
+      <div className="pf-row-actions"><button type="button" className="button secondary" onClick={newLink}>Ссылка</button></div>
+    </div>
   );
 }
 
 export default function Profile() {
-  const data = useLoaderData() as ProfileData;
+  const {profile: data, journey} = useLoaderData() as {profile: ProfileData; journey: JourneyData};
   useTitle('Профиль');
-  const {user, briefing, plan} = data;
-  const unfinished = data.continuation.unfinished;
-  const next = nextSession(plan);
+  const {user} = data;
+  const staff = user.role !== 'learner';
+  const member = user.entitlement === 'member' || staff;
+  const goals = journey.path?.goals ?? [];
   return (
-    <div className="me">
-      <header className="me-hero">
-        <span className="me-avatar" aria-hidden="true">{(user.name.trim()[0] ?? '·').toUpperCase()}</span>
-        <div className="me-id">
+    <div className="pf">
+      <header className="pf-hero">
+        <span className="pf-avatar" aria-hidden="true">{(user.name.trim()[0] ?? '·').toUpperCase()}</span>
+        <div className="pf-id">
           <h1>{user.name}</h1>
-          <p className="me-id-meta">
-            <AppLink to="#club" className={`me-status is-${user.entitlement === 'member' || user.role !== 'learner' ? 'member' : user.entitlement}`}>{user.role !== 'learner' ? 'Полный доступ' : ACCESS_LABEL[user.entitlement]}</AppLink>
-            <span>{user.email}</span>
-          </p>
-          <p className="me-facts">{[
-            data.stats.lessons_done ? `${data.stats.lessons_done} ${plural(data.stats.lessons_done, 'урок пройден', 'урока пройдено', 'уроков пройдено')}` : '',
-            data.stats.works ? `${data.stats.works} ${plural(data.stats.works, 'работа', 'работы', 'работ')}` : '',
-            data.stats.days ? `${data.stats.days} ${plural(data.stats.days, 'день', 'дня', 'дней')} учёбы за месяц` : '',
-            data.active_courses.length ? `${data.active_courses.length} ${plural(data.active_courses.length, 'курс', 'курса', 'курсов')} в работе` : '',
-          ].filter(Boolean).join(' · ') || 'Начните первый урок — прогресс появится здесь.'}</p>
+          <span className={'pf-status' + (member ? ' is-member' : '')}>{staff ? 'Полный доступ' : ACCESS_LABEL[user.entitlement]}</span>
         </div>
-        <AppLink className="me-settings" to="/preferences" aria-label="Настройки">
+        <AppLink className="pf-settings" to="/preferences" aria-label="Настройки" title="Настройки">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" /><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14.1 2.5h-4.2l-.4 2.5a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-.9a7.5 7.5 0 0 0 2.6 1.5l.4 2.5h4.2l.4-2.5a7.5 7.5 0 0 0 2.6-1.5l2.3.9 2-3.4z" /></svg>
-          <span>Настройки</span>
         </AppLink>
       </header>
-      <div className="me-grid">
-        <div className="me-main">
-          {briefing?.returning ? (
-            <ReturnBriefing briefing={briefing} className="me-briefing" />
-          ) : unfinished ? (
-            <AppLink className="me-continue" to={briefing?.url ?? unfinished.url + (unfinished.status === 'draft' ? '#practice' : '')} aria-label={`Продолжить: ${unfinished.title}`}>
-              <span className="me-continue-label">{unfinished.status === 'draft' ? 'Черновик ждёт вас' : 'Продолжить урок'}{stepLabel(briefing) && ` · ${stepLabel(briefing)}`}</span>
-              <strong>{unfinished.title}</strong>
-              <span className="me-continue-action">Продолжить →</span>
-            </AppLink>
-          ) : data.active_courses.length || data.practices.length ? (
-            <div className="me-empty"><p>Сейчас нет начатого урока. Выберите следующий шаг на карте.</p><AppLink className="button" to="/map">Открыть карту навыков →</AppLink></div>
-          ) : (
-            <div className="me-empty"><h2>Здесь будет ваш прогресс</h2><p>Откройте первый урок — курс, прогресс и сохранённые работы появятся на этой странице.</p><AppLink className="button" to="/map">Выбрать урок на карте →</AppLink></div>
-          )}
 
-          <section className="me-section" id="practice" aria-labelledby="practice-title">
-            <h2 id="practice-title">Мои работы{data.practices.length > 0 && <span>{data.practices.length}</span>}</h2>
-            {data.practices.length ? data.practices.map(p => (
-              <article key={p.lesson_id} className="me-work">
-                <div className="me-work-head">
-                  <AppLink to={`/lessons/${p.lesson_id}#practice`}>{p.title}</AppLink>
-                  <span className="me-chips">
-                    {p.via && <span className="me-chip is-via">из {p.via}</span>}
-                    {p.review && <span className="me-chip is-review">есть отзыв</span>}
-                    <span className={'me-chip ' + (p.status === 'draft' ? 'is-draft' : 'is-saved')}>{p.status === 'draft' ? 'Черновик' : 'Результат'}</span>
-                  </span>
-                </div>
-                <p className="preserve">{p.body.length > 280 ? p.body.slice(0, 277) + '…' : p.body}</p>
-                <p className="me-work-date">Сохранено {humanTime(p.updated_at)}</p>
-                {p.review && (
-                  <div className="practice-review">
-                    <p className="practice-review-head">Отзыв · {p.review.reviewer}, {humanTime(p.review.updated_at)}</p>
-                    <p className="preserve">{p.review.body}</p>
-                  </div>
-                )}
-              </article>
-            )) : <p className="me-note">Сохраните практику в уроке — она появится здесь, и к ней можно будет вернуться с любого устройства.</p>}
-          </section>
-
-          <section className="me-section" aria-labelledby="active-learning">
-            <h2 id="active-learning">Курсы в работе{data.active_courses.length > 0 && <span>{data.active_courses.length}</span>}</h2>
-            {data.active_courses.length
-              ? data.active_courses.map(course => <CourseRow key={course.id} course={course} entitlement={user.entitlement} />)
-              : <p className="me-note">{data.practices.length ? 'Сохранённые работы — выше. Курс появится здесь, когда вы пройдёте урок.' : 'Пока нет курсов в работе. Откройте интересующий урок — здесь появится ваш прогресс.'}</p>}
-          </section>
-
-          {data.completed_courses.length > 0 && (
-            <section className="me-section" aria-labelledby="completed-learning">
-              <h2 id="completed-learning">Завершённые курсы<span>{data.completed_courses.length}</span></h2>
-              {data.completed_courses.map(course => <CourseRow key={course.id} course={course} entitlement={user.entitlement} />)}
-            </section>
-          )}
+      <section className="pf-about" aria-labelledby="about-title">
+        <div>
+          <p className="pf-label" id="about-title">О себе</p>
+          {goals.length ? (
+            <p className="pf-goals">{goals.map(g => <span key={g.id}><i style={{background: g.color}} />{g.title}</span>)}</p>
+          ) : <p>Расскажи о себе — подберём путь и материалы под твой уровень и цели.</p>}
         </div>
+        <AppLink className="button" to="/onboarding?step=goals">{goals.length ? 'Изменить' : 'Заполнить'}</AppLink>
+      </section>
 
-        <aside className="me-side">
-          {data.ranks.length > 0 && <RanksPanel ranks={data.ranks} />}
-          <section className="me-panel" aria-labelledby="pace-title" id="plan">
-            <h2 id="pace-title">План</h2>
-            {next ? (
-              <div className="weekly-goal">
-                <p><strong>{formatDays(plan.days)} в {plan.time}</strong></p>
-                <p>Следующее занятие — {formatSession(next)}.</p>
-                <p className="small">За последние 7 дней: {data.weekly} из {plan.days.length} {plural(plan.days.length, 'занятия', 'занятий', 'занятий')}.</p>
-                <progress aria-label="Занятия за неделю" value={Math.min(data.weekly, plan.days.length)} max={plan.days.length} />
-                <CalendarLinks plan={plan} />
-                <AppLink to="/preferences#plan">Изменить план →</AppLink>
+      <section className="pf-section" aria-labelledby="sub-title">
+        <h2 className="pf-label" id="sub-title">Подписка</h2>
+        <Row icon="card" title="Подписка" sub={staff ? 'Полный доступ по роли' : ACCESS_TEXT[user.entitlement]} id="club">
+          {staff ? null : user.entitlement === 'revoked' ? <AppLink className="button secondary" to="/help">Написать в поддержку</AppLink>
+            : member ? <AppLink className="button secondary" to="/membership">Управлять</AppLink>
+            : <AppLink className="button" to="/membership">Купить подписку</AppLink>}
+        </Row>
+      </section>
+
+      <section className="pf-section" aria-labelledby="access-title">
+        <h2 className="pf-label" id="access-title">Доступ и вход</h2>
+        <Row icon="telegram" title="Telegram" sub="Не привязан">
+          <span className="pf-chip is-muted">Скоро</span>
+        </Row>
+        <Row icon="mail" title="Почта" sub={masked(user.email)}>
+          <span className="pf-chip">Для входа</span>
+        </Row>
+        <Connections initial={data.connections} />
+      </section>
+
+      <section className="pf-section" aria-labelledby="help-title">
+        <h2 className="pf-label" id="help-title">Помощь</h2>
+        <Row icon="help" title="Служба заботы" sub="Поможем с подпиской, оплатой и доступом">
+          <AppLink className="button secondary" to="/help">Написать</AppLink>
+        </Row>
+      </section>
+
+      {data.practices.length > 0 && (
+        <section className="pf-section" id="practice" aria-labelledby="practice-title">
+          <h2 className="pf-label" id="practice-title">Мои работы · {data.practices.length}</h2>
+          {data.practices.map(p => (
+            <article key={p.lesson_id} className="me-work">
+              <div className="me-work-head">
+                <AppLink to={`/lessons/${p.lesson_id}#practice`}>{p.title}</AppLink>
+                <span className="me-chips">
+                  {p.via && <span className="me-chip is-via">из {p.via}</span>}
+                  {p.review && <span className="me-chip is-review">есть отзыв</span>}
+                  <span className={'me-chip ' + (p.status === 'draft' ? 'is-draft' : 'is-saved')}>{p.status === 'draft' ? 'Черновик' : 'Результат'}</span>
+                </span>
               </div>
-            ) : (
-            <div className="weekly-goal">
-              <p>Выберите дни занятий — добавим их в ваш календарь, чтобы возвращаться было проще.</p>
-              <AppLink className="button secondary" to="/preferences#plan">Выбрать дни →</AppLink>
-              {user.weekly_goal ? (
-                <>
-                  <p><strong>Недельная цель: {data.weekly} из {user.weekly_goal}</strong></p>
-                  <progress aria-label="Недельная цель" value={Math.min(data.weekly, user.weekly_goal)} max={user.weekly_goal} />
-                  {data.weekly >= user.weekly_goal && <p>Цель достигнута. Продолжайте в удобном темпе.</p>}
-                </>
-              ) : <p><strong>Недельная цель на паузе.</strong> Возвращайтесь, когда удобно.</p>}
-              <p className="small">Пройдено за последние 7 дней: {data.weekly} {plural(data.weekly, 'урок', 'урока', 'уроков')}.</p>
-            </div>
-            )}
-          </section>
-          <Club data={data} />
-          <Connections initial={data.connections} />
-          {(data.favourites.length > 0 || data.material_favourites.length > 0) && (
-            <section className="me-panel" aria-labelledby="fav-title">
-              <h2 id="fav-title">Избранное</h2>
-              {data.material_favourites.map(m => <p key={m.id}><AppLink to={`/materials/${m.id}`}>{m.title}</AppLink></p>)}
-              {data.favourites.map(c => <p key={c.id}><AppLink to={`/courses/${c.id}`}>{c.title}</AppLink></p>)}
-            </section>
-          )}
-        </aside>
-      </div>
+              <p className="preserve">{p.body.length > 280 ? p.body.slice(0, 277) + '…' : p.body}</p>
+              <p className="me-work-date">Сохранено {humanTime(p.updated_at)}</p>
+              {p.review && (
+                <div className="practice-review">
+                  <p className="practice-review-head">Отзыв · {p.review.reviewer}, {humanTime(p.review.updated_at)}</p>
+                  <p className="preserve">{p.review.body}</p>
+                </div>
+              )}
+            </article>
+          ))}
+        </section>
+      )}
+
+      {(data.favourites.length > 0 || data.material_favourites.length > 0) && (
+        <section className="pf-section" aria-labelledby="fav-title">
+          <h2 className="pf-label" id="fav-title">Избранное</h2>
+          <div className="pf-favs">
+            {data.material_favourites.map(m => <AppLink key={m.id} to={`/materials/${m.id}`}>{m.title}</AppLink>)}
+            {data.favourites.map(c => <AppLink key={c.id} to={`/courses/${c.id}`}>{c.title}</AppLink>)}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

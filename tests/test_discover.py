@@ -30,7 +30,8 @@ def test_discover_shows_metadata_only_shelves(legacy):
     assert all(i['state'] == 'locked' for i in found['club']['items']) and MEMBER in {i['id'] for i in found['club']['items']}
     for item in items(data):
         assert not set(PRIVATE) & set(item), item
-    assert all(i['kind'] == 'coming' and i['url'].startswith('/map#course-') for i in found['coming']['items'])
+    assert all(i['kind'] == 'coming' and i['url'].startswith(('/map#course-', '/upcoming/')) for i in found['coming']['items'])
+
 
 
 def test_discover_continues_where_the_learner_is(legacy):
@@ -92,3 +93,16 @@ def test_profile_holds_the_club(legacy):
     assert set(profile['stats']) == {'lessons_done', 'works', 'days'}
     switched = post(c, '/membership/demo', {'next': '/profile'}, csrf).json        # switched from the profile, back to it
     assert switched['next'] == '/profile' and c.get('/api/app/profile').json['user']['entitlement'] == 'member'
+
+
+def test_lessons_not_here_yet_open_as_placeholders(legacy):
+    client = legacy.test_client()
+    lessons = [l for t in client.get('/api/app/home').json['tree']['topics'] for c in t['courses'] for m in c['modules'] for l in m['lessons']]
+    coming = [l for l in lessons if l['state'] == 'coming']
+    assert coming and all(l['url'].startswith('/upcoming/') for l in coming)
+    page = client.get('/api/app' + coming[0]['url'])
+    assert page.status_code == 200 and page.json['title'] == coming[0]['title'] and any(l['here'] for l in page.json['lessons'])
+    assert client.get(coming[0]['url']).status_code == 200
+    courses = [c for t in client.get('/api/app/home').json['tree']['topics'] for c in t['courses']]
+    course, mi, li = next((c['id'], mi, li) for c in courses for mi, m in enumerate(c['modules']) for li, l in enumerate(m['lessons']) if l['state'] != 'coming')
+    assert client.get(f'/api/app/upcoming/{course}/{mi}/{li}').status_code == 404   # a real lesson is not a placeholder

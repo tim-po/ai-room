@@ -103,7 +103,7 @@ function Header() {
 }
 
 export function Footer() {
-  return <footer><div>AI Room Club · Независимая учебная среда<br />Контент и аккаунты этой версии — тестовые. Оплаты нет.</div></footer>;
+  return <footer><div>AI Room © 2026</div></footer>;
 }
 
 /**

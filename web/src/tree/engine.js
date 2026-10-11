@@ -57,7 +57,7 @@ export function mountTree(root, data, {fill = false, module: openModule = null, 
     edges.push({from, to, path, straight, lanes: []});
   }
 
-  const MILESTONE_NOTE = {reached: 'Веха пройдена', coming: 'Скоро откроется'};
+  const MILESTONE_NOTE = {reached: 'Майлстоун пройден', coming: 'Скоро откроется'};
   function milestone(stone, course) {
     const box = el('div', `tree-milestone is-${stone.state} is-level-${stone.rank}`);
     const badge = el('span', 'tree-milestone-badge');
@@ -66,7 +66,7 @@ export function mountTree(root, data, {fill = false, module: openModule = null, 
       : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V4m0 1h11l-3 4.5 3 4.5H7"/></svg>';
     const note = stone.state === 'next' || stone.state === 'ahead'
       ? `ещё ${stone.left} ${plural(stone.left, 'урок', 'урока', 'уроков')}` : MILESTONE_NOTE[stone.state];
-    box.append(badge, el('span', 'tree-milestone-kicker', `Веха ${stone.number}`), el('strong', null, stone.name),
+    box.append(badge, el('span', 'tree-milestone-kicker', `Майлстоун ${stone.number}`), el('strong', null, stone.name),
       el('span', 'tree-milestone-course', course.rank_name || course.title), el('span', 'tree-milestone-note', note));
     if (stone.state === 'next') {
       const meter = el('span', 'tree-milestone-meter'), fill = el('span');

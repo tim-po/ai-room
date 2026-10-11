@@ -62,7 +62,7 @@ export default function SkillMap({data, title = 'Карта навыков', hea
             {LEGEND.map(([state, label]) => (
               <li key={state}><span className={`tree-lesson is-${state}`}><span className="tree-dot" /></span>{label}</li>
             ))}
-            <li><span className="legend-milestone" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4.5 14V2.5M4.5 3h7.5l-2 3 2 3H4.5" /></svg></span>Веха — новое звание</li>
+            <li><span className="legend-milestone" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4.5 14V2.5M4.5 3h7.5l-2 3 2 3H4.5" /></svg></span>Майлстоун — новое звание</li>
           </ul>
         </details>
   );

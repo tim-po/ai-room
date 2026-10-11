@@ -92,9 +92,9 @@ def standing(course, best=0):
     if level == 0:
         hint = 'Пройдите первый урок курса — станете новичком'
     elif upcoming:
-        hint = f'До вехи «{upcoming["title"]}»: ещё {upcoming["left"]} {lessons_word(upcoming["left"])}'
+        hint = f'До майлстоуна «{upcoming["title"]}»: ещё {upcoming["left"]} {lessons_word(upcoming["left"])}'
     elif level < 4:
-        hint = 'Следующая веха откроется с новыми уроками'
+        hint = 'Следующий майлстоун откроется с новыми уроками'
     else:
         hint = 'Высшее звание курса'
     return dict(level=level, title=title(level, course) if level else None, rank=RANKS.get(level),

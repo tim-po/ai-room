@@ -23,6 +23,7 @@ import Course, {courseLoader} from './pages/Course';
 import Discover, {discoverLoader} from './pages/Discover';
 import Help, {helpLoader} from './pages/Help';
 import Home, {homeLoader} from './pages/Home';
+import Upcoming, {upcomingLoader} from './pages/Upcoming';
 import LessonPage, {lessonLoader} from './pages/Lesson';
 import Login from './pages/Login';
 import Material, {materialLoader} from './pages/Material';
@@ -48,6 +49,7 @@ const router = createBrowserRouter([
         {path: '/courses/:id', element: <Course />, loader: courseLoader},
         {path: '/lessons/:id', element: <LessonPage />, loader: lessonLoader},
         {path: '/materials/:id', element: <Material />, loader: materialLoader},
+        {path: '/upcoming/:course/:module/:lesson', element: <Upcoming />, loader: upcomingLoader},
         {path: '/profile', element: <Profile />, loader: profileLoader},
         {path: '/preferences', element: <Preferences />, loader: preferencesLoader},
         {path: '/membership', element: <Membership />, loader: membershipLoader},

@@ -30,11 +30,11 @@ def test_ranks_follow_milestones():
     assert level('ooo', 'ooo', 'ooo')['level'] == 0
     assert level('doo', 'ooo', 'ooo')['title'] == 'Новичок Claude'
     first = level('ddd', 'ooo', 'ooo')
-    assert first['rank'] == 'Практик' and first['next'] == 'До вехи «Профи Claude»: ещё 3 урока'
+    assert first['rank'] == 'Практик' and first['next'] == 'До майлстоуна «Профи Claude»: ещё 3 урока'
     assert level('ddd', 'ddd', 'ooo')['rank'] == 'Профи'
     assert level('ddd', 'ddd', 'ddd')['title'] == 'Мастер Claude' and level('ddd', 'ddd', 'ddd')['next'] == 'Высшее звание курса'
     assert level('dd', 'oo')['rank'] == 'Практик'                                       # two milestones: Практик, then Мастер
-    assert level('ddd', 'ccc', 'ccc')['next'] == 'Следующая веха откроется с новыми уроками'
+    assert level('ddd', 'ccc', 'ccc')['next'] == 'Следующий майлстоун откроется с новыми уроками'
     _, stones = standing(course('ddd', 'doo', 'ccc'))
     assert [m['state'] for m in stones] == ['reached', 'next', 'ahead'] and stones[1]['left'] == 2
     _, stones = standing(course('ddd', 'dcc', 'ooo'))

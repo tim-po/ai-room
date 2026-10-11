@@ -34,7 +34,15 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const {options} = initial;
   const [answers, setAnswers] = useState<JourneyAnswers>({beginner: true, sliders: {}, deadlines: {}, ...initial.answers});
-  const [step, setStep] = useState<Step>(() => (initial.answers.step as Step) && initial.answers.step !== 'building' && initial.answers.goals?.length ? initial.answers.step as Step : 'hello');
+  // Where to open: ?step= (Главная's «изменить» links), else where the learner left off; coming back after
+  // finishing (step 'done'), the goals. Level and plan need goals chosen first.
+  const [step, setStep] = useState<Step>(() => {
+    const asked = new URLSearchParams(window.location.search).get('step') ?? initial.answers.step;
+    const known = (s?: string | null): s is Step => !!s && s in STEP_NUMBER && s !== 'building';
+    if (!initial.answers.goals?.length) return known(asked) && asked === 'goals' ? 'goals' : 'hello';
+    if (known(asked) && (asked === 'goals' || asked === 'hello' || initial.path)) return asked;
+    return 'goals';
+  });
   const [path, setPath] = useState<JourneyPath | null>(initial.path);
   const [error, setError] = useState('');
   useTitle('Знакомство');

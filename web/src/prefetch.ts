@@ -19,6 +19,7 @@ export function pageDataUrl(pathname: string, search: string): string | null {
   if (pathname === '/membership' || pathname === '/help') return '/api/app' + pathname + search;
   if (pathname === '/admin') return '/api/admin/overview';
   if (/^\/admin\/((courses|lessons|library|learners)(\/[A-Za-z0-9_.-]+)?|questions|works|analytics)$/.test(pathname)) return '/api' + pathname + search;
+  if (/^\/upcoming\/[a-z0-9-]+\/\d+\/\d+$/.test(pathname)) return '/api/app' + pathname;
   const match = /^\/(lessons|courses|materials)\/([A-Za-z0-9_.-]+)$/.exec(pathname);
   return match ? `/api/app/${match[1]}/${match[2]}` : null;
 }

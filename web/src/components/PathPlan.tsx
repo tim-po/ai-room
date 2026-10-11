@@ -125,7 +125,7 @@ export default function PathPlan({path, plan, hidden, onToggle, reading, week, p
                 {module.lessons.map(item => {
                   const ends = goals.filter(g => plan.finish[g.id] === item.index);
                   const state = item.index < reading ? ' is-done' : item.index === reading ? ' is-now' : '';
-                  const open = item.lesson.url && !['coming', 'locked'].includes(item.lesson.state);
+                  const open = !!item.lesson.url;   // a lesson not here yet opens its placeholder page
                   const dots = item.lesson.goals.filter(id => goals.some(g => g.id === id));
                   return (
                     <Fragment key={item.lesson.key}>

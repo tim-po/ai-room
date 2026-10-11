@@ -284,7 +284,14 @@ def create_app(config=None):
         free_lessons = [dict(l, course=c['title'], topic=t['title']) for t in tree['topics'] for c in t['courses']
                         for m in c['modules'] for l in m['lessons'] if l['state'] == 'open'][:3] if not g.user else []
         achievements = ranks['sync'](tree)   # course ranks and control points on the map; new ones to celebrate
-        return dict(tree=tree, continuation=continuation, free_lessons=free_lessons, briefing=loop['briefing'](unfinished), achievements=achievements,
+        extra = {}
+        if g.user:
+            # Главная: the study plan (days and time) and the last twelve weeks of activity, day by day.
+            done = {r['day']: r['n'] for r in query('''SELECT date(updated_at) day,COUNT(*) n FROM progress WHERE user_id=? AND completed=1
+                AND date(updated_at)>=date('now','-83 days') GROUP BY date(updated_at)''', (g.user['id'],))}
+            active = {r['day'] for r in query("SELECT day FROM learning_days WHERE user_id=? AND day>=date('now','-83 days')", (g.user['id'],))}
+            extra = dict(plan=loop['plan'](), activity=[dict(day=d, lessons=done.get(d, 0)) for d in sorted(active | set(done))])
+        return dict(extra, tree=tree, continuation=continuation, free_lessons=free_lessons, briefing=loop['briefing'](unfinished), achievements=achievements,
                     next=dict(id=next_lesson['id'], title=next_lesson['title'], url='/lessons/' + next_lesson['id']) if next_lesson else None)
 
     def continue_url():
@@ -310,6 +317,21 @@ def create_app(config=None):
     @app.get('/map')
     def skill_map():
         return spa_shell()
+
+    @app.get('/upcoming/<course_id>/<int:module_index>/<int:lesson_index>')
+    def upcoming_page(course_id, module_index, lesson_index):
+        from .tree import upcoming
+        if not upcoming(query, g.user, can_access, course_id, module_index, lesson_index):
+            abort(404)
+        return spa_shell()
+
+    @app.get('/api/app/upcoming/<course_id>/<int:module_index>/<int:lesson_index>')
+    def upcoming_api(course_id, module_index, lesson_index):
+        from .tree import upcoming
+        found = upcoming(query, g.user, can_access, course_id, module_index, lesson_index)
+        if not found:
+            abort(404)
+        return jsonify(found)
 
     @app.get('/api/app/home')
     def home_api():

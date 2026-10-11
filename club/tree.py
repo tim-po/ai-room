@@ -158,6 +158,11 @@ def build_tree(query, user, can_access, current_lesson=None):
             else:
                 modules = catalogue_modules(spec)
                 title, level = (db_course['title'] if db_course else spec['title']), spec['level']
+            # A lesson that isn't here yet still opens: a placeholder page with its place in the course (/upcoming).
+            for mi, module in enumerate(modules):
+                for li, lesson in enumerate(module['lessons']):
+                    if lesson['state'] == 'coming' and not lesson.get('url'):
+                        lesson['url'] = f"/upcoming/{spec['id']}/{mi}/{li}"
             flat = [l for m in modules for l in m['lessons']]
             for module in modules:
                 states = {l['state'] for l in module['lessons']}
@@ -192,4 +197,27 @@ def course_outline(query, user, can_access, course_id, current_lesson=None):
         for course in topic['courses']:
             if course['id'] == course_id:
                 return course | dict(topic=topic['title'])
+    return None
+
+
+def upcoming(query, user, can_access, course_id, module_index, lesson_index):
+    """A lesson that isn't on the platform yet (state 'coming'): where it sits, its neighbours in the module and
+    the skills it will train (the synthetic model). None if there is no such coming lesson."""
+    from . import paths
+    for topic in build_tree(query, user, can_access)['topics']:
+        for course in topic['courses']:
+            if course['id'] != course_id or not 0 <= module_index < len(course['modules']):
+                continue
+            module = course['modules'][module_index]
+            if not 0 <= lesson_index < len(module['lessons']) or module['lessons'][lesson_index]['state'] != 'coming':
+                return None
+            model = paths.model()
+            skill_titles = {s['id']: s['title'] for s in model['skills']}
+            gains = next((l['gains'] for l in model['lessons'] if l['key'] == f'{course_id}:{module_index}:{lesson_index}'), {})
+            return dict(title=module['lessons'][lesson_index]['title'], minutes=module['lessons'][lesson_index].get('minutes'),
+                        course=dict(id=course['id'], title=course['title'], url=course['url'], topic=topic['title']),
+                        module=dict(index=module_index, title=module['title'], count=len(course['modules'])),
+                        position=lesson_index, lessons=[dict(title=l['title'], url=l.get('url'), state=l['state'], here=i == lesson_index)
+                                                       for i, l in enumerate(module['lessons'])],
+                        skills=[dict(id=k, title=skill_titles.get(k, k), points=v) for k, v in sorted(gains.items(), key=lambda kv: -kv[1]) if v])
     return None

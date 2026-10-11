@@ -1,3 +1,8 @@
+/* Goal colours (club/journey.py COLORS refers to these): on dark themes the club's lime, a muted steel and sand;
+   on light ones clean, deeper shades of the same, so they read on white without looking washed out. */
+:root{--goal-1:#8dbb0c;--goal-2:#3f86d4;--goal-3:#d08a3c}
+:root:is([data-theme=dusk],[data-theme=midnight],[data-theme=graphite],[data-theme=aurora]){--goal-1:#dfff4f;--goal-2:#8eb8e0;--goal-3:#d9b88f}
+
 /* Onboarding v2 (pages/Onboarding.tsx) and «Мой путь» (pages/MyPath.tsx) */
 .journey{max-width:1080px;margin:0 auto;display:grid;gap:22px}
 .journey-progress{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:420px}
@@ -225,8 +230,6 @@ main:has(> .page > .my-path) footer{display:none}
 /* the map: the path in colour, what's probably known lit grey, everything else as usual. A module or lesson
    shared by several goals carries all their colours equally: a striped band and border on the module, a split
    ring around the lesson's dot, one parallel line per goal along the branch (MyPath.tsx sets the colours). */
-.tree-canvas{--ink-mix:62%}
-:root[data-theme=dusk] .tree-canvas{--ink-mix:100%}
 .tree-canvas .tree-module.on-path.on-path{border:3px solid transparent;background:linear-gradient(var(--path-fill),var(--path-fill)) padding-box,var(--goal-band) border-box;
   --path-fill:color-mix(in srgb,var(--text) 5%,var(--node-fill,var(--panel)));box-shadow:0 10px 30px var(--shadow)}
 .tree-canvas .tree-module.on-path::before{content:'';position:absolute;z-index:1;left:0;right:0;top:0;height:7px;background:var(--goal-band);pointer-events:none}
@@ -251,7 +254,7 @@ main:has(> .page > .my-path) footer{display:none}
   stroke-width:calc(var(--lanes-n,1) * 10px + 6px)!important}
 .tree-canvas[data-lod="mid"] .tree-edges path.on-path{stroke-width:calc(var(--lanes-n,1) * 13px + 8px)!important}
 .tree-canvas[data-lod="far"] .tree-edges path.on-path{stroke-width:calc(var(--lanes-n,1) * 22px + 12px)!important}
-.tree-edges .tree-lane{stroke:color-mix(in srgb,var(--lane) var(--ink-mix),var(--text));stroke-width:7px;vector-effect:none}
+.tree-edges .tree-lane{stroke:var(--lane);stroke-width:7px;vector-effect:none}
 .tree-canvas[data-lod="mid"] .tree-edges .tree-lane{stroke-width:9px}
 .tree-canvas[data-lod="far"] .tree-edges .tree-lane{stroke-width:16px}
 .tree-canvas .tree-edges path.path-known{stroke:color-mix(in srgb,var(--text) 50%,transparent)!important;stroke-width:5px!important;stroke-dasharray:none!important}
@@ -285,11 +288,13 @@ a.tree-island:hover{border-style:solid;border-color:var(--accent)}
 
 /* Главная (pages/Dashboard.tsx): the lesson to jump into, goals, the next steps, guides along the way, courses */
 .dash{display:grid;gap:18px;padding:8px 0 40px}
+.dash-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;align-items:stretch}
+.dash-grid>*{display:grid;min-width:0}
+.dash-grid>:empty{display:none}
+.dash-wide{grid-column:span 7}.dash-narrow{grid-column:span 5}.dash-full{grid-column:1/-1}
 .dash-head h1{margin:2px 0 4px;font-size:clamp(28px,3.4vw,40px);letter-spacing:-.8px}
 .dash-head .eyebrow{margin:0}
 .dash-lead{margin:0;font-size:15px;color:var(--muted)}
-.dash-grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:16px;align-items:start}
-.dash-col{display:grid;gap:16px;min-width:0}
 .dash-card{box-sizing:border-box;display:grid;gap:10px;align-content:start;min-width:0;padding:20px;border-radius:var(--radius-card,20px);background:var(--glass,var(--panel));
   border:1px solid var(--glass-border,var(--line));box-shadow:0 1px 0 var(--glass-highlight,transparent) inset,0 10px 30px var(--shadow,rgba(0,0,0,.12));
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);color:var(--text)}
@@ -298,7 +303,7 @@ a.tree-island:hover{border-style:solid;border-color:var(--accent)}
 .dash-card-head a{font-size:13px;font-weight:650;white-space:nowrap}
 .dash-kicker{margin:0;font-size:11px;font-weight:850;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
 .dash-note{margin:0;font-size:14px;color:var(--muted)}
-.dash-jump,.dash-invite{padding:28px;gap:12px}
+.dash-jump,.dash-invite{padding:28px;gap:12px;align-content:center}
 .dash-jump h2,.dash-invite h2{font-size:clamp(22px,2.4vw,30px);letter-spacing:-.5px}
 .dash-invite p{margin:0;font-size:15px;line-height:1.5;color:var(--muted);max-width:52ch}
 .dash-jump .button,.dash-invite .button{justify-self:start;margin-top:6px}
@@ -312,10 +317,7 @@ a.tree-island:hover{border-style:solid;border-color:var(--accent)}
   background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--goal) 55%,transparent) 0 3px,transparent 3px 6px)}
 .dash-goals-note{display:flex;gap:8px;align-items:flex-start;margin:0;font-size:12px;line-height:1.4;color:var(--muted)}
 .dash-goals-note i{flex:none;width:18px;height:6px;margin-top:5px;border-radius:99px;background:repeating-linear-gradient(-45deg,var(--muted) 0 3px,transparent 3px 6px)}
-:root[data-theme=dusk] .dash{--ink-mix:100%}
-.dash{--ink-mix:62%}
 .dash-goals small{font-size:12px;color:var(--muted)}
-.dash-goals .skill-radar{max-width:300px;justify-self:center;margin-top:4px}
 .dash-steps ol{list-style:none;margin:0;padding:0;display:grid}
 .dash-steps li{display:grid;grid-template-columns:58px 34px minmax(0,1fr);align-items:start;gap:8px;padding:9px 0;border-top:1px solid var(--line-soft,var(--line))}
 .dash-steps li:first-child{border-top:0}
@@ -327,27 +329,81 @@ a.tree-island:hover{border-style:solid;border-color:var(--accent)}
 .dash-step-dots{display:flex;gap:3px;padding-top:5px}
 .dash-step-dots i{width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1.5px color-mix(in srgb,var(--text) 25%,transparent)}
 .dash-more{margin:4px 0 0;font-size:13px;color:var(--muted)}
-.dash-guides ul,.dash-courses ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.dash-guides li a{display:grid;gap:2px;padding:10px 12px;border-radius:14px;border:1px dashed var(--line-strong);color:var(--text);text-decoration:none}
-.dash-guides li a:hover{border-style:solid;border-color:var(--accent)}
-.dash-guides em{font-style:normal;font-size:11px;font-weight:750;color:var(--muted)}
-.dash-guides span{font-size:14px;line-height:1.35}
-.dash-guides .dash-step-dots{padding-top:3px}
 .dash-courses ul{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
 .dash-courses a{display:grid;gap:8px;padding:14px;border-radius:14px;background:var(--soft-fill,var(--surface));color:var(--text);text-decoration:none}
 .dash-courses a:hover{outline:2px solid var(--accent)}
 .dash-courses strong{font-size:15px;line-height:1.3}
 .dash-courses small{font-size:12.5px;line-height:1.4;color:var(--muted)}
-.dash-map{text-decoration:none;background:radial-gradient(circle at 85% 20%,color-mix(in srgb,#8eb8e0 18%,transparent),transparent 45%),
-  radial-gradient(circle at 15% 90%,color-mix(in srgb,#dfff4f 22%,transparent),transparent 45%),var(--glass,var(--panel))}
-.dash-map strong{font-size:18px}
-.dash-map span{font-size:14px;line-height:1.45;color:var(--muted)}
-.dash-map:hover{border-color:var(--accent)}
 @media(max-width:900px){
   .dash-grid{grid-template-columns:minmax(0,1fr)}
+  .dash-grid>*{grid-column:1/-1}
+  .dash-goals-body{grid-template-columns:minmax(0,1fr)}
   .dash-jump,.dash-invite{padding:22px}
 }
 @media(max-width:700px){.dash-steps li{grid-template-columns:44px 22px minmax(0,1fr);gap:6px}}
+
+/* milestones */
+.dash-milestones ul{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.dash-milestones li{display:grid;gap:5px}
+.dash-milestone-name{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.dash-milestone-name b{font-variant-numeric:tabular-nums}
+.dash-milestones small{font-size:12px;color:var(--muted)}
+.dash-goal-bar.is-solid b{background:var(--accent);min-width:4px}
+/* goals: a large radar and the goals beside it; a goal pressed shows its skills */
+.dash-goals-body{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:center}
+.dash-goals-body .skill-radar{max-width:580px;justify-self:center}
+.dash-goals-side{display:grid;gap:14px;align-content:start}
+.learner-surface .dash-goal{display:grid;gap:5px;width:100%;min-height:0;padding:10px 12px;border-radius:14px;border:1px solid transparent;background:none;box-shadow:none;
+  text-align:left;font:inherit;color:var(--text);cursor:pointer}
+.learner-surface .dash-goal:hover{background:var(--soft-fill,var(--surface))}
+.learner-surface .dash-goal.is-on{border-color:var(--goal);background:color-mix(in srgb,var(--goal) 10%,transparent)}
+.dash-goals li{gap:0}
+.dash-skills ul{display:grid;gap:8px}
+.dash-skills li{display:grid;grid-template-columns:minmax(0,1fr) 120px 64px;align-items:center;gap:10px;font-size:13px}
+.dash-skills small{text-align:right;font-variant-numeric:tabular-nums}
+.dash-skill-bar{position:relative;height:8px;border-radius:99px;background:var(--track,var(--line));overflow:hidden}
+.dash-skill-bar b,.dash-skill-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:inherit}
+.dash-skill-bar b{background:color-mix(in srgb,var(--goal) 35%,transparent)}
+.dash-skill-bar i{background:var(--goal)}
+/* the study plan: two weeks, activity, settings */
+.dash-calendar .link-button{font-size:13px;font-weight:650}
+.dash-week{list-style:none;margin:4px 0 0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.dash-week>li{display:grid;align-content:start;gap:4px;min-height:84px;padding:8px;border-radius:12px;background:var(--soft-fill,var(--surface));font-size:12px;min-width:0}
+.dash-week>li.is-study{background:color-mix(in srgb,var(--accent) 10%,var(--soft-fill,var(--surface)))}
+.dash-week>li.is-past{opacity:.75}
+.dash-week>li.is-today{outline:2px solid var(--text);outline-offset:-2px;opacity:1}
+.dash-day{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+.dash-day b{color:var(--text);font-size:14px;letter-spacing:0}
+.dash-week ul{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.dash-week ul li{line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.dash-week ul a{color:var(--text);text-decoration:none}
+.dash-week ul a:hover{text-decoration:underline}
+.dash-more-lessons,.dash-free,.dash-missed{color:var(--muted)}
+.dash-did{font-weight:750;color:var(--accent-ink,var(--accent))}
+.dash-activity{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:4px}
+.dash-activity p{margin:0;font-size:13px;color:var(--muted)}
+.dash-activity strong{color:var(--text)}
+.dash-heat{display:flex;gap:3px}
+.dash-heat>span{display:grid;gap:3px}
+.dash-heat i{display:block;width:11px;height:11px;border-radius:3px;background:var(--track,var(--line))}
+.dash-heat i.is-1{background:color-mix(in srgb,var(--accent) 45%,var(--track,var(--line)))}
+.dash-heat i.is-2{background:color-mix(in srgb,var(--accent) 75%,var(--track,var(--line)))}
+.dash-heat i.is-3{background:var(--accent)}
+.dash-heat i.is-future{background:none;outline:1px dashed var(--line);outline-offset:-1px}
+:root:not([data-theme=dusk]) .dash-heat i:is(.is-1,.is-2,.is-3){background:color-mix(in srgb,var(--goal-1) 70%,transparent)}
+.dash-plan-edit{display:grid;gap:10px;padding:14px;border-radius:14px;background:var(--soft-fill,var(--surface))}
+.dash-plan-row{display:grid;grid-template-columns:150px minmax(0,1fr);align-items:center;gap:10px;font-size:13px}
+.dash-chips{display:flex;flex-wrap:wrap;gap:6px}
+.learner-surface .dash-chips button{min-height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--line-strong);background:none;box-shadow:none;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
+.learner-surface .dash-chips button[aria-pressed=true]{background:var(--text);color:var(--bg);border-color:var(--text)}
+.dash-plan-actions{display:flex;align-items:center;gap:12px}
+@media(max-width:700px){
+  .dash-week{grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+  .dash-week>li{min-height:56px;padding:5px}
+  .dash-week ul,.dash-free{display:none}
+  .dash-plan-row{grid-template-columns:minmax(0,1fr)}
+  .dash-skills li{grid-template-columns:minmax(0,1fr) 80px 56px}
+}
 .tree-island.is-focus{outline:3px dashed var(--text);outline-offset:6px;opacity:1}
 .metro-guide.is-now>a{border-style:solid;border-color:var(--text);background:color-mix(in srgb,var(--text) 8%,transparent)}
 /* scrolling the plan: the lesson being read lights up in its module, the ones done by then are filled */
@@ -359,3 +415,30 @@ a.tree-island:hover{border-style:solid;border-color:var(--accent)}
 .tree-canvas[data-detail="far"] .tree-lesson.path-now .tree-dot{transform:scale(1.35);box-shadow:0 0 0 8px color-mix(in srgb,var(--text) 25%,transparent)}
 .tree-canvas .tree-lesson .tree-dot{transition:transform .2s,box-shadow .2s}
 @media (prefers-reduced-motion:reduce){.tree-canvas .tree-lesson .tree-dot{transition:none}}
+
+/* A lesson not here yet (pages/Upcoming.tsx): the lesson's frame with an empty page */
+.upcoming{display:grid;gap:18px;padding:8px 0 40px}
+.upcoming-crumbs{font-size:13px;color:var(--muted)}
+.upcoming-head h1{margin:6px 0 4px;font-size:clamp(26px,3vw,38px);letter-spacing:-.6px}
+.upcoming-badge{display:inline-block;margin:0;padding:3px 10px;border-radius:99px;border:1px dashed var(--line-strong);font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.upcoming-meta{margin:0;color:var(--muted);font-size:14px}
+.upcoming-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+.upcoming-body,.upcoming-side{box-sizing:border-box;display:grid;gap:16px;padding:20px;border-radius:var(--radius-card,20px);background:var(--glass,var(--panel));border:1px solid var(--glass-border,var(--line))}
+.upcoming-video{display:grid;place-items:center;aspect-ratio:16/9;border-radius:14px;border:1.5px dashed var(--line-strong);background:repeating-linear-gradient(-45deg,var(--soft-fill,var(--surface)) 0 12px,transparent 12px 24px);color:var(--muted);font-size:14px;text-align:center;padding:12px}
+.upcoming-lines{display:grid;gap:10px}
+.upcoming-lines i{display:block;height:12px;border-radius:6px;background:var(--soft-fill,var(--surface))}
+.upcoming-lines i:nth-child(2){width:92%}.upcoming-lines i:nth-child(3){width:96%}.upcoming-lines i:nth-child(4){width:70%}.upcoming-lines i:nth-child(5){width:84%}
+.upcoming-note{margin:0;font-size:14.5px;line-height:1.5;color:var(--muted)}
+.upcoming-nav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.upcoming-side h2{margin:0 0 8px;font-size:15px}
+.upcoming-skills{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.upcoming-skills li{display:grid;gap:4px;font-size:13px}
+.upcoming-skills b{display:block;height:5px;border-radius:99px;background:var(--accent)}
+.upcoming-lessons{margin:0;padding-left:20px;display:grid;gap:6px;font-size:13.5px;line-height:1.35}
+.upcoming-lessons a{color:var(--text)}
+.upcoming-lessons small{margin-left:6px;color:var(--muted);font-size:11.5px}
+.upcoming-lessons .is-here{font-weight:800}
+@media(max-width:860px){.upcoming-grid{grid-template-columns:minmax(0,1fr)}}
+.skill-radar-goal{transition:opacity .25s}
+.skill-radar-goal.is-dim{opacity:.18!important}
+.skill-radar-dot{fill:currentColor;stroke:var(--bg);stroke-width:2}

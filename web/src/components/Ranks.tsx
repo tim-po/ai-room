@@ -22,7 +22,7 @@ export function Medal({level}: {level: number}) {
 
 export function AchievementView({item}: {item: Achievement}) {
   const kicker = item.milestone
-    ? `Веха ${item.milestone.number} из ${item.milestone.of} · ${item.level === 4 ? 'высшее звание курса' : 'новое звание'}`
+    ? `Майлстоун ${item.milestone.number} из ${item.milestone.of} · ${item.level === 4 ? 'высшее звание курса' : 'новое звание'}`
     : item.level === 4 ? 'Высшее звание курса' : 'Новое звание';
   return (
     <div className="achievement is-rank">
@@ -53,7 +53,7 @@ export function MapCelebration({items, onClose}: {items: Achievement[]; onClose:
       {items.length > ordered.length && <p className="small">И ещё {items.length - ordered.length} — в профиле.</p>}
       <div className="map-celebrate-actions">
         <button ref={button} type="button" className="button" onClick={close}>Отлично</button>
-        <AppLink className="button secondary" to="/profile#ranks" onClick={() => markSeen(items)}>Мои звания</AppLink>
+        <AppLink className="button secondary" to="/path" onClick={() => markSeen(items)}>На карте</AppLink>
       </div>
     </section>
   );
@@ -71,13 +71,13 @@ export function RanksPanel({ranks}: {ranks: (Standing & {course: string; course_
               <Medal level={r.level} />
               <div>
                 <strong>{r.title ?? r.course_title}</strong>
-                <span>{r.reached} из {r.milestones} {plural(r.milestones, 'вехи', 'вех', 'вех')} · {r.next}</span>
+                <span>{r.reached} из {r.milestones} {plural(r.milestones, 'майлстоуна', 'майлстоунов', 'майлстоунов')} · {r.next}</span>
                 <span className="rank-meter" aria-hidden="true"><span style={{width: `${r.milestones ? (100 * r.reached) / r.milestones : 0}%`}} /></span>
               </div>
             </li>
           ))}
         </ul>
-      ) : <p className="me-note">Пройдите первый урок курса — появится звание. На карте у каждого курса 2–3 вехи: каждая даёт звание, последняя — «Мастер».</p>}
+      ) : <p className="me-note">Пройдите первый урок курса — появится звание. На карте у каждого курса 2–3 майлстоуна: каждая даёт звание, последняя — «Мастер».</p>}
     </section>
   );
 }

@@ -31,6 +31,9 @@ def page_data_url(path, args, query):
         return '/api/admin/overview'
     if re.fullmatch(r'/admin/(courses|lessons|library|learners)(/[A-Za-z0-9_.-]+)?|/admin/(questions|works|analytics)', path):
         return '/api' + path + search
+    upcoming = re.fullmatch(r'/upcoming/([a-z0-9-]+)/(\d+)/(\d+)', path)
+    if upcoming:
+        return f'/api/app{path}'
     match = re.fullmatch(r'/(lessons|courses|materials)/([A-Za-z0-9_.-]+)', path)
     return f'/api/app/{match[1]}/{match[2]}' if match else None
 

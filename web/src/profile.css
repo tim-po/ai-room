@@ -57,3 +57,43 @@
 .learner-surface .appearance-modes button.is-on{background:var(--glass-strong,var(--panel));color:var(--text);box-shadow:0 1px 4px var(--shadow)}
 .appearance .small{margin:0}
 @media(max-width:560px){.appearance-palettes{grid-template-columns:minmax(0,1fr)}}
+
+/* Профиль (pages/Profile.tsx): the account, row by row */
+.pf{display:grid;gap:22px;max-width:980px;margin:0 auto;padding:8px 0 40px}
+.pf-hero{display:flex;align-items:center;gap:24px;padding:28px;border-radius:28px;background:color-mix(in srgb,var(--accent) 22%,var(--glass,var(--panel)));border:1px solid var(--glass-border,var(--line))}
+.pf-avatar{display:grid;place-items:center;flex:none;width:96px;height:96px;border-radius:50%;background:var(--bg);border:3px solid var(--text);font-size:44px;font-weight:850;color:var(--text)}
+.pf-id{display:grid;gap:10px;justify-items:start;min-width:0;flex:1}
+.pf-id h1{margin:0;font-size:clamp(26px,3.2vw,40px);letter-spacing:-.8px;line-height:1.1}
+.pf-status{padding:5px 14px;border-radius:99px;border:1.5px solid color-mix(in srgb,var(--text) 40%,transparent);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.pf-status.is-member{background:var(--text);color:var(--bg);border-color:var(--text)}
+.pf-settings{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1px solid var(--line-strong);color:var(--text)}
+.pf-settings svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}
+.pf-about{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 26px;border-radius:24px;background:color-mix(in srgb,var(--gold) 16%,var(--glass,var(--panel)));border:1px solid var(--glass-border,var(--line))}
+.pf-about p{margin:6px 0 0;font-size:15px;line-height:1.45}
+.pf-goals{display:flex;flex-wrap:wrap;gap:6px 14px}
+.pf-goals span{display:inline-flex;align-items:center;gap:7px;font-weight:650}
+.pf-goals i{width:10px;height:10px;border-radius:50%}
+.pf-label{display:flex;align-items:center;gap:8px;margin:0;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.pf-label::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.pf-about .pf-label::before{background:var(--text)}
+.pf-section{display:grid;gap:12px}
+.pf-row{display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:22px;background:var(--glass,var(--panel));border:1px solid var(--glass-border,var(--line))}
+.pf-row.is-stack{align-items:flex-start}
+.pf-icon{display:grid;place-items:center;flex:none;width:52px;height:52px;border-radius:14px;background:var(--soft-fill,var(--surface));border:1px solid var(--line)}
+.pf-icon svg{width:24px;height:24px;fill:none;stroke:var(--text);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.pf-row-main{display:grid;gap:3px;min-width:0;flex:1}
+.pf-row-main strong{font-size:17px}
+.pf-row-main>span{font-size:14px;color:var(--muted)}
+.pf-row-main .connections{margin:6px 0 0}
+.pf-row-main .me-note{margin:4px 0 0;font-size:13px}
+.pf-row-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.pf-chip{padding:5px 12px;border-radius:99px;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.pf-chip.is-muted{background:none;border:1px dashed var(--line-strong);color:var(--muted)}
+.pf-favs{display:flex;flex-wrap:wrap;gap:8px}
+.pf-favs a{padding:8px 14px;border-radius:99px;background:var(--soft-fill,var(--surface));border:1px solid var(--line);color:var(--text);text-decoration:none;font-size:14px}
+@media(max-width:700px){
+  .pf-hero{padding:20px;gap:16px}.pf-avatar{width:64px;height:64px;font-size:30px}
+  .pf-about{flex-direction:column;align-items:flex-start}
+  .pf-row{flex-wrap:wrap;padding:14px}.pf-icon{width:42px;height:42px}
+  .pf-row-actions{width:100%;justify-content:flex-start}
+}
