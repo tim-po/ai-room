@@ -551,7 +551,7 @@ export function mountTree(root, data, {fill = false, module: openModule = null, 
   measure();
   const linked = location.hash.startsWith('#course-') && document.getElementById(location.hash.slice(1));
   // On a phone the whole round tree is too small to read: start on the course you're taking, if any.
-  const phone = window.matchMedia('(max-width: 700px)').matches;
+  const phone = window.matchMedia('(max-width: 800px)').matches;
   const mine = !linked && phone && canvas.querySelector('.tree-course.is-current');
   const start = linked || (mine && mine.closest('.tree-node'));
   // Choose the starting zoom first, so the first frame is already at the right level of detail.
@@ -568,8 +568,18 @@ export function mountTree(root, data, {fill = false, module: openModule = null, 
     }
     return null;
   };
+  const frameModule = (key, duration) => {
+    const set = around(key);
+    if (!set) return;
+    if (window.matchMedia('(max-width: 800px)').matches) {
+      // Keep the current card in view, instead of centring three sprawling branches behind the plan.
+      const current = set.find(n => n.el.dataset.module === key);
+      if (current) { frameNodes([current], duration, 0.85, 32); return; }
+    }
+    frameNodes(set, duration, 1.05, 120, 0.85);
+  };
   if (!linked && openModule && around(openModule)) {
-    frameNodes(around(openModule), 0, 1.05, 120, 0.85);
+    frameModule(openModule, 0);
   } else if (start) {
     flyToCourse(nodeOf.get(start), 0.62, 0);
     if (linked) linked.classList.add('is-linked');
@@ -584,7 +594,7 @@ export function mountTree(root, data, {fill = false, module: openModule = null, 
     isle.el.classList.add('is-focus');
     frameNodes([isle.module, isle], MS.fly * 1.2, 1.05, 120, 0.85);
   }, on);
-  root.addEventListener('tree:module', event => { const set = around(event.detail); if (set) frameNodes(set, MS.fly * 1.2, 1.05, 120, 0.85); }, on);
+  root.addEventListener('tree:module', event => frameModule(event.detail, MS.fly * 1.2), on);
   const onResize = () => { size(); remeasure(); };
   window.addEventListener('resize', onResize, on);
   // Fonts arriving change the nodes' heights. A view framed on a branch that nobody has moved yet is framed again.
@@ -593,7 +603,7 @@ export function mountTree(root, data, {fill = false, module: openModule = null, 
     if (destroyed) return;
     const untouched = view.x === opened.x && view.y === opened.y && view.k === opened.k;
     size(); remeasure();
-    if (untouched && !linked && openModule && around(openModule)) frameNodes(around(openModule), 0, 1.05, 120, 0.85);
+    if (untouched && !linked && openModule) frameModule(openModule, 0);
   });
   // The toolbar above can change height (fonts arriving, wrapping): keep the card's bottom in place.
   const above = 'ResizeObserver' in window ? new ResizeObserver(() => { if (!destroyed) size(); }) : null;

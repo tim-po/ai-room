@@ -49,7 +49,7 @@ export default function MyPath() {
   useTitle(path ? 'Мой путь' : 'Карта навыков');
   const [hidden, setHidden] = useState<string[]>([]);
   const [paywall, setPaywall] = useState('');
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(() => !window.matchMedia('(max-width: 800px)').matches);
   const plan = useMemo(() => (path ? planOf(path) : null), [path]);
 
   // The page sits right under the header and fills the window.
@@ -91,9 +91,14 @@ export default function MyPath() {
     return () => { box.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule); if (frame) cancelAnimationFrame(frame); };
   }, [open, plan]);
   // Unfolding after moving along the timeline: the plan opens at that lesson.
+  function fold() {
+    setOpen(false);
+    requestAnimationFrame(() => page.current?.querySelector<HTMLButtonElement>(window.innerWidth <= 800 ? '.mobile-path-preview' : '.plan-timeline-open')?.focus());
+  }
   function unfold() {
     setOpen(true);
     requestAnimationFrame(() => {
+      page.current?.querySelector<HTMLButtonElement>('.my-path-fold')?.focus();
       const box = scroller.current, row = box?.querySelector<HTMLElement>(`[data-lesson="${reading}"]`);
       if (box && row) box.scrollTop += row.getBoundingClientRect().top - (box.getBoundingClientRect().top + box.clientHeight * 0.4) + 1;
     });
@@ -192,7 +197,7 @@ export default function MyPath() {
   const options = useMemo(() => {
     const islands: Record<string, JourneyPath['guides']> = {};
     for (const guide of path?.guides ?? []) (islands[guide.module] ??= []).push(guide);
-    return {fill: true, module: current, islands, inset: () => (window.innerWidth <= 700 || !path ? 0 : openRef.current ? 424 : 80)};
+    return {fill: true, module: current, islands, inset: () => (window.innerWidth <= 800 || !path ? 0 : openRef.current ? 424 : 80)};
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps -- where the map opens
 
   async function custom() {
@@ -223,10 +228,10 @@ export default function MyPath() {
       <div className="my-path-map" ref={mapRoot}>
         <SkillMap data={home} title={item ? `Мой путь · к ${dateIn(week, 'long')}` : 'Мой путь'} decorate={decorate} options={options} />
       </div>
-      <aside className="my-path-panel" aria-label="План обучения">
+      <aside className="my-path-panel" aria-label="План обучения" onKeyDown={event => { if (event.key === 'Escape' && open) { event.preventDefault(); fold(); } }}>
         {open ? (
           <>
-            <button type="button" className="my-path-fold" onClick={() => setOpen(false)} aria-label="Свернуть план" title="Свернуть план">›</button>
+            <button type="button" className="my-path-fold" onClick={fold} aria-label="Свернуть план" title="Свернуть план"><span className="path-fold-desktop">›</span><span className="path-fold-mobile">↓ Назад к карте</span></button>
             <div className="my-path-plan-scroll" ref={scroller}>
               <PathPlan path={path} plan={plan} hidden={hidden} reading={reading} week={week} progress={progress}
                 onToggle={id => setHidden(h => (h.includes(id) ? h.filter(x => x !== id) : [...h, id]))}
@@ -234,8 +239,14 @@ export default function MyPath() {
             </div>
           </>
         ) : (
+          <>
+          <button type="button" className="mobile-path-preview" onClick={unfold} aria-expanded="false" aria-label="Открыть план уроков">
+            <span><strong>План уроков</strong><small>{item ? item.lesson.title : `${plan.lessons.length} уроков · ${path.goals.map(g => g.title).join(', ')}`}</small></span>
+            <span aria-hidden="true">↑</span>
+          </button>
           <PlanTimeline path={path} plan={plan} hidden={hidden} reading={reading} onReading={setReading} onOpen={unfold}
             label={item ? dateIn(week) : 'сегодня'} />
+          </>
         )}
       </aside>
     </div>

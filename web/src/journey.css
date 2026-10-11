@@ -278,13 +278,25 @@ a.tree-island:hover{border-style:solid;border-color:var(--accent)}
 .tree-canvas:not([data-lod="near"]) .tree-island{cursor:zoom-in}
 .tree-edges .island-link{stroke:var(--line-strong);stroke-width:2;stroke-dasharray:2 6}
 
-@media(max-width:700px){
-  .my-path{--panel-w:calc(100vw - 24px)}
-  .my-path-panel{top:auto;height:58%}
-  .my-path.is-folded .my-path-panel{top:12px;height:auto}
-  .my-path-map .tree-bar-top{right:16px}
-  .my-path.is-folded .tree-bar-top{right:80px}
+/* Mobile separates map exploration from reading the plan; the dock has its own space. */
+.mobile-path-preview,.path-fold-mobile{display:none}
+@media(max-width:800px){
+  .my-path{--panel-w:calc(100vw - 24px);bottom:calc(84px + env(safe-area-inset-bottom))}
+  .my-path:not(.is-plain) .my-path-map{height:calc(100% - 94px)}
+  .my-path-panel{top:8px;bottom:8px;height:auto;left:12px;right:12px;width:auto}
+  .my-path.is-folded .my-path-panel{top:auto;bottom:8px;height:78px;width:auto;overflow:hidden}
+  .my-path.is-open .my-path-map{visibility:hidden}
+  .my-path-plan-scroll{position:absolute;top:56px;bottom:0;left:0;right:0;height:auto;box-sizing:border-box}
+  .learner-surface .my-path-fold{top:8px;left:12px;right:auto;width:auto;min-height:44px;padding:0 16px;border-radius:999px;font-size:14px}
+  .path-fold-desktop,.my-path-panel .plan-timeline{display:none}
+  .path-fold-mobile{display:inline}
+  .learner-surface .mobile-path-preview{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;height:100%;padding:14px 18px;text-align:left;border:0;border-radius:24px;background:var(--popover,var(--panel));color:var(--text);box-shadow:none}
+  .mobile-path-preview>span:first-child{display:grid;gap:5px;min-width:0}
+  .mobile-path-preview strong{font-size:15px}
+  .mobile-path-preview small{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+  .my-path-map .tree-bar-top,.my-path.is-folded .tree-bar-top{right:16px}
 }
+
 
 /* Главная (pages/Dashboard.tsx): the lesson to jump into, goals, the next steps, guides along the way, courses */
 .dash{display:grid;gap:18px;padding:8px 0 40px}
