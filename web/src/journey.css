@@ -587,7 +587,7 @@ body:has(.journey){overflow:hidden}
 .journey-stage>section:not(.journey-level){display:flex;flex-direction:column}
 .journey-stage>section:not(.journey-level)>.journey-actions{margin-top:auto}
 .journey-stage>section:not(.journey-level)>*{flex:none}
-.journey-stage>.journey-building{justify-content:center}
+.journey-stage>.journey-building{justify-content:center;align-items:center;text-align:center}
 .journey-level{grid-template-rows:auto}
 .journey-level .journey-level-questions{display:flex;flex-direction:column;min-height:100%}
 .journey-level .journey-level-questions>.journey-actions{margin-top:auto}
