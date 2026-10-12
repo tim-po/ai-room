@@ -5,6 +5,8 @@
 .sky{display:none}
 :root[data-glass] .sky{
   display:block;position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;
+  /* the largest viewport height, so the scene doesn't jump as mobile Safari's toolbars come and go */
+  bottom:auto;height:100vh;height:100lvh;
   background:linear-gradient(180deg,var(--sky-0) 0%,var(--sky-1) 30%,var(--sky-2) 52%,var(--sky-3) 66%,var(--sky-4) 76%);
 }
 .sky>*,.sky-night>*,.sky-sun>*{position:absolute}

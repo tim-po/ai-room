@@ -268,3 +268,43 @@
 .goal-marks-dots i+i{margin-left:-3px}
 .goal-marks.is-compact{margin-top:6px}
 .d-hero .goal-marks{margin:0 0 0 10px;vertical-align:middle}
+
+/* Обзор on phones: one scrolling row of sections, a full-width hero, goal marks on one line */
+.goal-marks>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.goal-marks{max-width:100%}
+@media(max-width:800px){
+  .discover>.chip-row,.chip-row:not(.is-small){flex-wrap:nowrap;overflow-x:auto;margin-inline:-16px;padding:2px 16px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .chip-row::-webkit-scrollbar{display:none}
+  .chip-row .chip-link{flex:none}
+  .filter-bar .chip-row.is-small{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .d-hero{--peek:0px}
+  .d-hero-slide{right:0}
+  .d-hero-slide:not([data-at="0"]){opacity:0;pointer-events:none}
+  .d-stack{height:400px}
+  .d-hero .d-word{font-size:76px;opacity:.55}
+  .d-hero .goal-marks{display:flex;margin:4px 0 0}
+  .shelf{margin-top:28px}
+  .shelf-track{grid-auto-columns:78%;gap:12px}
+  .shelf-wide .shelf-track{grid-auto-columns:92%}
+  .d-word{opacity:.6}
+  .result-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 12px}
+}
+@media(max-width:380px){.result-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Обзор cards on phones: picture and text in one card */
+@media(max-width:800px){
+  .d-card{gap:0;border-radius:18px;overflow:hidden;background:var(--glass-strong,var(--panel));border:1px solid var(--glass-border,var(--line));height:100%}
+  .d-card .d-cover{border-radius:0;box-shadow:none}
+  .d-card:hover .d-cover,.d-card:focus-visible .d-cover{transform:none;box-shadow:none}
+  .d-card .d-body{padding:12px 14px 14px;gap:3px}
+  .d-card .d-title{font-size:15px;overflow-wrap:anywhere}
+  .d-card .d-sub{font-size:13px}
+  .d-card .goal-marks{margin-top:6px}
+  .shelf-track>li,.result-grid>li{min-width:0;display:grid}
+}
+.d-card .d-title{white-space:normal}
+.d-card .goal-marks{display:flex}
+.d-hero .goal-marks{color:rgba(255,255,255,.9)}
+/* goal marks never run past their card: the words shorten instead */
+.goal-marks{min-width:0;max-width:100%;overflow:hidden}
+.d-body>.goal-marks{justify-self:start}

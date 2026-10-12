@@ -273,6 +273,12 @@ export default function Dashboard({home, journey}: {home: HomeData; journey: Jou
         <h2 id="steps-title">Ближайшие шаги</h2>
         <AppLink to="/path">Весь путь на карте →</AppLink>
       </div>
+      {jump && (
+        <div className="dash-jump-row">
+          <div><small>{jump.again ? 'Продолжить с того места' : 'Сейчас'}</small><strong>{jump.title}</strong><span>{jump.note}</span></div>
+          <AppLink className="button" to={jump.url}>{jump.again ? 'Продолжить →' : 'Начать →'}</AppLink>
+        </div>
+      )}
       <ol>
         {steps.map(item => (
           <li key={item.lesson.key}>
@@ -310,7 +316,6 @@ export default function Dashboard({home, journey}: {home: HomeData; journey: Jou
   return (
     <div className="dash">
       <header className="dash-head">
-        <p className="eyebrow">Главная</p>
         <h1>{name ? `Привет, ${name}` : 'Привет'}</h1>
         {plan && path && (
           <p className="dash-lead">
@@ -319,12 +324,11 @@ export default function Dashboard({home, journey}: {home: HomeData; journey: Jou
         )}
       </header>
       <div className="dash-grid">
-        <div className="dash-wide">{path ? jumpCard : invite}</div>
+        <div className="dash-wide">{path ? stepsCard || jumpCard : invite}</div>
         <div className="dash-narrow">{milestonesCard || (!path && jumpCard)}</div>
         {home.plan && <div className="dash-full"><StudyCalendar path={path} times={plan} plan={home.plan} activity={home.activity ?? []} onSaved={() => revalidator.revalidate()} /></div>}
         {goalsCard && <div className="dash-full">{goalsCard}</div>}
-        <div className={coursesCard ? 'dash-wide' : 'dash-full'}>{stepsCard}</div>
-        <div className="dash-narrow">{coursesCard}</div>
+        {coursesCard && <div className="dash-full">{coursesCard}</div>}
       </div>
     </div>
   );

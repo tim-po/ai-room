@@ -1,15 +1,14 @@
 import {useLoaderData} from 'react-router';
-import {useState, type ReactNode} from 'react';
-import {ApiError, deleteJson, getJson, postJson} from '../api';
-import {copyAsync, type Link} from '../components/AssistantHandoff';
+import type {ReactNode} from 'react';
+import {getJson} from '../api';
 import {humanTime} from '../format';
 import type {JourneyData} from '../journey';
-import {AppLink} from '../Shell';
-import type {Connection, ProfileData} from '../types';
+import {AppLink, ThemeToggle} from '../Shell';
+import type {ProfileData} from '../types';
 import {useTitle} from '../useTitle';
 
 // Профиль: the account. Who you are and what you're learning for («О себе»), the subscription, how you sign in
-// (Telegram, email, assistants), help; saved works and favourites when there are any. The study plan, courses
+// (Telegram, email), help; saved works and favourites when there are any. The study plan, courses
 // and progress live on Главная.
 
 export const profileLoader = async ({request}: {request: Request}) => {
@@ -41,52 +40,6 @@ function Row({icon, title, sub, children, id}: {icon: string; title: string; sub
 
 const masked = (email: string) => { const [name, domain] = email.split('@'); return domain ? `${name[0] ?? ''}•••@${domain}` : email; };
 
-/** Assistants connected with a link from a lesson; each can be switched off. */
-function Connections({initial}: {initial: Connection[]}) {
-  const [items, setItems] = useState(initial);
-  const [link, setLink] = useState<Link | null>(null);
-  const [status, setStatus] = useState('');
-  async function revoke(id: string) {
-    try {
-      setItems((await deleteJson<{connections: Connection[]}>(`/api/app/connections/${id}`)).connections);
-      setStatus('Ассистент отключён.');
-    } catch (e) {
-      setStatus(e instanceof ApiError ? e.message : 'Не удалось отключить. Повторите попытку.');
-    }
-  }
-  async function newLink() {
-    const made: {link: Link | null} = {link: null};
-    try {
-      await copyAsync(async () => (made.link = await postJson<Link>('/api/app/attach-links', {})).url);
-      setLink(made.link);
-      setStatus('Ссылка скопирована — вставьте её в чат с ассистентом.');
-    } catch (e) {
-      if (made.link) setLink(made.link);
-      setStatus(made.link ? 'Ссылка готова — скопируйте её из поля.' : e instanceof ApiError ? e.message : 'Не удалось создать ссылку.');
-    }
-  }
-  return (
-    <div className="pf-row is-stack" id="connections">
-      <span className="pf-icon" aria-hidden="true"><svg viewBox="0 0 24 24">{ICONS.bot}</svg></span>
-      <div className="pf-row-main"><strong>ИИ-ассистенты</strong><span>{items.length ? `Подключено: ${items.length}` : 'Не подключены'}</span>
-      {items.length ? (
-        <ul className="connections">
-          {items.map(c => (
-            <li key={c.id}>
-              <span><strong>{c.label}</strong><span className="small">подключён {humanTime(c.created_at)}{c.last_used_at ? ` · был ${humanTime(c.last_used_at)}` : ''}</span></span>
-              <button type="button" className="link-button" onClick={() => revoke(c.id)}>Отключить</button>
-            </li>
-          ))}
-        </ul>
-      ) : <p className="me-note">Дай своему ИИ-ассистенту ссылку — он увидит задание урока и сможет сохранить работу сюда.</p>}
-      {link && <input className="connection-link" readOnly value={link.url} aria-label="Ссылка для ассистента" onFocus={e => e.currentTarget.select()} />}
-      {status && <p className="small" role="status">{status}</p>}
-      </div>
-      <div className="pf-row-actions"><button type="button" className="button secondary" onClick={newLink}>Ссылка</button></div>
-    </div>
-  );
-}
-
 export default function Profile() {
   const {profile: data, journey} = useLoaderData() as {profile: ProfileData; journey: JourneyData};
   useTitle('Профиль');
@@ -102,6 +55,7 @@ export default function Profile() {
           <h1>{user.name}</h1>
           <span className={'pf-status' + (member ? ' is-member' : '')}>{staff ? 'Полный доступ' : ACCESS_LABEL[user.entitlement]}</span>
         </div>
+        <span className="pf-theme"><ThemeToggle /></span>
         <AppLink className="pf-settings" to="/preferences" aria-label="Настройки" title="Настройки">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" /><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14.1 2.5h-4.2l-.4 2.5a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-.9a7.5 7.5 0 0 0 2.6 1.5l.4 2.5h4.2l.4-2.5a7.5 7.5 0 0 0 2.6-1.5l2.3.9 2-3.4z" /></svg>
         </AppLink>
@@ -131,10 +85,7 @@ export default function Profile() {
         <Row icon="telegram" title="Telegram" sub="Не привязан">
           <span className="pf-chip is-muted">Скоро</span>
         </Row>
-        <Row icon="mail" title="Почта" sub={masked(user.email)}>
-          <span className="pf-chip">Для входа</span>
-        </Row>
-        <Connections initial={data.connections} />
+        <Row icon="mail" title="Почта" sub={masked(user.email)} />
       </section>
 
       <section className="pf-section" aria-labelledby="help-title">

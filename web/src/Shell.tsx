@@ -54,11 +54,24 @@ function useLinkPrefetch() {
   }, []);
 }
 
-function NavLink({to, active, children}: {to: string; active: boolean; children: ReactNode}) {
-  return <AppLink to={to} aria-current={active ? 'page' : undefined}>{children}</AppLink>;
+// Bar icons (phones show only the icon; the label stays for screen readers and wide screens).
+const NAV_ICONS: Record<string, ReactNode> = {
+  home: <path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z" />,
+  path: <path d="M6 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm12-12a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM6 16V13a3 3 0 0 1 3-3h6a3 3 0 0 0 3-3V8" />,
+  discover: <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm3.5-12.5-2 5-5 2 2-5z" />,
+  admin: <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z" />,
+  login: <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" />,
+};
+
+function NavLink({to, active, icon, children}: {to: string; active: boolean; icon: string; children: ReactNode}) {
+  return (
+    <AppLink to={to} aria-current={active ? 'page' : undefined}>
+      <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">{NAV_ICONS[icon]}</svg><span className="nav-label">{children}</span>
+    </AppLink>
+  );
 }
 
-function ThemeToggle() {
+export function ThemeToggle() {
   return (
     <button type="button" className="theme-toggle" data-theme-toggle aria-label="Сменить тему">
       <svg className="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
@@ -80,12 +93,15 @@ function Header() {
     <header className="club-header">
       <AppLink className="brand" to="/">AI ROOM</AppLink>
       <nav aria-label="Главная навигация">
-        {user && <NavLink to="/" active={pathname === '/'}>Главная</NavLink>}
+        {user && <NavLink to="/" icon="home" active={pathname === '/'}>Главная</NavLink>}
         {/* the map is the path: «Мой путь» once signed in, the plain map for visitors */}
-        <NavLink to={user ? '/path' : '/map'} active={pathname === '/map' || pathname === '/path'}>{user ? 'Мой путь' : 'Карта навыков'}</NavLink>
-        <NavLink to="/discover" active={/^\/(discover|catalogue|materials\/)/.test(pathname) || (!user && /^\/(courses|lessons)\//.test(pathname))}>Обзор</NavLink>
+        <NavLink to={user ? '/path' : '/map'} icon="path" active={pathname === '/map' || pathname === '/path'}>{user ? 'Мой путь' : 'Карта навыков'}</NavLink>
+        <NavLink to="/discover" icon="discover" active={/^\/(discover|catalogue|materials\/)/.test(pathname) || (!user && /^\/(courses|lessons)\//.test(pathname))}>Обзор</NavLink>
         {user && <MyCourses active={/^\/(courses|lessons)\//.test(pathname)} />}
-        {user && user.role !== 'learner' && <NavLink to="/admin" active={pathname.startsWith('/admin')}>Админка</NavLink>}
+        {/* phones: the profile takes the place of «Мои курсы» in the bottom bar */}
+        {user && <AppLink className="nav-profile" to="/profile" aria-current={/^\/(profile|preferences|membership)$/.test(pathname) ? 'page' : undefined}><i aria-hidden="true">{(user.name.trim()[0] ?? '·').toUpperCase()}</i><span className="nav-label">Профиль</span></AppLink>}
+        {!user && <AppLink className="nav-profile" to="/login" aria-current={pathname === '/login' ? 'page' : undefined}><svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">{NAV_ICONS.login}</svg><span className="nav-label">Войти</span></AppLink>}
+        {user && user.role !== 'learner' && <NavLink to="/admin" icon="admin" active={pathname.startsWith('/admin')}>Админка</NavLink>}
       </nav>
       <div className="header-account">
         <ThemeToggle />

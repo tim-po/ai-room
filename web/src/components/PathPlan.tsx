@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {AppLink} from '../Shell';
 import {weeksLabel, type JourneyPath, type PathGoal, type PathLesson} from '../journey';
 
@@ -214,6 +214,70 @@ export function PlanTimeline({path, plan, hidden, reading, onReading, onOpen, la
         })}
         <b className="plan-timeline-knob" style={{top: `${at * 100}%`}}><span>{label}</span></b>
       </div>
+    </div>
+  );
+}
+
+/** Phones, the plan folded: one lesson at a time in a card at the bottom of the map. Swipe left and right to
+ *  move through the plan (the map follows); pull the card up to open the whole plan — it follows the finger
+ *  (onPull) and opens if let go far enough (onRelease). */
+export function PlanSwiper({path, plan, reading, onReading, onOpen, onPull, onRelease}: {
+  path: JourneyPath; plan: Plan; reading: number; onReading: (index: number) => void; onOpen: () => void;
+  onPull: (distance: number) => void; onRelease: (distance: number) => void;
+}) {
+  const index = Math.max(0, reading), total = plan.lessons.length;
+  const start = useRef<{x: number; y: number; id: number; axis: '' | 'x' | 'y'} | null>(null);
+  const [drag, setDrag] = useState(0);
+  const moved = useRef(false);
+  const go = (to: number) => onReading(Math.max(0, Math.min(total - 1, to)));
+  const colour = new Map(path.goals.map(g => [g.id, g.color]));
+  const card = (i: number) => {
+    const item = plan.lessons[i];
+    if (!item) return null;
+    return (
+      <div key={item.lesson.key} className={'plan-swiper-card' + (i === index ? ' is-current' : '')} aria-hidden={i !== index}
+        style={{transform: `translateX(calc(${(i - index) * 100}% + ${(i - index) * 10}px + ${drag}px))`}}>
+        <span className="plan-swiper-when">
+          <b>{dateIn(item.from, 'long')}</b>
+          <span className="plan-swiper-dots">{item.lesson.goals.map(id => <i key={id} style={{background: colour.get(id)}} />)}</span>
+          <small>{i + 1} / {total}</small>
+        </span>
+        {item.lesson.url
+          ? <AppLink className="plan-swiper-title" to={item.lesson.url} tabIndex={i === index ? 0 : -1} onClick={e => { if (moved.current) e.preventDefault(); }}>{item.lesson.title}</AppLink>
+          : <span className="plan-swiper-title">{item.lesson.title}</span>}
+        <small className="plan-swiper-where">{item.lesson.module_title} · {minutes(item.lesson.minutes)}{item.lesson.state === 'coming' ? ' · готовится' : item.lesson.state === 'done' ? ' · пройден' : ''}</small>
+      </div>
+    );
+  };
+  return (
+    <div className="plan-swiper" role="group" aria-roledescription="карусель" aria-label="Уроки пути"
+      onKeyDown={e => { if (e.key === 'ArrowRight') { e.preventDefault(); go(index + 1); } if (e.key === 'ArrowLeft') { e.preventDefault(); go(index - 1); } if (e.key === 'ArrowUp') { e.preventDefault(); onOpen(); } }}
+      onPointerDown={e => { start.current = {x: e.clientX, y: e.clientY, id: e.pointerId, axis: ''}; moved.current = false; }}
+      onPointerMove={e => {
+        const s = start.current;
+        if (!s || s.id !== e.pointerId) return;
+        const dx = e.clientX - s.x, dy = e.clientY - s.y;
+        if (!s.axis && Math.hypot(dx, dy) > 8) {
+          s.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+          moved.current = true;
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }
+        if (s.axis === 'x') setDrag(index === 0 && dx > 0 || index === total - 1 && dx < 0 ? dx / 3 : dx);
+        if (s.axis === 'y') onPull(Math.max(0, -dy));
+      }}
+      onPointerUp={e => {
+        const s = start.current;
+        start.current = null; setDrag(0);
+        if (!s) return;
+        const dx = e.clientX - s.x, dy = e.clientY - s.y;
+        if (s.axis === 'x' && Math.abs(dx) > 50) go(index + (dx < 0 ? 1 : -1));
+        if (s.axis === 'y') onRelease(Math.max(0, -dy));
+      }}
+      onPointerCancel={() => { start.current = null; setDrag(0); onRelease(0); }}>
+      <button type="button" className="plan-swiper-handle" onClick={() => { if (!moved.current) onOpen(); }} aria-label="Открыть весь план" aria-expanded="false">
+        <i aria-hidden="true" />
+      </button>
+      <div className="plan-swiper-track">{[index - 1, index, index + 1].map(card)}</div>
     </div>
   );
 }

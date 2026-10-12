@@ -38,7 +38,6 @@ export default function Login() {
           {error && <p className="notice error" role="alert">{error}</p>}
           <button className="button" disabled={busy}>{busy ? 'Входим…' : 'Войти'}</button>
         </form>
-        <p className="small">Доступ по приглашению. Нет доступа или забыли пароль? Обратитесь к тому, кто пригласил вас в AI Room.</p>
         <AppLink to="/catalogue">Посмотреть бесплатные уроки →</AppLink>
       </section>
     </div>

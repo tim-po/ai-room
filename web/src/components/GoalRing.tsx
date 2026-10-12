@@ -20,8 +20,10 @@ export default function GoalRing({goals, chosen, max, onToggle}: {
     return () => observer.disconnect();
   }, []);
   const turn = (step: number) => setActive(a => (a + step + n) % n);
-  // A horizontal swipe turns the ring by one card.
-  const swipe = useRef<number | null>(null);
+  // A horizontal swipe turns the ring by one card (captured once it's clearly sideways, so the page doesn't pan
+  // and the card under the finger isn't clicked).
+  const swipe = useRef<{x: number; y: number; id: number; moved: boolean} | null>(null);
+  const swiped = useRef(false);
   const goal = goals[active];
   const on = chosen.includes(goal.id);
   const full = !on && chosen.length >= max;
@@ -34,12 +36,22 @@ export default function GoalRing({goals, chosen, max, onToggle}: {
           if (e.key === 'ArrowLeft') { e.preventDefault(); turn(-1); }
           if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); if (!full) onToggle(goal.id); }
         }}
-        onPointerDown={e => { swipe.current = e.clientX; }}
+        onPointerDown={e => { swipe.current = {x: e.clientX, y: e.clientY, id: e.pointerId, moved: false}; swiped.current = false; }}
+        onPointerMove={e => {
+          const s = swipe.current;
+          if (!s || s.id !== e.pointerId || s.moved) return;
+          const dx = e.clientX - s.x, dy = e.clientY - s.y;
+          if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { s.moved = true; e.currentTarget.setPointerCapture(e.pointerId); }
+        }}
         onPointerUp={e => {
-          if (swipe.current == null) return;
-          const dx = e.clientX - swipe.current; swipe.current = null;
-          if (Math.abs(dx) > 40) turn(dx < 0 ? 1 : -1);
-        }}>
+          const s = swipe.current; swipe.current = null;
+          if (!s || !s.moved) return;
+          swiped.current = true;
+          const dx = e.clientX - s.x;
+          if (Math.abs(dx) > 30) turn(dx < 0 ? 1 : -1);
+        }}
+        onPointerCancel={() => { swipe.current = null; }}
+        onClickCapture={e => { if (swiped.current) { e.preventDefault(); e.stopPropagation(); swiped.current = false; } }}>
         {goals.map((item, i) => {
           // the shortest way round the ring from the front card
           let d = (i - active + n) % n;

@@ -42,7 +42,7 @@ export default function SkillRadar({skills, goals, start, label, focus}: {
         return (
           <text key={skill.id} className={'skill-radar-label' + (needed.has(skill.id) ? ' is-needed' : '')} x={x} y={y + dy} textAnchor={anchor}>
             <title>{`${skill.title}: сейчас ${Math.round(start?.[skill.id] ?? 0)}${goals.some(g => g.targets[skill.id]) ? `, нужно до ${Math.max(...goals.map(g => g.targets[skill.id] ?? 0))}` : ''}`}</title>
-            {lines.map((line, li) => <tspan key={li} x={x} dy={li ? 15 : 0}>{line}</tspan>)}
+            {lines.map((line, li) => <tspan key={li} x={x} dy={li ? '1.15em' : 0}>{line}</tspan>)}
           </text>
         );
       })}

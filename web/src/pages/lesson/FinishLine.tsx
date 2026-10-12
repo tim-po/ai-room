@@ -2,7 +2,8 @@
 // and the finish moment that leads to the next lesson and the plan.
 import {useEffect, useRef, useState} from 'react';
 import {useLocation, useRevalidator} from 'react-router';
-import {ApiError, bootstrap, postJson} from '../../api';
+import {ApiError, bootstrap, getJson, postJson} from '../../api';
+import type {JourneyData, PathLesson} from '../../journey';
 import PlanEditor from '../../components/PlanEditor';
 import {AchievementView, markSeen} from '../../components/Ranks';
 import {plural} from '../../format';
@@ -169,6 +170,14 @@ function FinishDialog({data, points, practiceSaved, earned, onClose}: {data: Les
     const frame = requestAnimationFrame(() => setFilled(true));   // let the course bar grow into place
     return () => cancelAnimationFrame(frame);
   }, []);
+  // The next step is the learner's own path when they have one (the first lesson on it not done yet), else the course's next lesson.
+  const [step, setStep] = useState<PathLesson | null>(null);
+  useEffect(() => {
+    if (!bootstrap.user) return;
+    getJson<JourneyData>('/api/app/journey').then(journey => {
+      setStep(journey.path?.lessons.find(l => l.state !== 'done' && l.lesson_id !== data.lesson.id && l.url) ?? null);
+    }, () => undefined);
+  }, [data.lesson.id]);
   const {lesson, outline, following} = data;
   const lessons = outline ? outline.modules.flatMap(m => m.lessons) : [];
   const done = lessons.filter(l => l.state === 'done' || l.id === lesson.id).length;
@@ -195,7 +204,16 @@ function FinishDialog({data, points, practiceSaved, earned, onClose}: {data: Les
           <span className="lesson-meter"><span style={{width: `${(100 * (filled ? done : Math.max(done - 1, 0))) / available}%`}} /></span>
         </div>
       )}
-      {following ? (
+      {step ? (
+        <section className="finish-next" aria-labelledby="finish-next-title">
+          <p className="eyebrow">Дальше по твоему пути</p>
+          <h3 id="finish-next-title">{step.title}</h3>
+          <p className="small">{[step.course_title, step.module_title, `${step.minutes} мин`].filter(Boolean).join(' · ')}{step.state === 'locked' ? ' · урок клуба' : step.state === 'coming' ? ' · готовится' : ''}</p>
+          {step.state === 'locked'
+            ? <AppLink className="button" to={`/membership?next=${step.url}`}>Открыть доступ к уроку</AppLink>
+            : <AppLink className="button" to={step.url!}>Начать →</AppLink>}
+        </section>
+      ) : following ? (
         <section className="finish-next" aria-labelledby="finish-next-title">
           <p className="eyebrow">Дальше</p>
           <h3 id="finish-next-title">{following.title}</h3>
@@ -203,7 +221,7 @@ function FinishDialog({data, points, practiceSaved, earned, onClose}: {data: Les
           <p className="small">{following.minutes} минут{following.locked ? ' · урок клуба' : ''}</p>
           {following.locked
             ? <AppLink className="button" to={`/membership?next=/lessons/${following.id}`}>Открыть доступ к уроку</AppLink>
-            : <AppLink className="button" to={`/lessons/${following.id}`} autoFocus>Начать сейчас →</AppLink>}
+            : <AppLink className="button" to={`/lessons/${following.id}`}>Начать сейчас →</AppLink>}
         </section>
       ) : (
         <section className="finish-next">

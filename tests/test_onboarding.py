@@ -69,6 +69,10 @@ def test_goals_level_deadlines_and_pace_build_and_save_a_path(app):
     assert done['status'] == 'done' and done['path']['timeline'] and done['answers']['goals'] == ['startup']
     assert c.get('/discover').status_code == 200 and c.get('/path').status_code == 200
     assert c.get('/api/app/journey').json['path']['goals'][0]['id'] == 'startup'
+    # The chosen pace is the study plan until days are picked: 4 sessions of 30 minutes.
+    assert c.get('/api/app/plan').json == {'days': [1, 2, 4, 6], 'time': '19:00', 'minutes': 30}
+    plan = c.put('/api/app/plan', json={'days': [2, 5], 'time': '08:00'}, headers={'X-CSRF-Token': csrf}).json
+    assert plan == {'days': [2, 5], 'time': '08:00', 'minutes': 30}
 
 
 def test_skipping_and_a_goal_in_own_words(app):

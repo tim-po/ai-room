@@ -5,6 +5,7 @@ Storage is additive (two new tables) and created on first use, so no migration s
 Progress here records only what the learner did (steps reached, a plan chosen); it never claims
 learning from page visits.
 """
+import json
 import re
 from datetime import date, datetime, timedelta, timezone
 
@@ -38,6 +39,10 @@ def anchor(lesson, index):
     """Where checkpoint `index` (1-based) starts on the lesson page."""
     steps = len(checkpoints(lesson)) - (1 if lesson['task'] else 0)
     return f'#step-{index}' if index <= steps else '#practice'
+
+
+# Study days for a number of sessions a week (ISO weekdays), as the onboarding suggests them (web/src/pages/Onboarding.tsx).
+PACE_DAYS = {1: [3], 2: [2, 4], 3: [1, 3, 5], 4: [1, 2, 4, 6], 5: [1, 2, 3, 4, 5], 6: [1, 2, 3, 4, 5, 6], 7: [1, 2, 3, 4, 5, 6, 7]}
 
 
 def register_learning_loop(app, db, query, require_user, get_lesson, event, learning_activity):
@@ -79,7 +84,16 @@ def register_learning_loop(app, db, query, require_user, get_lesson, event, lear
         ensure()
         row = query('SELECT days,time FROM learning_plans WHERE user_id=?', (g.user['id'],), True)
         days = [int(d) for d in row['days'].split(',') if d] if row else []
-        return dict(days=days, time=row['time'] if row else '19:00', minutes=SESSION_MINUTES)
+        # The pace chosen in the onboarding (club/journey.py) is the plan too: its length per session, and — until
+        # days are picked here — the study days it suggests, so the plan is never «not set» for someone who chose one.
+        pace = None
+        if query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='personal_paths'", one=True):
+            journey = query('SELECT body FROM personal_paths WHERE user_id=?', (g.user['id'],), True)
+            pace = (json.loads(journey['body']) if journey else {}).get('pace')
+        if not row and pace and pace.get('sessions') in PACE_DAYS:
+            days = PACE_DAYS[pace['sessions']]
+        minutes = pace['session_minutes'] if pace and isinstance(pace.get('session_minutes'), int) else SESSION_MINUTES
+        return dict(days=days, time=row['time'] if row else '19:00', minutes=minutes)
 
     @app.get('/api/app/plan')
     @require_user

@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useLoaderData, type LoaderFunctionArgs} from 'react-router';
 import {ApiError, bootstrap, getJson} from '../api';
-import PathPlan, {PlanTimeline, dateIn, planOf} from '../components/PathPlan';
+import PathPlan, {PlanSwiper, PlanTimeline, dateIn, planOf} from '../components/PathPlan';
 import {AppLink} from '../Shell';
 import SkillMap from '../tree/SkillMap';
 import type {JourneyData, JourneyPath} from '../journey';
@@ -22,6 +22,9 @@ export const myPathLoader = async ({request}: LoaderFunctionArgs) => {
 };
 
 /** Each goal's progress once the first `count` lessons are done (as club/paths.py progress). */
+/** How far (px) the folded card must be pulled up to open the plan when let go. */
+const PULL_TO_OPEN = 90;
+
 function progressAfter(path: JourneyPath, count: number) {
   const points = {...path.start};
   for (const lesson of path.lessons.slice(0, count)) for (const [skill, gain] of Object.entries(lesson.gains)) points[skill] = Math.min(100, (points[skill] ?? 0) + gain);
@@ -67,6 +70,9 @@ export default function MyPath() {
   // Time is the plan's scroll: the last lesson whose row has passed a line 40% down the panel.
   const scroller = useRef<HTMLDivElement>(null);
   const [reading, setReading] = useState(-1);
+  // Phones: how far the folded card is being pulled up.
+  const [pull, setPull] = useState(0);
+
   const [guide, setGuide] = useState<string | null>(null);
   useEffect(() => {
     const box = scroller.current;
@@ -93,7 +99,7 @@ export default function MyPath() {
   // Unfolding after moving along the timeline: the plan opens at that lesson.
   function fold() {
     setOpen(false);
-    requestAnimationFrame(() => page.current?.querySelector<HTMLButtonElement>(window.innerWidth <= 800 ? '.mobile-path-preview' : '.plan-timeline-open')?.focus());
+    requestAnimationFrame(() => page.current?.querySelector<HTMLButtonElement>(window.innerWidth <= 800 ? '.plan-swiper-open' : '.plan-timeline-open')?.focus());
   }
   function unfold() {
     setOpen(true);
@@ -224,7 +230,8 @@ export default function MyPath() {
     );
   }
   return (
-    <div className={'my-path' + (open ? ' is-open' : ' is-folded')} ref={page}>
+    <div className={'my-path' + (open ? ' is-open' : ' is-folded') + (pull ? ' is-pulling' : '')} ref={page}
+      style={{'--pull': `${pull}px`} as React.CSSProperties}>
       <div className="my-path-map" ref={mapRoot}>
         <SkillMap data={home} title={item ? `Мой путь · к ${dateIn(week, 'long')}` : 'Мой путь'} decorate={decorate} options={options} />
       </div>
@@ -240,10 +247,8 @@ export default function MyPath() {
           </>
         ) : (
           <>
-          <button type="button" className="mobile-path-preview" onClick={unfold} aria-expanded="false" aria-label="Открыть план уроков">
-            <span><strong>План уроков</strong><small>{item ? item.lesson.title : `${plan.lessons.length} уроков · ${path.goals.map(g => g.title).join(', ')}`}</small></span>
-            <span aria-hidden="true">↑</span>
-          </button>
+          <PlanSwiper path={path} plan={plan} reading={reading} onReading={setReading} onOpen={unfold}
+            onPull={distance => setPull(distance)} onRelease={distance => { setPull(0); if (distance > PULL_TO_OPEN) unfold(); }} />
           <PlanTimeline path={path} plan={plan} hidden={hidden} reading={reading} onReading={setReading} onOpen={unfold}
             label={item ? dateIn(week) : 'сегодня'} />
           </>

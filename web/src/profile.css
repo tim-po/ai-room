@@ -97,3 +97,5 @@
   .pf-row{flex-wrap:wrap;padding:14px}.pf-icon{width:42px;height:42px}
   .pf-row-actions{width:100%;justify-content:flex-start}
 }
+.pf-theme{display:none}
+@media(max-width:800px){.pf-theme{display:block}.pf-hero{position:relative}.pf-theme{position:absolute;top:14px;right:66px}.pf-settings{position:absolute;top:14px;right:14px}}

@@ -44,6 +44,17 @@ export default function Onboarding() {
     return 'goals';
   });
   const [path, setPath] = useState<JourneyPath | null>(initial.path);
+  // Steps slide in from the side they come from (forward from the right, back from the left), and the page
+  // returns to the top smoothly.
+  const ORDER: Step[] = ['hello', 'goals', 'building', 'level', 'plan'];
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
+  const shown = useRef(step);
+  useEffect(() => {
+    if (shown.current === step) return;
+    setDirection(ORDER.indexOf(step) >= ORDER.indexOf(shown.current) ? 'forward' : 'back');
+    shown.current = step;
+    window.scrollTo({top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+  }, [step]);   // eslint-disable-line react-hooks/exhaustive-deps
   const [error, setError] = useState('');
   useTitle('Знакомство');
   const goals = answers.goals ?? [];
@@ -85,6 +96,7 @@ export default function Onboarding() {
         {[1, 2, 3, 4].map(n => <span key={n} className={n <= number ? 'is-on' : undefined} />)}
       </div>
       {error && <p className="notice error" role="alert">{error}</p>}
+      <div className="journey-stage" key={step} data-direction={direction}>
       {step === 'hello' && <Hello onNext={() => { setStep('goals'); void save({step: 'goals'}); }} onSkip={skip} />}
       {step === 'goals' && (
         <Goals data={initial} answers={answers} onChange={patch => setAnswers(a => ({...a, ...patch}))} onNext={build}
@@ -98,11 +110,13 @@ export default function Onboarding() {
       )}
       {step === 'plan' && path && (
         <Schedule answers={answers} path={path} onBack={() => setStep('level')}
-          onDone={async pace => {
-            await putJson('/api/app/journey', {pace, status: 'done', step: 'done'});
+          onDone={async (pace, days, time) => {
+            // the chosen pace is also the study plan (days and time), set or not «Добавить в календарь»
+            await Promise.all([putJson('/api/app/journey', {pace, status: 'done', step: 'done'}), putJson('/api/app/plan', {days, time}).catch(() => undefined)]);
             navigate('/path');
           }} />
       )}
+      </div>
     </div>
   );
 }
@@ -256,7 +270,7 @@ function Level({data, answers, path, onPath, onChange, onNext, onBack}: {
   );
 }
 
-function Schedule({answers, path, onBack, onDone}: {answers: JourneyAnswers; path: JourneyPath; onBack: () => void; onDone: (pace: Pace) => Promise<void>}) {
+function Schedule({answers, path, onBack, onDone}: {answers: JourneyAnswers; path: JourneyPath; onBack: () => void; onDone: (pace: Pace, days: number[], time: string) => Promise<void>}) {
   const options = path.plans.options;
   const needed = path.plans.needed_minutes_per_week;
   const recommended = needed ? options.find(o => o.minutes_per_week >= needed)?.id ?? 'intense' : 'steady';
@@ -327,7 +341,7 @@ function Schedule({answers, path, onBack, onDone}: {answers: JourneyAnswers; pat
         {plan ? <CalendarLinks plan={plan} /> : <button type="button" className="button secondary" disabled={busy} onClick={addToCalendar}>Добавить в календарь</button>}
       </div>
       <div className="journey-actions">
-        <button type="button" className="button" onClick={() => onDone(pace)}>Открыть мой путь →</button>
+        <button type="button" className="button" onClick={() => onDone(pace, days, time)}>Открыть мой путь →</button>
         <button type="button" className="link-button" onClick={onBack}>Назад</button>
       </div>
     </section>

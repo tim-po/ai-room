@@ -97,3 +97,62 @@
   .learner-surface .my-courses-button{width:100%;min-height:44px;justify-content:center;padding:4px;font-size:12px;border-radius:17px}
   .learner-surface .my-courses-button[aria-current="page"]{background:color-mix(in srgb,var(--accent) 20%,transparent);text-decoration:none}
 }
+
+/* Phones: no top header — the floating bar at the bottom is the navigation (Главная, Мой путь, Обзор, Профиль);
+   help and the theme switch live in the profile. Map nodes aren't separate GPU layers (memory on iOS). */
+.nav-profile{display:none}
+@media(max-width:800px){
+  :root .learner-surface .club-header,:root[data-glass] .learner-surface .club-header{position:static;height:0;min-height:0;padding:0;margin:0;border:0;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+  .learner-surface .club-header>.brand,.learner-surface .club-header>.header-account,.learner-surface .club-header nav>.my-courses{display:none!important}
+  :root .learner-surface .club-header nav>a.nav-profile{display:flex;gap:6px}
+  .nav-profile i{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-style:normal;font-size:12px;font-weight:850}
+  .learner-surface .shell main{padding-top:calc(16px + env(safe-area-inset-top))}
+}
+@media(max-width:800px),(pointer:coarse){.tree-node{will-change:auto}}
+
+/* Bar items: words on wide screens, icons on phones */
+.club-header nav .nav-icon{display:none}
+@media(max-width:800px){
+  .club-header nav .nav-icon{display:block;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .club-header nav .nav-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  :root .learner-surface .club-header nav>a{min-height:48px}
+  .nav-profile i{width:28px;height:28px;font-size:13px}
+  :root .learner-surface .club-header nav>a.nav-profile[aria-current="page"] i{box-shadow:0 0 0 2px var(--text)}
+}
+/* phones: one even 16px gutter on every page (the sheet's own width and margins left a wider gap on the right) */
+@media(max-width:800px){
+  :root[data-glass] .learner-surface .shell main,:root .learner-surface .shell main{max-width:none;width:auto;margin:0;
+    padding:calc(16px + env(safe-area-inset-top)) 16px calc(104px + env(safe-area-inset-bottom))}
+}
+/* Настройки on phones */
+@media(max-width:800px){
+  :root[data-glass] .learner-surface .settings h1,.settings h1{font-size:30px;margin:4px 0 6px}
+  :root[data-glass] .learner-surface .settings-form,.settings-form{margin:14px 0;padding:18px 16px}
+  .settings .lead{font-size:15px}
+  .settings .calendar-links{display:grid;gap:8px}
+  .settings .calendar-links .button{width:100%;justify-content:center}
+  .settings .plan-day-row{display:flex;flex-wrap:wrap;gap:6px}
+  .settings .actions .button{flex:1}
+  .settings-more{padding:4px 2px}
+}
+
+/* No focus outlines (the inputs keep their accent border when focused) */
+*:focus,*:focus-visible{outline:none!important}
+.plan-timeline-track:focus-visible{box-shadow:none}
+
+/* Phones: no sky scene — the same shape as a still gradient (night above, the glow of the horizon below) */
+@media(max-width:800px){
+  :root .sky,:root[data-glass] .sky{display:none!important}
+  body.learner-surface::before{content:'';position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:-1;pointer-events:none;
+    background:radial-gradient(120% 38% at 68% 78%,var(--sun-halo,transparent),transparent 70%),
+      linear-gradient(180deg,var(--sky-0,var(--bg)) 0%,var(--sky-1,var(--bg)) 30%,var(--sky-2,var(--bg)) 52%,var(--sky-3,var(--bg)) 66%,var(--sky-4,var(--bg)) 78%,var(--band-far-top,var(--bg)) 86%,var(--band-near-bottom,var(--bg)) 100%)}
+  body.learner-surface:has(.lesson-layout)::before,body.learner-surface:has(.my-path)::before{display:none}
+}
+/* no focus rings at all — on the focused element, inside it, nor the tap flash on phones */
+*{-webkit-tap-highlight-color:transparent}
+:focus *,:focus-visible *,:focus-within{outline:none!important}
+:is(.d-card,.d-top,.d-wide,.topic-tile,a,button):focus-visible :is(.d-cover,.d-poster){outline:none!important;box-shadow:none!important}
+
+/* Readability (contrast check, 4.5:1 for body text): on the light theme, secondary text is a little darker and
+   the low horizon bands of the sky a little lighter, so muted text over them stays readable */
+:root:root[data-palette="club"][data-theme="dawn"]{--muted:#424646;--band-mid-top:#c9d1d1;--band-mid-bottom:#c0c9c9;--band-near-top:#b8c2c2;--band-near-bottom:#aeb9b9}

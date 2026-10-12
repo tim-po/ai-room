@@ -190,7 +190,7 @@ export function SearchBox({variant, onDone, autoFocus, initial = ''}: {variant: 
         <svg className="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
         <input ref={input} type="search" role="combobox" aria-expanded={expanded} aria-controls={listId} aria-autocomplete="list"
           aria-activedescendant={expanded && options[active] ? optionId(active) : undefined} aria-label="Поиск по урокам, курсам и материалам"
-          placeholder={variant === 'dialog' ? 'Уроки, курсы, инструменты…' : 'Что хотите сделать с ИИ? Например, «видео» или «агент»'}
+          placeholder={variant === 'dialog' ? 'Уроки, курсы, инструменты…' : window.innerWidth < 600 ? 'Что хотите сделать с ИИ?' : 'Что хотите сделать с ИИ? Например, «видео» или «агент»'}
           value={query} maxLength={120} autoComplete="off" spellCheck={false}
           onChange={e => { setQuery(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
           onBlur={() => { if (variant === 'inline') setOpen(false); }} onKeyDown={onKeyDown} />

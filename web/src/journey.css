@@ -11,7 +11,7 @@
 .learner-surface .journey h1{margin:0;font-size:clamp(32px,4.4vw,52px);line-height:1.06;letter-spacing:-1.2px;max-width:860px}
 .journey-lead{margin:12px 0 0;max-width:720px;font-size:18px;line-height:1.6;color:var(--muted)}
 .journey-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin-top:24px}
-.journey>.journey-hello{padding-block:clamp(36px,7vh,72px)}
+.journey-stage>.journey-hello{padding-block:clamp(36px,7vh,72px)}
 .journey-hello .journey-lead{font-size:19px}
 
 /* goals */
@@ -33,7 +33,7 @@
 /* onboarding is a focused flow: no main navigation in the header until it is done, no footer */
 body:has(.journey) .club-header nav,body:has(.journey) main footer{display:none}
 /* every step on a glass card, so text never sits straight on the sky and hills */
-.journey>section{padding:clamp(22px,3.4vw,40px);border-radius:30px;background:var(--glass-strong,var(--panel));border:1px solid var(--glass-border,var(--line));
+.journey-stage>section{padding:clamp(22px,3.4vw,40px);border-radius:30px;background:var(--glass-strong,var(--panel));border:1px solid var(--glass-border,var(--line));
   -webkit-backdrop-filter:blur(22px) saturate(1.2);backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 30px 80px var(--shadow)}
 .journey-progress{margin-bottom:-6px}
 .journey .journey-lead,.journey .small,.journey .link-button{color:color-mix(in srgb,var(--text) 72%,transparent)}
@@ -285,7 +285,6 @@ a.tree-island:hover{border-style:solid;border-color:var(--accent)}
   .my-path:not(.is-plain) .my-path-map{height:calc(100% - 94px)}
   .my-path-panel{top:8px;bottom:8px;height:auto;left:12px;right:12px;width:auto}
   .my-path.is-folded .my-path-panel{top:auto;bottom:8px;height:78px;width:auto;overflow:hidden}
-  .my-path.is-open .my-path-map{visibility:hidden}
   .my-path-plan-scroll{position:absolute;top:56px;bottom:0;left:0;right:0;height:auto;box-sizing:border-box}
   .learner-surface .my-path-fold{top:8px;left:12px;right:auto;width:auto;min-height:44px;padding:0 16px;border-radius:999px;font-size:14px}
   .path-fold-desktop,.my-path-panel .plan-timeline{display:none}
@@ -454,3 +453,142 @@ a.tree-island:hover{border-style:solid;border-color:var(--accent)}
 .skill-radar-goal{transition:opacity .25s}
 .skill-radar-goal.is-dim{opacity:.18!important}
 .skill-radar-dot{fill:currentColor;stroke:var(--bg);stroke-width:2}
+
+/* Phones, «Мой путь»: the map without its toolbar, legend or course label; the folded plan is a lesson card to swipe */
+.plan-swiper{display:none}
+@media(max-width:800px){
+  .my-path-map .tree-bar-top,.my-path-map .tree-legend-box,.my-path-map .tree-here-label{display:none!important}
+  .my-path:not(.is-plain) .my-path-map{height:calc(100% - 158px)}
+  .my-path.is-folded .my-path-panel{height:150px}
+  .plan-swiper{display:grid;grid-template-rows:auto minmax(0,1fr);height:100%;background:var(--popover,var(--panel));touch-action:none}
+  .plan-swiper-track{position:relative;overflow:hidden;user-select:none;-webkit-user-select:none}
+  .plan-swiper-card{position:absolute;inset:2px 14px 12px;max-height:104px;display:grid;align-content:start;gap:4px;padding:10px 14px;border-radius:16px;
+    background:var(--soft-fill,var(--surface));border:1px solid var(--line);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+  .plan-swiper-track:active .plan-swiper-card{transition:none}
+  .plan-swiper-when{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .plan-swiper-when b{color:var(--text);font-size:13px}
+  .plan-swiper-when small{margin-left:auto;font-variant-numeric:tabular-nums}
+  .plan-swiper-dots{display:flex;gap:3px}
+  .plan-swiper-dots i{width:8px;height:8px;border-radius:50%}
+  .plan-swiper-title{font-size:15px;font-weight:750;line-height:1.3;color:var(--text);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .plan-swiper-where{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+@media(prefers-reduced-motion:reduce){.plan-swiper-card{transition:none}}
+
+/* Главная on phones: goals stacked — the radar full width with readable labels, then the goals, then the skills */
+@media(max-width:900px){
+  .dash-goals-body{grid-template-columns:minmax(0,1fr);gap:12px}
+  .dash-goals-body .skill-radar{max-width:none;width:100%;padding:0 6px;box-sizing:border-box}
+}
+@media(max-width:700px){
+  .dash-goals .skill-radar-label{font-size:18px}
+  .learner-surface .dash-goal{padding:10px}
+  .dash-goal-name{font-size:14px;align-items:flex-start}
+  .dash-goal-name i{margin-top:4px}
+  .dash-skills li{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}
+  .dash-skills .dash-skill-bar{grid-column:1/-1;grid-row:2}
+  .dash-skills small{grid-column:2;grid-row:1}
+  .dash-card{padding:16px}
+  .dash-jump,.dash-invite{padding:20px}
+}
+
+/* pulling the plan open (and closed): the card grows with the finger; the open plan slides down from its top */
+@media(max-width:800px){
+  .my-path-panel{transition:height .38s cubic-bezier(.2,.8,.2,1)}
+  .my-path.is-folded .my-path-panel{height:calc(150px + var(--pull,0px));max-height:calc(100% - 16px)}
+  .my-path.is-open .my-path-panel{top:auto;height:calc(100% - 16px)}
+  .my-path.is-pulling .my-path-panel{transition:none}
+  .learner-surface .plan-swiper-handle{display:grid;justify-items:center;gap:4px;width:100%;min-height:0;padding:10px 0 8px;border:0;border-radius:0;background:none;box-shadow:none;color:var(--muted);font:inherit;font-size:11.5px;cursor:grab}
+  .plan-swiper-handle i{display:block;width:40px;height:5px;border-radius:99px;background:color-mix(in srgb,var(--text) 35%,transparent)}
+  .learner-surface .my-path-fold{top:14px}
+  .my-path-plan-scroll{top:62px}
+}
+
+/* the plan's content fades in as the panel grows */
+@media(max-width:800px){
+  .my-path.is-open .my-path-plan-scroll,.my-path.is-open .my-path-fold{animation:plan-in .35s ease both .08s}
+}
+@keyframes plan-in{from{opacity:0;transform:translateY(12px)}}
+@media(prefers-reduced-motion:reduce){.my-path-panel{transition:none}.my-path.is-open .my-path-plan-scroll,.my-path.is-open .my-path-fold{animation:none}}
+
+/* Lessons and the map cover the sky completely: a plain page behind the text and the canvas */
+body:has(.lesson-layout),body:has(.my-path){background:var(--bg)}
+body:has(.lesson-layout) .sky,body:has(.my-path) .sky{display:none!important}
+:root[data-glass] .my-path-map .tree-viewport{background-color:var(--bg)}
+/* «Мой путь» fills the window: nothing behind it scrolls */
+html:has(.my-path),body:has(.my-path){overflow:hidden;overscroll-behavior:none}
+body:has(.my-path) footer{display:none}
+/* Главная: starts close under the header; the next steps open the page, the lesson to start on top of them */
+:root[data-glass] .learner-surface .shell main:has(> .page > .dash){padding-top:8px;margin-top:20px}
+.dash{padding-top:0;gap:14px}
+.dash-head h1{margin:0 0 2px;font-size:clamp(26px,2.6vw,34px)}
+.dash-jump-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;margin:2px 0 6px;border-radius:16px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 16%,transparent),transparent 70%),var(--soft-fill,var(--surface));border:1px solid var(--glass-border,var(--line))}
+.dash-jump-row>div{display:grid;gap:2px;min-width:0}
+.dash-jump-row small{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dash-jump-row strong{font-size:17px;line-height:1.3}
+.dash-jump-row span{font-size:13px;color:var(--muted)}
+.dash-jump-row .button{flex:none}
+@media(max-width:700px){.dash-jump-row{flex-direction:column;align-items:stretch}.dash-jump-row .button{justify-content:center}}
+:root[data-glass] .learner-surface .shell:has(.my-path),:root[data-glass] .learner-surface .shell main:has(.my-path),.learner-surface .shell main:has(.my-path){min-height:0;height:0;padding:0;margin:0;overflow:hidden}
+
+/* Onboarding: each step slides in from the side it comes from; the progress fills smoothly */
+.journey-stage{min-width:0}
+.journey-stage[data-direction=forward]{animation:step-forward .42s cubic-bezier(.2,.8,.2,1) both}
+.journey-stage[data-direction=back]{animation:step-back .42s cubic-bezier(.2,.8,.2,1) both}
+@keyframes step-forward{from{opacity:0;transform:translateX(36px)}}
+@keyframes step-back{from{opacity:0;transform:translateX(-36px)}}
+.journey-progress span{position:relative;overflow:hidden}
+.journey-progress span::after{content:'';position:absolute;inset:0;border-radius:inherit;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.journey-progress span.is-on{background:var(--track)}
+.journey-progress span.is-on::after{transform:none}
+@media(prefers-reduced-motion:reduce){.journey-stage{animation:none!important}.journey-progress span::after{transition:none}}
+/* the goal carousel: every card is solid (the theme's page colour under its panel tint), so the cards behind
+   keep their words without them showing through the one in front */
+.learner-surface .goal-ring-card{background:linear-gradient(var(--panel),var(--panel)),var(--bg)}
+.learner-surface .goal-ring-card.is-on{background:linear-gradient(color-mix(in srgb,var(--accent) 16%,var(--panel)),color-mix(in srgb,var(--accent) 16%,var(--panel))),var(--bg)}
+/* phones: no tab bar during the onboarding, and the step's main button stays in reach at the bottom */
+body:has(.journey) .club-header nav{display:none!important}
+@media(max-width:800px){
+  :root .learner-surface .shell main:has(.journey),:root[data-glass] .learner-surface .shell main:has(.journey){padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  .journey-stage>section{padding:22px 18px;border-radius:24px}
+  .journey-actions{position:sticky;bottom:0;z-index:5;margin:20px -18px -22px;padding:14px 18px calc(14px + env(safe-area-inset-bottom));
+    border-radius:0 0 24px 24px;background:var(--popover,var(--panel));box-shadow:0 -12px 24px -8px color-mix(in srgb,#000 30%,transparent);flex-wrap:nowrap}
+  .journey-actions .button{flex:1;justify-content:center}
+  .journey-actions .link-button{flex:0 1 auto;min-width:0;white-space:normal;text-align:center;line-height:1.25}
+  .journey .skill-radar-label{font-size:18px}
+  .journey-lead{font-size:16px}
+  .journey-stage h1{font-size:28px;line-height:1.15}
+}
+/* readable marks on lime chips */
+.goal-ring-chosen span{opacity:.85}
+.upcoming-body>.button{justify-self:start}
+@media(max-width:800px){.upcoming-body>.button{justify-self:stretch;justify-content:center}}
+
+/* Onboarding fits the window: the page doesn't scroll — a long step scrolls inside its card, its buttons pinned
+   at the card's bottom */
+body:has(.journey){overflow:hidden}
+:root .learner-surface .shell main:has(.journey),:root[data-glass] .learner-surface .shell main:has(.journey){margin:0 auto;padding:16px var(--sheet-pad,24px) calc(16px + env(safe-area-inset-bottom))}
+.journey{box-sizing:border-box;height:calc(100dvh - var(--header-h,0px) - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));grid-template-rows:auto auto minmax(0,1fr);align-content:start}
+.journey:not(:has(> .notice)){grid-template-rows:auto minmax(0,1fr)}
+.journey-stage{display:grid;min-height:0}
+.journey-stage>section{box-sizing:border-box;height:100%;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+.journey-level-map{top:0}
+.journey-actions{position:sticky;bottom:calc(-1 * clamp(22px,3.4vw,40px));z-index:5;margin:24px calc(-1 * clamp(22px,3.4vw,40px)) calc(-1 * clamp(22px,3.4vw,40px));
+  padding:16px clamp(22px,3.4vw,40px) clamp(18px,3vw,28px);background:var(--popover,var(--panel));border-radius:0 0 30px 30px}
+@media(max-width:800px){
+  :root .learner-surface .shell main:has(.journey),:root[data-glass] .learner-surface .shell main:has(.journey){padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))}
+  .journey{height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));gap:14px}
+  .journey-actions{bottom:-22px;margin:20px -18px -22px;padding:14px 18px 16px;border-radius:0 0 24px 24px}
+}
+:root .learner-surface .shell:has(.journey),:root[data-glass] .learner-surface .shell:has(.journey){min-height:0;padding-bottom:0}
+
+/* every step fills the window and its buttons sit at the bottom, however short the step */
+.journey-stage>section:not(.journey-level){display:flex;flex-direction:column}
+.journey-stage>section:not(.journey-level)>.journey-actions{margin-top:auto}
+.journey-stage>section:not(.journey-level)>*{flex:none}
+.journey-stage>.journey-building{justify-content:center}
+.journey-level{grid-template-rows:auto}
+.journey-level .journey-level-questions{display:flex;flex-direction:column;min-height:100%}
+.journey-level .journey-level-questions>.journey-actions{margin-top:auto}
+.goal-ring-stage{touch-action:pan-y}

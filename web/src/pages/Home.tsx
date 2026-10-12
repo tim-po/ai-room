@@ -42,7 +42,7 @@ function Welcome({data}: {data: HomeData}) {
             {start && <AppLink className="button" to={start}>Попробовать бесплатно →</AppLink>}
             <AppLink className="button secondary" to="/map">Открыть карту навыков</AppLink>
           </div>
-          <p className="small">Тестовая версия · доступ по приглашению. <AppLink to="/login">Есть приглашение — войти</AppLink></p>
+          <p className="small">Уже в клубе? <AppLink to="/login">Войти</AppLink></p>
         </div>
         <div className="welcome-topics" aria-label="Что внутри">
           {data.tree.topics.map(topic => {

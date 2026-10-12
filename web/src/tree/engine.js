@@ -34,7 +34,9 @@ export function mountTree(root, data, {fill = false, module: openModule = null, 
   const easeOut = t => 1 - Math.pow(1 - t, 3);
   const easeInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   const lerp = (a, b, t) => a + (b - a) * t;
-  const clampK = k => Math.min(1.6, Math.max(0.06, k));
+  // Phones zoom in less far: every node is drawn at the zoom, and Safari reloads a tab that runs out of memory.
+  const maxK = window.matchMedia('(max-width: 800px), (pointer: coarse)').matches ? 1.15 : 1.6;
+  const clampK = k => Math.min(maxK, Math.max(0.06, k));
   const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
   const plural = (n, one, few, many) => n % 10 === 1 && n % 100 !== 11 ? one : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many);
 

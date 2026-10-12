@@ -3,7 +3,6 @@ import {useBlocker, useLoaderData, useLocation, type LoaderFunctionArgs} from 'r
 import {ApiError, bootstrap, getJson, postJson} from '../api';
 import AssistantHandoff from '../components/AssistantHandoff';
 import {PromptPanel, Resources, RichBody, Video} from '../components/Media';
-import Outline from '../components/Outline';
 import {humanTime, plural} from '../format';
 import {AppLink} from '../Shell';
 import type {LessonData, Practice} from '../types';
@@ -129,7 +128,7 @@ function PracticePanel({data, onSaved}: {data: LessonData; onSaved: () => void})
   );
 }
 
-function Sidebar({data, points}: {data: LessonData; points: Checkpoints | null}) {
+function Sidebar({points}: {points: Checkpoints | null}) {
   return (
     <aside className="lesson-sidebar">
       {points && points.total > 0 && (
@@ -138,10 +137,6 @@ function Sidebar({data, points}: {data: LessonData; points: Checkpoints | null})
           <CheckpointList points={points} />
         </nav>
       )}
-      <details className="lesson-outline" open>
-        <summary>Программа курса</summary>
-        {data.outline && <Outline outline={data.outline} current={data.lesson.id} />}
-      </details>
     </aside>
   );
 }
@@ -179,7 +174,6 @@ function Paywall({data}: {data: LessonData}) {
           {data.free_lesson && <p className="paywall-free">Пока можно пройти бесплатный урок этого курса: <AppLink to={`/lessons/${data.free_lesson.id}`}>{data.free_lesson.title} →</AppLink></p>}
         </section>
       </article>
-      <Sidebar data={data} points={null} />
     </div>
   );
 }
@@ -210,15 +204,8 @@ function OpenLesson({data}: {data: LessonData}) {
           ? <PracticePanel data={data} onSaved={() => setPracticeSaved(true)} />
           : <AssistantHandoff data={data} section={points.titles[points.current - 1]} />}
         <FinishPanel data={data} points={points} practiceSaved={practiceSaved} />
-        <nav className="lesson-nav" aria-label="Соседние уроки курса">
-          {data.previous && <AppLink to={`/lessons/${data.previous.id}`}>← Предыдущий урок курса</AppLink>}
-          {data.following
-            ? <AppLink to={`/lessons/${data.following.id}`}>Следующий урок курса {data.following.locked ? '· клуб ' : ''}→</AppLink>
-            : <AppLink to="/profile">К моим результатам →</AppLink>}
-        </nav>
-        <p><AppLink to={`/help?lesson=${lesson.id}`}>Нужна помощь с этим уроком?</AppLink></p>
       </article>
-      <Sidebar data={data} points={points} />
+      <Sidebar points={points} />
     </div>
   );
 }
